@@ -1,11 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../features/auth/presentation/forgot_password_screen.dart';
-import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/onboarding_screen.dart';
 import '../../features/auth/presentation/pin_setup_screen.dart';
-import '../../features/auth/presentation/signup_screen.dart';
+import '../../features/auth/presentation/profile_setup_screen.dart';
 import '../../features/auth/presentation/unlock_screen.dart';
 import '../../features/admin/presentation/analysis_types_screen.dart';
 import '../../features/entry/presentation/quick_entry_screen.dart';
@@ -18,9 +16,7 @@ import '../models/user_role.dart';
 
 const _authFreeLocations = {
   '/onboarding',
-  '/login',
-  '/signup',
-  '/forgot-password',
+  '/setup-profile',
 };
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -31,7 +27,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
   String initialLocation() {
     if (!onboardingDone) return '/onboarding';
-    if (!sessionAuthenticated) return '/login';
+    if (!sessionAuthenticated) return '/setup-profile';
     if (appLock.hasPin == false) return '/pin-setup';
     if (appLock.hasPin == true && !appLock.unlocked) return '/unlock';
     return '/home';
@@ -45,9 +41,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return loc == '/onboarding' ? null : '/onboarding';
       }
       if (!sessionAuthenticated) {
-        return _authFreeLocations.contains(loc) ? null : '/login';
+        return _authFreeLocations.contains(loc) ? null : '/setup-profile';
       }
-      // Session valide mais verrouillage local (code 4 chiffres / empreinte)
+      // Profil configuré mais verrouillage local (code 4 chiffres / empreinte)
       // pas encore passé : on bloque tout le reste de l'app.
       if (appLock.hasPin == null) return null; // lecture locale en cours (quasi instantanée)
       if (appLock.hasPin == false) {
@@ -73,16 +69,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const OnboardingScreen(),
       ),
       GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
-      GoRoute(
-        path: '/signup',
-        builder: (context, state) => const SignupScreen(),
-      ),
-      GoRoute(
-        path: '/forgot-password',
-        builder: (context, state) => const ForgotPasswordScreen(),
+        path: '/setup-profile',
+        builder: (context, state) => const ProfileSetupScreen(),
       ),
       GoRoute(
         path: '/pin-setup',

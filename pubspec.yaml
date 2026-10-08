@@ -29,21 +29,19 @@ dependencies:
   intl: ^0.20.3
   uuid: ^4.5.1
 
-  # Backend partagé (mobile + future app web) : Firebase Auth + Firestore.
-  # Firestore gère lui-même le cache local et la synchronisation hors-ligne,
-  # donc plus besoin d'une base locale ni d'un service de synchro maison.
-  firebase_core: ^3.8.1
-  firebase_auth: ^5.3.4
-  cloud_firestore: ^5.5.1
-
+  # Stockage 100% local pour l'instant (pas de backend cloud configuré) :
+  # voir E:\CpfNawaraApp\README.md "Mode local actuel" pour comment brancher
+  # un backend partagé plus tard (Firebase, cf. historique git) sans tout
+  # réécrire — seule `wells_repository.dart` change.
+  sqflite: ^2.4.1
   path_provider: ^2.1.5
+  path: ^1.9.1
 
   # Export Excel + partage du fichier généré
   excel: ^4.0.6
   share_plus: ^10.1.3
 
-  # Déverrouillage rapide (code à 4 chiffres + empreinte) après une 1ère
-  # connexion email/mot de passe
+  # Déverrouillage rapide (code à 4 chiffres + empreinte)
   local_auth: ^2.3.0
   crypto: ^3.0.6
 

@@ -1,21 +1,14 @@
-import 'dart:async';
-
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
-import '../auth/auth_providers.dart';
 import '../models/analysis_record.dart';
 import '../models/analysis_type.dart';
 import '../models/well.dart';
+import 'local_database.dart';
 
-const _wellsCollection = 'wells';
-const _analysisTypesCollection = 'analysisTypes';
-const _analysisRecordsCollection = 'analysisRecords';
-
-/// État courant du périmètre "puits / types d'analyse / analyses", reflet
-/// direct des collections Firestore (dont le cache hors-ligne intégré garde
-/// l'app utilisable sans réseau).
+/// État courant du périmètre "puits / types d'analyse / analyses", reflet de
+/// la base locale (voir `local_database.dart`).
 class WellsState {
   final List<Well> wells;
   final List<AnalysisType> analysisTypes;
@@ -62,31 +55,18 @@ class PeriodProgress {
 }
 
 class WellsController extends StateNotifier<WellsState> {
-  WellsController(this._firestore) : super(WellsState.empty) {
-    _wellsSub = _firestore.collection(_wellsCollection).snapshots().listen((snap) {
-      state = state.copyWith(wells: snap.docs.map(_wellFromDoc).toList());
-    });
-    _typesSub = _firestore.collection(_analysisTypesCollection).snapshots().listen((snap) {
-      state = state.copyWith(analysisTypes: snap.docs.map(_typeFromDoc).toList());
-    });
-    _recordsSub = _firestore.collection(_analysisRecordsCollection).snapshots().listen((snap) {
-      state = state.copyWith(records: snap.docs.map(_recordFromDoc).toList());
-    });
+  WellsController() : super(WellsState.empty) {
+    _load();
   }
 
-  final FirebaseFirestore _firestore;
   static const _uuid = Uuid();
 
-  late final StreamSubscription _wellsSub;
-  late final StreamSubscription _typesSub;
-  late final StreamSubscription _recordsSub;
-
-  @override
-  void dispose() {
-    _wellsSub.cancel();
-    _typesSub.cancel();
-    _recordsSub.cancel();
-    super.dispose();
+  Future<void> _load() async {
+    final db = await LocalDatabase.instance.database;
+    final wells = (await db.query('wells')).map(_wellFromRow).toList();
+    final types = (await db.query('analysis_types')).map(_typeFromRow).toList();
+    final records = (await db.query('analysis_records')).map(_recordFromRow).toList();
+    state = WellsState(wells: wells, analysisTypes: types, records: records);
   }
 
   Well wellById(String id) => state.wells.firstWhere((w) => w.id == id);
@@ -181,10 +161,6 @@ class WellsController extends StateNotifier<WellsState> {
   }
 
   /// Ajoute (ou remplace, si [replaceId] est fourni) un enregistrement.
-  /// L'écriture Firestore est envoyée sans attendre sa confirmation réseau :
-  /// le cache hors-ligne de Firestore applique le changement localement tout
-  /// de suite (l'UI réagit immédiatement, même hors-ligne) et le synchronise
-  /// tout seul au retour du réseau.
   Future<void> addRecord({
     required String wellId,
     required String typeId,
@@ -196,75 +172,73 @@ class WellsController extends StateNotifier<WellsState> {
     String? replaceId,
   }) async {
     final id = replaceId ?? _uuid.v4();
-    unawaited(
-      _firestore.collection(_analysisRecordsCollection).doc(id).set({
-        'wellId': wellId,
-        'typeId': typeId,
+    final db = await LocalDatabase.instance.database;
+    await db.insert(
+      'analysis_records',
+      {
+        'id': id,
+        'well_id': wellId,
+        'type_id': typeId,
         'value': value,
-        'serviceKey': serviceKey,
-        'operatorName': operatorName,
-        'operatorId': operatorId,
+        'service_key': serviceKey,
+        'operator_name': operatorName,
+        'operator_id': operatorId,
         'comment': comment,
-        'recordedAt': Timestamp.fromDate(DateTime.now()),
-      }).catchError((_) {}),
+        'recorded_at': DateTime.now().toIso8601String(),
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
+    await _load();
   }
 
   /// Ajoute un nouveau type d'analyse au catalogue (paramétrage Admin).
   Future<void> addAnalysisType(AnalysisType type) async {
-    unawaited(
-      _firestore.collection(_analysisTypesCollection).doc(type.id).set({
+    final db = await LocalDatabase.instance.database;
+    await db.insert(
+      'analysis_types',
+      {
+        'id': type.id,
         'label': type.label,
         'unit': type.unit,
-        'min': type.min,
-        'max': type.max,
+        'min_value': type.min,
+        'max_value': type.max,
         'frequency': type.frequency.storageKey,
-      }).catchError((_) {}),
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
+    await _load();
   }
 
   /// Met à jour un type d'analyse existant (unité, seuils, fréquence).
   Future<void> updateAnalysisType(AnalysisType updated) => addAnalysisType(updated);
 }
 
-Well _wellFromDoc(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
-  final data = doc.data();
-  return Well(
-    id: doc.id,
-    code: data['code'] as String? ?? '',
-    name: data['name'] as String? ?? '',
-    active: data['active'] as bool? ?? true,
-  );
-}
+Well _wellFromRow(Map<String, Object?> row) => Well(
+      id: row['id'] as String,
+      code: row['code'] as String,
+      name: row['name'] as String,
+      active: (row['active'] as int) == 1,
+    );
 
-AnalysisType _typeFromDoc(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
-  final data = doc.data();
-  return AnalysisType(
-    id: doc.id,
-    label: data['label'] as String? ?? '',
-    unit: data['unit'] as String? ?? '',
-    min: (data['min'] as num?)?.toDouble() ?? 0,
-    max: (data['max'] as num?)?.toDouble() ?? 0,
-    frequency: AnalysisFrequencyX.fromStorageKey(data['frequency'] as String? ?? 'daily'),
-  );
-}
+AnalysisType _typeFromRow(Map<String, Object?> row) => AnalysisType(
+      id: row['id'] as String,
+      label: row['label'] as String,
+      unit: row['unit'] as String,
+      min: (row['min_value'] as num).toDouble(),
+      max: (row['max_value'] as num).toDouble(),
+      frequency: AnalysisFrequencyX.fromStorageKey(row['frequency'] as String),
+    );
 
-AnalysisRecord _recordFromDoc(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
-  final data = doc.data();
-  final recordedAt = data['recordedAt'];
-  return AnalysisRecord(
-    id: doc.id,
-    wellId: data['wellId'] as String? ?? '',
-    typeId: data['typeId'] as String? ?? '',
-    value: (data['value'] as num?)?.toDouble() ?? 0,
-    serviceKey: data['serviceKey'] as String? ?? '',
-    operatorName: data['operatorName'] as String? ?? '',
-    operatorId: data['operatorId'] as String?,
-    dateTime: recordedAt is Timestamp ? recordedAt.toDate() : DateTime.now(),
-    comment: data['comment'] as String?,
-  );
-}
+AnalysisRecord _recordFromRow(Map<String, Object?> row) => AnalysisRecord(
+      id: row['id'] as String,
+      wellId: row['well_id'] as String,
+      typeId: row['type_id'] as String,
+      value: (row['value'] as num).toDouble(),
+      serviceKey: row['service_key'] as String,
+      operatorName: row['operator_name'] as String,
+      operatorId: row['operator_id'] as String?,
+      dateTime: DateTime.parse(row['recorded_at'] as String),
+      comment: row['comment'] as String?,
+    );
 
-final wellsControllerProvider = StateNotifierProvider<WellsController, WellsState>((ref) {
-  return WellsController(ref.watch(firestoreProvider));
-});
+final wellsControllerProvider = StateNotifierProvider<WellsController, WellsState>((ref) => WellsController());

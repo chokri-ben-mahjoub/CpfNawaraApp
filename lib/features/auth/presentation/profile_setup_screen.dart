@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../core/auth/auth_providers.dart';
 import '../../../core/l10n/app_strings.dart';
@@ -16,30 +15,29 @@ const _serviceKeys = [
   'serviceHse',
 ];
 
-class SignupScreen extends ConsumerStatefulWidget {
-  const SignupScreen({super.key});
+/// Configuration du profil local de cet appareil (nom, service, téléphone) :
+/// une seule fois, juste après l'onboarding (mode 100% local, pas de compte
+/// cloud pour l'instant — voir README). Enchaîne ensuite sur la création du
+/// code à 4 chiffres.
+class ProfileSetupScreen extends ConsumerStatefulWidget {
+  const ProfileSetupScreen({super.key});
 
   @override
-  ConsumerState<SignupScreen> createState() => _SignupScreenState();
+  ConsumerState<ProfileSetupScreen> createState() => _ProfileSetupScreenState();
 }
 
-class _SignupScreenState extends ConsumerState<SignupScreen> {
+class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _passwordController = TextEditingController();
   String? _service;
   bool _serviceTouched = false;
   bool _loading = false;
-  bool _obscurePassword = true;
 
   @override
   void dispose() {
     _nameController.dispose();
-    _emailController.dispose();
     _phoneController.dispose();
-    _passwordController.dispose();
     super.dispose();
   }
 
@@ -50,24 +48,15 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     }
     if (!valid || _service == null) return;
 
-    final locale = ref.read(localeProvider);
-    String s(String key) => tr(locale, key);
-
     setState(() => _loading = true);
     try {
-      await ref.read(authServiceProvider).signUp(
-            email: _emailController.text.trim(),
-            password: _passwordController.text,
+      await ref.read(authServiceProvider).createProfile(
             fullName: _nameController.text.trim(),
             phone: _phoneController.text.trim(),
             serviceKey: _service!,
           );
-      // Compte créé et session ouverte dans la foulée (Firebase) : la
-      // redirection vers la création du code / l'accueil est gérée par le
-      // routeur (sessionAuthenticatedProvider), comme pour la connexion.
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s('signupError'))));
+      // La redirection vers la création du code / l'accueil est gérée par le
+      // routeur (sessionAuthenticatedProvider).
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -81,7 +70,6 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     final serviceMissing = _serviceTouched && _service == null;
 
     return Scaffold(
-      appBar: AppBar(),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
@@ -95,6 +83,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        const SizedBox(height: 12),
                         Container(
                           width: 56,
                           height: 56,
@@ -154,7 +143,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                         ),
                         const SizedBox(height: 8),
                         DropdownButtonFormField<String>(
-                          value: _service,
+                          initialValue: _service,
                           decoration: InputDecoration(
                             hintText: s('signupServiceHint'),
                             prefixIcon: const Icon(Icons.groups_outlined),
@@ -178,29 +167,6 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                         ],
                         const SizedBox(height: 18),
                         Text(
-                          s('loginEmailLabel'),
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleSmall
-                              ?.copyWith(fontWeight: FontWeight.w700),
-                        ),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                          decoration: InputDecoration(
-                            hintText: s('loginEmailHint'),
-                            prefixIcon: const Icon(Icons.mail_outline),
-                          ),
-                          validator: (value) {
-                            final v = (value ?? '').trim();
-                            if (!v.contains('@') || !v.contains('.')) return s('loginInvalidEmail');
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 18),
-                        Text(
                           s('signupPhoneLabel'),
                           style: Theme.of(context)
                               .textTheme
@@ -221,51 +187,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                             prefixIconConstraints: const BoxConstraints(minWidth: 0),
                           ),
                         ),
-                        const SizedBox(height: 18),
-                        Text(
-                          s('signupPasswordLabel'),
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleSmall
-                              ?.copyWith(fontWeight: FontWeight.w700),
-                        ),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: _passwordController,
-                          obscureText: _obscurePassword,
-                          decoration: InputDecoration(
-                            prefixIcon: const Icon(Icons.lock_outline),
-                            suffixIcon: IconButton(
-                              icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
-                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                            ),
-                          ),
-                          validator: (value) {
-                            if ((value ?? '').length < 8) return s('signupInvalidPassword');
-                            return null;
-                          },
-                        ),
                         const SizedBox(height: 16),
-                        Center(
-                          child: TextButton(
-                            onPressed: () => context.pop(),
-                            child: Text.rich(
-                              TextSpan(
-                                text: '${s('signupHaveAccount')} ',
-                                style: TextStyle(color: scheme.onSurfaceVariant),
-                                children: [
-                                  TextSpan(
-                                    text: s('signupLogin'),
-                                    style: TextStyle(
-                                      color: scheme.primary,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ),

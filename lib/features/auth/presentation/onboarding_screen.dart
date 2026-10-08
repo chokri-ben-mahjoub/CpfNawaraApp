@@ -82,6 +82,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     setState(() => _saving = true);
     await ref.read(onboardingDoneProvider.notifier).complete();
     if (!mounted) return;
-    context.go('/login');
+    context.go('/setup-profile');
   }
 }

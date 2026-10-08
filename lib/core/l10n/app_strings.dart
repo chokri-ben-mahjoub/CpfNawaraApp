@@ -42,33 +42,11 @@ final _strings = <String, Map<String, String>>{
     'fr': 'Courbes d\'évolution et alerte visuelle dès qu\'une valeur sort du seuil.',
     'en': 'Trend charts and a visual alert as soon as a value goes out of range.',
   },
-  'loginSubtitle': {
-    'fr': 'Connexion sécurisée par email',
-    'en': 'Secure sign-in with your email',
-  },
-  'loginEmailLabel': {'fr': 'Email', 'en': 'Email'},
-  'loginEmailHint': {'fr': 'nom@entreprise.com', 'en': 'name@company.com'},
-  'loginPasswordLabel': {'fr': 'Mot de passe', 'en': 'Password'},
-  'loginContinue': {'fr': 'Se connecter', 'en': 'Sign in'},
-  'loginInvalidEmail': {
-    'fr': 'Veuillez saisir une adresse email valide.',
-    'en': 'Please enter a valid email address.',
-  },
-  'loginInvalidPassword': {
-    'fr': 'Veuillez saisir votre mot de passe.',
-    'en': 'Please enter your password.',
-  },
-  'loginError': {
-    'fr': 'Email ou mot de passe incorrect.',
-    'en': 'Incorrect email or password.',
-  },
   'languageLabel': {'fr': 'Langue', 'en': 'Language'},
-  'loginNoAccount': {'fr': 'Pas encore de compte ?', 'en': "Don't have an account?"},
-  'loginCreateAccount': {'fr': 'Créer un compte', 'en': 'Create account'},
-  'signupTitle': {'fr': 'Créer un compte', 'en': 'Create your account'},
+  'signupTitle': {'fr': 'Configurez votre profil', 'en': 'Set up your profile'},
   'signupSubtitle': {
-    'fr': 'Renseigné par votre administrateur avant validation.',
-    'en': 'Reviewed by your administrator before activation.',
+    'fr': 'Ces informations identifient vos saisies dans l\'historique.',
+    'en': 'This information identifies your entries in the history.',
   },
   'signupNameLabel': {'fr': 'Nom et prénom', 'en': 'Full name'},
   'signupNameHint': {'fr': 'Ex: Ahmed Ben Salah', 'en': 'e.g. John Smith'},
@@ -93,32 +71,11 @@ final _strings = <String, Map<String, String>>{
     'fr': '8 caractères minimum.',
     'en': 'At least 8 characters.',
   },
-  'signupSubmit': {'fr': 'Créer mon compte', 'en': 'Create my account'},
-  'signupError': {
-    'fr': 'Impossible de créer le compte. Cet email est peut-être déjà utilisé.',
-    'en': 'Could not create the account. This email may already be in use.',
-  },
-  'signupHaveAccount': {'fr': 'Vous avez déjà un compte ?', 'en': 'Already have an account?'},
-  'signupLogin': {'fr': 'Se connecter', 'en': 'Sign in'},
-  'forgotPasswordLink': {'fr': 'Mot de passe oublié ?', 'en': 'Forgot password?'},
-  'forgotPasswordTitle': {'fr': 'Mot de passe oublié', 'en': 'Forgot password'},
-  'forgotPasswordSubtitle': {
-    'fr': 'Indiquez votre email, nous vous enverrons un lien pour créer un '
-        'nouveau mot de passe.',
-    'en': 'Enter your email, we\'ll send you a link to set a new password.',
-  },
-  'forgotPasswordSubmit': {'fr': 'Envoyer le lien', 'en': 'Send the link'},
-  'forgotPasswordSentTitle': {'fr': 'Email envoyé', 'en': 'Email sent'},
-  'forgotPasswordSentBody': {
-    'fr': 'Si un compte existe avec cet email, un lien de réinitialisation '
-        'vient d\'être envoyé.',
-    'en': 'If an account exists for this email, a reset link was just sent.',
-  },
-  'backToLogin': {'fr': 'Retour à la connexion', 'en': 'Back to sign in'},
+  'signupSubmit': {'fr': 'Continuer', 'en': 'Continue'},
   'pinSetupTitle': {'fr': 'Créez votre code', 'en': 'Create your code'},
   'pinSetupSubtitle': {
-    'fr': 'Ce code à 4 chiffres vous servira à déverrouiller l\'app rapidement, sans ressaisir votre mot de passe.',
-    'en': 'This 4-digit code will let you quickly unlock the app without retyping your password.',
+    'fr': 'Ce code à 4 chiffres vous servira à déverrouiller l\'app rapidement à chaque ouverture.',
+    'en': 'This 4-digit code will let you quickly unlock the app every time you open it.',
   },
   'pinSetupConfirmTitle': {'fr': 'Confirmez votre code', 'en': 'Confirm your code'},
   'pinSetupConfirmSubtitle': {
@@ -136,14 +93,9 @@ final _strings = <String, Map<String, String>>{
     'en': 'Unlock Well Tracker',
   },
   'unlockWrongPin': {'fr': 'Code incorrect, réessayez.', 'en': 'Incorrect code, try again.'},
-  'unlockForgotPin': {'fr': 'Code oublié ? Se reconnecter', 'en': 'Forgot your code? Sign in again'},
+  'unlockForgotPin': {'fr': 'Code oublié ? En créer un nouveau', 'en': 'Forgot your code? Create a new one'},
   'accountChangePin': {'fr': 'Modifier mon code', 'en': 'Change my code'},
-  'homeWelcome': {'fr': 'Connecté avec succès', 'en': 'Signed in successfully'},
-  'homeSubtitle': {
-    'fr': 'La partie tableau de bord (puits, analyses, historique) arrive ensuite.',
-    'en': 'The dashboard (wells, analyses, history) comes next.',
-  },
-  'logout': {'fr': 'Se déconnecter', 'en': 'Sign out'},
+  'logout': {'fr': 'Réinitialiser mon profil', 'en': 'Reset my profile'},
 
   // Navigation
   'navToday': {'fr': "Aujourd'hui", 'en': 'Today'},
@@ -307,8 +259,8 @@ final _strings = <String, Map<String, String>>{
   'accountTitle': {'fr': 'Compte', 'en': 'Account'},
   'accountRoleLabel': {'fr': 'Rôle', 'en': 'Role'},
   'accountRoleHint': {
-    'fr': 'Géré par un administrateur depuis la base de données.',
-    'en': 'Managed by an administrator from the database.',
+    'fr': 'Accès complet (mode local mono-appareil).',
+    'en': 'Full access (local single-device mode).',
   },
   'accountLanguageLabel': {'fr': 'Langue', 'en': 'Language'},
   'accountAdminSettings': {'fr': 'Paramètres (types & seuils)', 'en': 'Settings (types & thresholds)'},

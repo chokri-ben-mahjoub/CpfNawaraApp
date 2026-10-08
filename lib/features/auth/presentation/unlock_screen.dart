@@ -12,8 +12,7 @@ import 'widgets/numeric_keypad.dart';
 const _codeLength = 4;
 
 /// Déverrouillage rapide à chaque réouverture de l'app : code à 4 chiffres
-/// ou empreinte, sans redemander l'email/mot de passe (la session Firebase
-/// reste valide en arrière-plan).
+/// ou empreinte.
 class UnlockScreen extends ConsumerStatefulWidget {
   const UnlockScreen({super.key});
 
@@ -154,10 +153,7 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> with SingleTickerPr
               ),
               const SizedBox(height: 16),
               TextButton(
-                onPressed: () async {
-                  await ref.read(appLockProvider.notifier).clearPin();
-                  await ref.read(authServiceProvider).signOut();
-                },
+                onPressed: () => ref.read(appLockProvider.notifier).clearPin(),
                 child: Text(s('unlockForgotPin'), style: TextStyle(color: scheme.onSurfaceVariant)),
               ),
             ],

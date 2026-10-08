@@ -12,16 +12,9 @@ String _pinKey(String userId) => 'app_lock_pin_$userId';
 
 String _hashPin(String userId, String pin) => sha256.convert(utf8.encode('$userId:$pin')).toString();
 
-/// Identifiant de l'utilisateur Firebase courant, disponible dès que la
-/// session est restaurée (sans attendre le chargement du profil distant) :
-/// c'est ce qui permet au déverrouillage par code de fonctionner hors-ligne.
-final currentUserIdProvider = Provider<String?>((ref) {
-  final auth = ref.watch(authStateChangesProvider);
-  return auth.maybeWhen(
-    data: (user) => user?.uid,
-    orElse: () => ref.read(firebaseAuthProvider).currentUser?.uid,
-  );
-});
+/// Identifiant du profil local courant (voir `auth_providers.dart`) : c'est
+/// à cet identifiant qu'est rattaché le code à 4 chiffres.
+final currentUserIdProvider = Provider<String?>((ref) => ref.watch(profileProvider)?.id);
 
 class AppLockState {
   /// `null` tant qu'on n'a pas encore vérifié si un code existe pour cet
@@ -37,10 +30,10 @@ class AppLockState {
   static const loading = AppLockState(hasPin: null, unlocked: false);
 }
 
-/// Déverrouillage rapide de l'app (code à 4 chiffres + empreinte), posé
-/// au-dessus d'une session Firebase déjà valide : l'utilisateur ne retape son
-/// email/mot de passe qu'une fois, puis déverrouille localement à chaque
-/// réouverture.
+/// Déverrouillage rapide de l'app (code à 4 chiffres + empreinte) : une fois
+/// le profil local configuré, l'app se reverrouille à chaque réouverture et
+/// se déverrouille avec ce code (ou l'empreinte) plutôt qu'en redemandant la
+/// configuration complète.
 class AppLockController extends StateNotifier<AppLockState> {
   AppLockController(this._ref) : super(AppLockState.loading) {
     _sub = _ref.listen<String?>(currentUserIdProvider, (previous, next) {
@@ -89,8 +82,8 @@ class AppLockController extends StateNotifier<AppLockState> {
     if (state.hasPin == true) state = state.copyWith(unlocked: false);
   }
 
-  /// Oublie le code enregistré (ex: déconnexion explicite) : la prochaine
-  /// connexion devra passer par email + mot de passe puis redéfinir un code.
+  /// Oublie le code enregistré (ex: "code oublié ?") : l'app redemande d'en
+  /// créer un nouveau avant de continuer.
   Future<void> clearPin() async {
     final userId = _userId;
     if (userId == null) return;
