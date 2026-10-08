@@ -1,0 +1,190 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../core/data/wells_repository.dart';
+import '../../../core/l10n/app_strings.dart';
+import '../../../core/models/well.dart';
+import '../../../core/theme/app_theme.dart';
+
+class WellsListScreen extends ConsumerStatefulWidget {
+  const WellsListScreen({super.key});
+
+  @override
+  ConsumerState<WellsListScreen> createState() => _WellsListScreenState();
+}
+
+class _WellsListScreenState extends ConsumerState<WellsListScreen> {
+  final _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final locale = ref.watch(localeProvider);
+    final controller = ref.read(wellsControllerProvider.notifier);
+    final wells = ref.watch(wellsControllerProvider).wells;
+    String s(String key) => tr(locale, key);
+
+    final filtered = wells.where((w) {
+      final q = _query.trim().toLowerCase();
+      if (q.isEmpty) return true;
+      return w.name.toLowerCase().contains(q) || w.code.toLowerCase().contains(q);
+    }).toList();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextField(
+            controller: _searchController,
+            onChanged: (v) => setState(() => _query = v),
+            decoration: InputDecoration(
+              hintText: s('wellsSearchHint'),
+              prefixIcon: const Icon(Icons.search),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: filtered.isEmpty
+                ? Center(
+                    child: Text(
+                      s('wellsEmpty'),
+                      style: TextStyle(color: scheme.onSurfaceVariant),
+                    ),
+                  )
+                : ListView.separated(
+                    itemCount: filtered.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, i) {
+                      final well = filtered[i];
+                      final (done, total) = controller.todayProgress(well.id);
+                      return _WellCard(
+                        well: well,
+                        done: done,
+                        total: total,
+                        onTap: () => context.push('/wells/${well.id}'),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WellCard extends ConsumerWidget {
+  final Well well;
+  final int done;
+  final int total;
+  final VoidCallback onTap;
+
+  const _WellCard({
+    required this.well,
+    required this.done,
+    required this.total,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final locale = ref.watch(localeProvider);
+    String s(String key) => tr(locale, key);
+    final progressColor = total == 0
+        ? scheme.onSurfaceVariant
+        : done == total
+            ? Colors.green.shade600
+            : accentColor;
+
+    return Card(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: (well.active ? accentColor : scheme.outline).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  Icons.water_drop_outlined,
+                  color: well.active ? accentColor : scheme.outline,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      well.name,
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      well.code,
+                      style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        _StatusChip(
+                          label: s(well.active ? 'wellStatusActive' : 'wellStatusStopped'),
+                          color: well.active ? Colors.green.shade600 : scheme.outline,
+                        ),
+                        if (total > 0) ...[
+                          const SizedBox(width: 8),
+                          Text(
+                            '$done/$total ${s('wellsTodaySuffix')}',
+                            style: TextStyle(fontSize: 12, color: progressColor, fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StatusChip extends StatelessWidget {
+  final String label;
+  final Color color;
+
+  const _StatusChip({required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(100),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color),
+      ),
+    );
+  }
+}
