@@ -12,13 +12,39 @@ extension AnalysisFrequencyX on AnalysisFrequency {
         return 'frequencyMonthly';
     }
   }
+
+  /// Valeur stockée en base (locale et Firestore), stable indépendamment de la
+  /// langue ou de l'ordre de l'enum.
+  String get storageKey {
+    switch (this) {
+      case AnalysisFrequency.daily:
+        return 'daily';
+      case AnalysisFrequency.weekly:
+        return 'weekly';
+      case AnalysisFrequency.monthly:
+        return 'monthly';
+    }
+  }
+
+  static AnalysisFrequency fromStorageKey(String key) {
+    switch (key) {
+      case 'weekly':
+        return AnalysisFrequency.weekly;
+      case 'monthly':
+        return AnalysisFrequency.monthly;
+      case 'daily':
+      default:
+        return AnalysisFrequency.daily;
+    }
+  }
 }
 
 class AnalysisType {
   final String id;
 
-  /// Clé de traduction (voir `app_strings.dart`), ex: `analysisBsw`.
-  final String labelKey;
+  /// Nom affiché (ex: "BSW", "Salinité") : donnée venant de la base, pas une
+  /// clé de traduction — les types d'analyse sont paramétrables par l'Admin.
+  final String label;
   final String unit;
   final double min;
   final double max;
@@ -26,7 +52,7 @@ class AnalysisType {
 
   const AnalysisType({
     required this.id,
-    required this.labelKey,
+    required this.label,
     required this.unit,
     required this.min,
     required this.max,

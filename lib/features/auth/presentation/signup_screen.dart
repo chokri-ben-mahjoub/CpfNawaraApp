@@ -26,28 +26,51 @@ class SignupScreen extends ConsumerStatefulWidget {
 class _SignupScreenState extends ConsumerState<SignupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _passwordController = TextEditingController();
   String? _service;
   bool _serviceTouched = false;
+  bool _loading = false;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
     _nameController.dispose();
+    _emailController.dispose();
     _phoneController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     final valid = _formKey.currentState!.validate();
     if (_service == null) {
       setState(() => _serviceTouched = true);
     }
     if (!valid || _service == null) return;
 
-    ref.read(pendingNameProvider.notifier).state = _nameController.text.trim();
-    ref.read(pendingServiceProvider.notifier).state = _service;
-    ref.read(pendingPhoneProvider.notifier).state = _phoneController.text.trim();
-    context.push('/login/code');
+    final locale = ref.read(localeProvider);
+    String s(String key) => tr(locale, key);
+
+    setState(() => _loading = true);
+    try {
+      await ref.read(authServiceProvider).signUp(
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+            fullName: _nameController.text.trim(),
+            phone: _phoneController.text.trim(),
+            serviceKey: _service!,
+          );
+      // Compte créé et session ouverte dans la foulée (Firebase) : la
+      // redirection vers la création du code / l'accueil est gérée par le
+      // routeur (sessionAuthenticatedProvider), comme pour la connexion.
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s('signupError'))));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override
@@ -146,9 +169,39 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                                 _serviceTouched = true;
                               }),
                         ),
+                        if (serviceMissing) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            s('signupInvalidService'),
+                            style: TextStyle(color: scheme.error, fontSize: 12),
+                          ),
+                        ],
                         const SizedBox(height: 18),
                         Text(
-                          s('loginPhoneLabel'),
+                          s('loginEmailLabel'),
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                          decoration: InputDecoration(
+                            hintText: s('loginEmailHint'),
+                            prefixIcon: const Icon(Icons.mail_outline),
+                          ),
+                          validator: (value) {
+                            final v = (value ?? '').trim();
+                            if (!v.contains('@') || !v.contains('.')) return s('loginInvalidEmail');
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 18),
+                        Text(
+                          s('signupPhoneLabel'),
                           style: Theme.of(context)
                               .textTheme
                               .titleSmall
@@ -167,19 +220,31 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                             ),
                             prefixIconConstraints: const BoxConstraints(minWidth: 0),
                           ),
+                        ),
+                        const SizedBox(height: 18),
+                        Text(
+                          s('signupPasswordLabel'),
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _passwordController,
+                          obscureText: _obscurePassword,
+                          decoration: InputDecoration(
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            suffixIcon: IconButton(
+                              icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                            ),
+                          ),
                           validator: (value) {
-                            final digits = (value ?? '').replaceAll(RegExp(r'\D'), '');
-                            if (digits.length < 8) return s('loginInvalidPhone');
+                            if ((value ?? '').length < 8) return s('signupInvalidPassword');
                             return null;
                           },
                         ),
-                        if (serviceMissing) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            s('signupInvalidService'),
-                            style: TextStyle(color: scheme.error, fontSize: 12),
-                          ),
-                        ],
                         const SizedBox(height: 16),
                         Center(
                           child: TextButton(
@@ -209,7 +274,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   width: double.infinity,
                   height: 54,
                   child: ElevatedButton(
-                    onPressed: _submit,
+                    onPressed: _loading ? null : _submit,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: scheme.primary,
                       foregroundColor: scheme.onPrimary,
@@ -217,10 +282,16 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                         borderRadius: BorderRadius.circular(30),
                       ),
                     ),
-                    child: Text(
-                      s('signupSubmit'),
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
+                    child: _loading
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white),
+                          )
+                        : Text(
+                            s('signupSubmit'),
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
                   ),
                 ),
               ],

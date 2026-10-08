@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../core/data/wells_repository.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/analysis_type.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/utils/id_generator.dart';
+
+const _uuid = Uuid();
 
 class AnalysisTypesScreen extends ConsumerWidget {
   const AnalysisTypesScreen({super.key});
@@ -33,7 +35,7 @@ class AnalysisTypesScreen extends ConsumerWidget {
           return Card(
             child: ListTile(
               leading: const Icon(Icons.science_outlined, color: accentColor),
-              title: Text('${s(type.labelKey)} (${type.unit})', style: const TextStyle(fontWeight: FontWeight.w700)),
+              title: Text('${type.label} (${type.unit})', style: const TextStyle(fontWeight: FontWeight.w700)),
               subtitle: Text(
                 '${type.min} – ${type.max} ${type.unit} · ${s(type.frequency.labelKey)}',
                 style: TextStyle(color: scheme.onSurfaceVariant),
@@ -105,8 +107,8 @@ class _AnalysisTypeFormState extends ConsumerState<_AnalysisTypeForm> {
 
     if (_isNew) {
       controller.addAnalysisType(AnalysisType(
-        id: newLocalId(),
-        labelKey: _nameController.text.trim(),
+        id: _uuid.v4(),
+        label: _nameController.text.trim(),
         unit: _unitController.text.trim(),
         min: min,
         max: max,
@@ -116,7 +118,7 @@ class _AnalysisTypeFormState extends ConsumerState<_AnalysisTypeForm> {
     } else {
       controller.updateAnalysisType(AnalysisType(
         id: widget.existing!.id,
-        labelKey: widget.existing!.labelKey,
+        label: widget.existing!.label,
         unit: _unitController.text.trim(),
         min: min,
         max: max,
@@ -161,7 +163,7 @@ class _AnalysisTypeFormState extends ConsumerState<_AnalysisTypeForm> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Text(
-                  s(widget.existing!.labelKey),
+                  widget.existing!.label,
                   style: TextStyle(color: scheme.onSurfaceVariant, fontWeight: FontWeight.w600),
                 ),
               ),

@@ -8,6 +8,28 @@ import '../../auth/presentation/widgets/language_switch.dart';
 import '../../dashboard/presentation/dashboard_screen.dart';
 import '../../wells/presentation/wells_list_screen.dart';
 
+/// Action d'export Excel disponible dans l'AppBar pour les onglets qui ont
+/// quelque chose à exporter (tableau de bord, alertes).
+Widget? _exportAction(BuildContext context, WidgetRef ref, int index) {
+  Future<void> Function()? action;
+  switch (index) {
+    case 0:
+      action = () => exportDashboardPeriod(ref, context);
+      break;
+    case 1:
+      action = () => exportAlerts(ref, context);
+      break;
+    default:
+      return null;
+  }
+  final locale = ref.watch(localeProvider);
+  return IconButton(
+    tooltip: tr(locale, 'exportTooltip'),
+    icon: const Icon(Icons.ios_share_outlined),
+    onPressed: action,
+  );
+}
+
 final homeTabIndexProvider = StateProvider<int>((ref) => 0);
 
 const _tabTitleKeys = ['dashboardTitle', 'navAlerts', 'wellsTitle', 'navAccount'];
@@ -26,8 +48,9 @@ class HomeShell extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(s(_tabTitleKeys[index])),
-        actions: const [
-          Padding(
+        actions: [
+          if (_exportAction(context, ref, index) case final action?) action,
+          const Padding(
             padding: EdgeInsets.only(right: 12),
             child: Center(child: LanguageSwitch()),
           ),

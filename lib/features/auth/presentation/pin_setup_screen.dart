@@ -2,40 +2,33 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/auth/auth_providers.dart';
+import '../../../core/auth/app_lock.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/theme/app_theme.dart';
 import 'widgets/numeric_keypad.dart';
 
 const _codeLength = 4;
 
-/// Ce que doit déclencher la vérification du code une fois les 4 chiffres
-/// corrects : ouvrir la session, ou enchaîner sur la saisie d'un nouveau
-/// mot de passe (parcours "mot de passe oublié").
-enum CodePurpose { login, passwordReset }
-
-class CodeScreen extends ConsumerStatefulWidget {
-  final CodePurpose purpose;
-
-  const CodeScreen({super.key, this.purpose = CodePurpose.login});
+/// Première définition du code à 4 chiffres après une connexion email + mot
+/// de passe : ensuite, l'app se déverrouille avec ce code (ou l'empreinte)
+/// sans redemander l'email/mot de passe.
+class PinSetupScreen extends ConsumerStatefulWidget {
+  const PinSetupScreen({super.key});
 
   @override
-  ConsumerState<CodeScreen> createState() => _CodeScreenState();
+  ConsumerState<PinSetupScreen> createState() => _PinSetupScreenState();
 }
 
-class _CodeScreenState extends ConsumerState<CodeScreen>
-    with SingleTickerProviderStateMixin {
+class _PinSetupScreenState extends ConsumerState<PinSetupScreen> with SingleTickerProviderStateMixin {
   final List<String> _digits = [];
+  String? _firstPin;
   String? _error;
   late final AnimationController _shakeController;
 
   @override
   void initState() {
     super.initState();
-    _shakeController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 400),
-    );
+    _shakeController = AnimationController(vsync: this, duration: const Duration(milliseconds: 400));
   }
 
   @override
@@ -62,18 +55,27 @@ class _CodeScreenState extends ConsumerState<CodeScreen>
 
   Future<void> _onComplete() async {
     final entered = _digits.join();
-    if (verifyLoginCode(entered)) {
-      if (widget.purpose == CodePurpose.passwordReset) {
-        context.push('/forgot-password/reset');
-      } else {
-        ref.read(sessionAuthenticatedProvider.notifier).state = true;
-      }
+    if (_firstPin == null) {
+      setState(() {
+        _firstPin = entered;
+        _digits.clear();
+      });
+      return;
+    }
+    if (entered == _firstPin) {
+      await ref.read(appLockProvider.notifier).setPin(entered);
+      if (!mounted) return;
+      // 1ère définition (juste après connexion) : le routeur bascule seul
+      // vers /home. Changement volontaire depuis le compte : on revient en
+      // arrière nous-mêmes.
+      if (context.canPop()) context.pop();
       return;
     }
     await _shakeController.forward(from: 0);
     final locale = ref.read(localeProvider);
     setState(() {
-      _error = tr(locale, 'codeError');
+      _error = tr(locale, 'pinMismatch');
+      _firstPin = null;
       _digits.clear();
     });
   }
@@ -82,8 +84,8 @@ class _CodeScreenState extends ConsumerState<CodeScreen>
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final locale = ref.watch(localeProvider);
-    final phone = ref.watch(pendingPhoneProvider) ?? '';
     String s(String key) => tr(locale, key);
+    final confirming = _firstPin != null;
 
     return Scaffold(
       appBar: AppBar(),
@@ -96,36 +98,21 @@ class _CodeScreenState extends ConsumerState<CodeScreen>
               Container(
                 width: 64,
                 height: 64,
-                decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.sms_outlined, color: accentColor, size: 28),
+                decoration: BoxDecoration(color: accentColor.withValues(alpha: 0.12), shape: BoxShape.circle),
+                child: const Icon(Icons.pin_outlined, color: accentColor, size: 28),
               ),
               const SizedBox(height: 20),
               Text(
-                s('codeTitle'),
-                style: Theme.of(context)
-                    .textTheme
-                    .titleLarge
-                    ?.copyWith(fontWeight: FontWeight.w700),
+                confirming ? s('pinSetupConfirmTitle') : s('pinSetupTitle'),
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 8),
               Text(
-                '${s('codeSubtitle')}+216 $phone',
+                confirming ? s('pinSetupConfirmSubtitle') : s('pinSetupSubtitle'),
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
               ),
-              TextButton(
-                onPressed: () => context.pop(),
-                child: Text(
-                  '${s('codeWrongNumber')} ${s('codeChangeNumber')}',
-                  style: TextStyle(color: scheme.primary, fontWeight: FontWeight.w600),
-                ),
-              ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
               AnimatedBuilder(
                 animation: _shakeController,
                 builder: (context, child) {
@@ -143,14 +130,8 @@ class _CodeScreenState extends ConsumerState<CodeScreen>
                         height: 16,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: i < _digits.length
-                              ? accentColor
-                              : scheme.surfaceContainerHigh,
-                          border: Border.all(
-                            color: i < _digits.length
-                                ? accentColor
-                                : scheme.outlineVariant,
-                          ),
+                          color: i < _digits.length ? accentColor : scheme.surfaceContainerHigh,
+                          border: Border.all(color: i < _digits.length ? accentColor : scheme.outlineVariant),
                         ),
                       ),
                   ],
@@ -159,20 +140,11 @@ class _CodeScreenState extends ConsumerState<CodeScreen>
               const SizedBox(height: 16),
               SizedBox(
                 height: 20,
-                child: _error != null
-                    ? Text(
-                        _error!,
-                        style: TextStyle(color: scheme.error, fontSize: 13),
-                      )
-                    : null,
+                child: _error != null ? Text(_error!, style: TextStyle(color: scheme.error, fontSize: 13)) : null,
               ),
               const Spacer(),
               NumericKeypad(onDigit: _onDigit, onBackspace: _onBackspace),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: () {},
-                child: Text(s('codeResend'), style: TextStyle(color: scheme.onSurfaceVariant)),
-              ),
+              const SizedBox(height: 24),
             ],
           ),
         ),

@@ -16,19 +16,37 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _phoneController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  bool _loading = false;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
-    _phoneController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    ref.read(pendingPhoneProvider.notifier).state = _phoneController.text.trim();
-    context.push('/login/code');
+    final locale = ref.read(localeProvider);
+    String s(String key) => tr(locale, key);
+
+    setState(() => _loading = true);
+    try {
+      await ref.read(authServiceProvider).signIn(
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+          );
+      // La redirection vers /home est gérée par le routeur (sessionAuthenticatedProvider).
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s('loginError'))));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override
@@ -92,22 +110,43 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ),
                         const SizedBox(height: 12),
+                        Text(
+                          s('loginEmailLabel'),
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 8),
                         TextFormField(
-                          controller: _phoneController,
-                          keyboardType: TextInputType.phone,
-                          style: const TextStyle(fontWeight: FontWeight.w600, letterSpacing: 0.5),
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
                           decoration: InputDecoration(
-                            labelText: s('loginPhoneLabel'),
-                            hintText: s('loginPhoneHint'),
-                            prefixIcon: const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 14),
-                              child: Text('+216', style: TextStyle(fontWeight: FontWeight.w600)),
-                            ),
-                            prefixIconConstraints: const BoxConstraints(minWidth: 0),
+                            hintText: s('loginEmailHint'),
+                            prefixIcon: const Icon(Icons.mail_outline),
                           ),
                           validator: (value) {
-                            final digits = (value ?? '').replaceAll(RegExp(r'\D'), '');
-                            if (digits.length < 8) return s('loginInvalidPhone');
+                            final v = (value ?? '').trim();
+                            if (!v.contains('@') || !v.contains('.')) return s('loginInvalidEmail');
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                          s('loginPasswordLabel'),
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _passwordController,
+                          obscureText: _obscurePassword,
+                          decoration: InputDecoration(
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            suffixIcon: IconButton(
+                              icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                            ),
+                          ),
+                          validator: (value) {
+                            if ((value ?? '').isEmpty) return s('loginInvalidPassword');
                             return null;
                           },
                           onFieldSubmitted: (_) => _submit(),
@@ -123,17 +162,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            s('loginMultiNumberHint'),
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: scheme.onSurfaceVariant,
-                                ),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 16),
                       ],
                     ),
                   ),
@@ -142,7 +171,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   width: double.infinity,
                   height: 54,
                   child: ElevatedButton(
-                    onPressed: _submit,
+                    onPressed: _loading ? null : _submit,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: scheme.primary,
                       foregroundColor: scheme.onPrimary,
@@ -150,10 +179,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         borderRadius: BorderRadius.circular(30),
                       ),
                     ),
-                    child: Text(
-                      s('loginContinue'),
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
+                    child: _loading
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white),
+                          )
+                        : Text(
+                            s('loginContinue'),
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
                   ),
                 ),
                 Center(

@@ -1,14 +1,93 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/auth/auth_providers.dart';
 import '../../../core/data/wells_repository.dart';
+import '../../../core/export/excel_exporter.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/analysis_type.dart';
 import '../../../core/models/user_role.dart';
 import '../../../core/models/well.dart';
 import '../../../core/theme/app_theme.dart';
+
+enum DashboardPeriod { day, week, month }
+
+final dashboardPeriodProvider = StateProvider<DashboardPeriod>((ref) => DashboardPeriod.day);
+
+/// Début de la période (inclus) pour une vue jour/semaine/mois, la fin étant
+/// toujours "aujourd'hui" (on ne calcule que ce qui est déjà passé).
+DateTime periodStart(DashboardPeriod period, DateTime today) {
+  switch (period) {
+    case DashboardPeriod.day:
+      return today;
+    case DashboardPeriod.week:
+      return today.subtract(Duration(days: today.weekday - 1));
+    case DashboardPeriod.month:
+      return DateTime(today.year, today.month, 1);
+  }
+}
+
+/// Exporte en Excel toutes les analyses des puits actifs sur la période
+/// actuellement sélectionnée dans le tableau de bord.
+Future<void> exportDashboardPeriod(WidgetRef ref, BuildContext context) async {
+  final locale = ref.read(localeProvider);
+  String s(String key) => tr(locale, key);
+  final messenger = ScaffoldMessenger.of(context);
+
+  final data = ref.read(wellsControllerProvider);
+  final controller = ref.read(wellsControllerProvider.notifier);
+  final period = ref.read(dashboardPeriodProvider);
+  final today = DateTime.now();
+  final start = periodStart(period, today);
+
+  final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
+  final rows = <List<String>>[];
+  for (final well in data.wells) {
+    for (final record in controller.recordsForWell(well.id)) {
+      final day = DateTime(record.dateTime.year, record.dateTime.month, record.dateTime.day);
+      if (day.isBefore(DateTime(start.year, start.month, start.day))) continue;
+      final type = controller.typeById(record.typeId);
+      rows.add([
+        dateFormat.format(record.dateTime),
+        '${well.name} (${well.code})',
+        type.label,
+        record.value.toString(),
+        type.unit,
+        s(record.serviceKey),
+        record.operatorName,
+        record.comment ?? '',
+      ]);
+    }
+  }
+
+  if (rows.isEmpty) {
+    messenger.showSnackBar(SnackBar(content: Text(s('exportEmpty'))));
+    return;
+  }
+
+  messenger.showSnackBar(SnackBar(content: Text(s('exportStarted'))));
+  try {
+    final suffix = DateFormat('yyyyMMdd_HHmm').format(today);
+    await ExcelExporter.exportAndShare(
+      fileName: 'analyses_$suffix.xlsx',
+      headers: [
+        s('colDate'),
+        s('colWell'),
+        s('colType'),
+        s('colValue'),
+        s('colUnit'),
+        s('colService'),
+        s('colOperator'),
+        s('colComment'),
+      ],
+      rows: rows,
+    );
+  } catch (_) {
+    messenger.showSnackBar(SnackBar(content: Text(s('exportError'))));
+  }
+}
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -17,23 +96,14 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     final locale = ref.watch(localeProvider);
-    final name = ref.watch(pendingNameProvider);
+    final name = ref.watch(profileProvider)?.fullName;
     final data = ref.watch(wellsControllerProvider);
     final controller = ref.read(wellsControllerProvider.notifier);
+    final period = ref.watch(dashboardPeriodProvider);
     String s(String key) => tr(locale, key);
 
     final today = DateTime.now();
-    final dueTypes = data.analysisTypes.where((t) => t.isDueOn(today)).toList();
     final activeWells = data.wells.where((w) => w.active).toList();
-
-    var totalDue = 0;
-    var totalDone = 0;
-    for (final well in activeWells) {
-      for (final type in dueTypes) {
-        totalDue++;
-        if (controller.statusFor(well.id, type.id, now: today) == DailyStatus.done) totalDone++;
-      }
-    }
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -45,19 +115,180 @@ class DashboardScreen extends ConsumerWidget {
         const SizedBox(height: 4),
         Text(s('dashboardSummary'), style: TextStyle(color: scheme.onSurfaceVariant)),
         const SizedBox(height: 16),
-        _ProgressBanner(done: totalDone, total: totalDue),
-        const SizedBox(height: 20),
-        if (totalDue == 0)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 40),
-            child: Center(
-              child: Text(s('dashboardEmpty'), style: TextStyle(color: scheme.onSurfaceVariant)),
-            ),
-          )
+        SegmentedButton<DashboardPeriod>(
+          segments: [
+            ButtonSegment(value: DashboardPeriod.day, label: Text(s('dashboardPeriodDay'))),
+            ButtonSegment(value: DashboardPeriod.week, label: Text(s('dashboardPeriodWeek'))),
+            ButtonSegment(value: DashboardPeriod.month, label: Text(s('dashboardPeriodMonth'))),
+          ],
+          selected: {period},
+          onSelectionChanged: (selection) =>
+              ref.read(dashboardPeriodProvider.notifier).state = selection.first,
+        ),
+        const SizedBox(height: 16),
+        if (period == DashboardPeriod.day)
+          _DayView(wells: activeWells, data: data, controller: controller, today: today)
         else
-          for (final well in activeWells)
-            _WellDashboardSection(well: well, dueTypes: dueTypes, today: today),
+          _PeriodView(
+            wells: activeWells,
+            controller: controller,
+            start: periodStart(period, today),
+            end: today,
+          ),
       ],
+    );
+  }
+}
+
+class _DayView extends StatelessWidget {
+  final List<Well> wells;
+  final WellsState data;
+  final WellsController controller;
+  final DateTime today;
+
+  const _DayView({required this.wells, required this.data, required this.controller, required this.today});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer(builder: (context, ref, _) {
+      final locale = ref.watch(localeProvider);
+      String s(String key) => tr(locale, key);
+      final dueTypes = data.analysisTypes.where((t) => t.isDueOn(today)).toList();
+
+      var totalDue = 0;
+      var totalDone = 0;
+      for (final well in wells) {
+        for (final type in dueTypes) {
+          totalDue++;
+          if (controller.statusFor(well.id, type.id, now: today) == DailyStatus.done) totalDone++;
+        }
+      }
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _ProgressBanner(done: totalDone, total: totalDue, allDoneKey: 'dashboardAllDone'),
+          const SizedBox(height: 20),
+          if (totalDue == 0)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 40),
+              child: Center(
+                child: Text(s('dashboardEmpty'), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+              ),
+            )
+          else
+            for (final well in wells)
+              _WellDashboardSection(well: well, dueTypes: dueTypes, today: today),
+        ],
+      );
+    });
+  }
+}
+
+class _PeriodView extends ConsumerWidget {
+  final List<Well> wells;
+  final WellsController controller;
+  final DateTime start;
+  final DateTime end;
+
+  const _PeriodView({required this.wells, required this.controller, required this.start, required this.end});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    var totalDone = 0;
+    var totalExpected = 0;
+    final progresses = <Well, PeriodProgress>{};
+    for (final well in wells) {
+      final progress = controller.periodProgress(well.id, start, end);
+      progresses[well] = progress;
+      totalDone += progress.done;
+      totalExpected += progress.total;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _ProgressBanner(done: totalDone, total: totalExpected, allDoneKey: 'dashboardPeriodAllDone'),
+        const SizedBox(height: 20),
+        for (final well in wells) _PeriodWellCard(well: well, progress: progresses[well]!),
+      ],
+    );
+  }
+}
+
+class _PeriodWellCard extends ConsumerWidget {
+  final Well well;
+  final PeriodProgress progress;
+
+  const _PeriodWellCard({required this.well, required this.progress});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final locale = ref.watch(localeProvider);
+    String s(String key) => tr(locale, key);
+    final dateFormat = DateFormat('d MMM', locale.languageCode);
+    final ratio = progress.total == 0 ? 1.0 : progress.done / progress.total;
+    final color = progress.missing.isEmpty ? Colors.green.shade600 : accentColor;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              InkWell(
+                onTap: () => context.push('/wells/${well.id}'),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text('${well.name} · ${well.code}', style: const TextStyle(fontWeight: FontWeight.w700)),
+                    ),
+                    Text(
+                      '${progress.done}/${progress.total} ${s('dashboardPeriodDone')}',
+                      style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(100),
+                child: LinearProgressIndicator(
+                  value: ratio,
+                  minHeight: 6,
+                  backgroundColor: scheme.surfaceContainerHigh,
+                  valueColor: AlwaysStoppedAnimation(color),
+                ),
+              ),
+              if (progress.missing.isNotEmpty) ...[
+                const Divider(height: 20),
+                Text(s('dashboardMissingTitle'),
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: scheme.onSurfaceVariant)),
+                const SizedBox(height: 6),
+                for (final item in progress.missing)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 3),
+                    child: Row(
+                      children: [
+                        Icon(Icons.warning_amber_rounded, size: 16, color: scheme.error),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            '${item.type.label} — ${s('dashboardMissingExpectedOn')} ${dateFormat.format(item.date)}',
+                            style: const TextStyle(fontSize: 12.5),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -65,8 +296,9 @@ class DashboardScreen extends ConsumerWidget {
 class _ProgressBanner extends StatelessWidget {
   final int done;
   final int total;
+  final String allDoneKey;
 
-  const _ProgressBanner({required this.done, required this.total});
+  const _ProgressBanner({required this.done, required this.total, required this.allDoneKey});
 
   @override
   Widget build(BuildContext context) {
@@ -90,7 +322,7 @@ class _ProgressBanner extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                allDone ? s('dashboardAllDone') : '$done / $total',
+                allDone ? s(allDoneKey) : '$done / $total',
                 style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 10),
@@ -204,7 +436,7 @@ class _AnalysisStatusRow extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('${s(type.labelKey)} (${type.unit})', style: const TextStyle(fontWeight: FontWeight.w600)),
+                Text('${type.label} (${type.unit})', style: const TextStyle(fontWeight: FontWeight.w600)),
                 if (status == DailyStatus.done && record != null)
                   Text(
                     '${record.value} ${type.unit} · ${s('dashboardDoneBy')} ${record.operatorName}',

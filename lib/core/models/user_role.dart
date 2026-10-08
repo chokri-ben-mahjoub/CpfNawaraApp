@@ -18,4 +18,28 @@ extension UserRoleX on UserRole {
 
   /// Seul l'Admin configure les puits/types d'analyses/seuils.
   bool get canConfigure => this == UserRole.admin;
+
+  /// Valeur stockée dans `profiles.role` (Firestore) et en cache local.
+  String get storageKey {
+    switch (this) {
+      case UserRole.admin:
+        return 'admin';
+      case UserRole.user:
+        return 'user';
+      case UserRole.reader:
+        return 'reader';
+    }
+  }
+
+  static UserRole fromStorageKey(String key) {
+    switch (key) {
+      case 'admin':
+        return UserRole.admin;
+      case 'reader':
+        return UserRole.reader;
+      case 'user':
+      default:
+        return UserRole.user;
+    }
+  }
 }

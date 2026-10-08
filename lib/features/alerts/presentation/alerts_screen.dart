@@ -1,14 +1,66 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/auth/auth_providers.dart';
 import '../../../core/data/wells_repository.dart';
+import '../../../core/export/excel_exporter.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/analysis_type.dart';
 import '../../../core/models/user_role.dart';
 import '../../../core/models/well.dart';
 import '../../../core/theme/app_theme.dart';
+
+/// Exporte en Excel les analyses en retard et les dernières valeurs hors
+/// seuil, tous puits actifs confondus (utile pour un rapport HSE).
+Future<void> exportAlerts(WidgetRef ref, BuildContext context) async {
+  final locale = ref.read(localeProvider);
+  String s(String key) => tr(locale, key);
+  final messenger = ScaffoldMessenger.of(context);
+
+  final data = ref.read(wellsControllerProvider);
+  final controller = ref.read(wellsControllerProvider.notifier);
+  final today = DateTime.now();
+  final activeWells = data.wells.where((w) => w.active).toList();
+  final dateFormat = DateFormat('dd/MM/yyyy');
+
+  final rows = <List<String>>[];
+  for (final well in activeWells) {
+    for (final type in data.analysisTypes) {
+      final last = controller.lastRecord(well.id, type.id);
+      if (type.isDueOn(today) && controller.statusFor(well.id, type.id, now: today) == DailyStatus.overdue) {
+        final lastInfo = last == null ? s('wellDetailNoValue') : dateFormat.format(last.dateTime);
+        rows.add([s('alertsOverdueSection'), '${well.name} (${well.code})', type.label, lastInfo]);
+      }
+      if (last != null && type.isOutOfRange(last.value) && last.isSameDay(today)) {
+        rows.add([
+          s('alertsOutOfRangeSection'),
+          '${well.name} (${well.code})',
+          type.label,
+          '${last.value} ${type.unit} (${type.min}–${type.max} ${type.unit})',
+        ]);
+      }
+    }
+  }
+
+  if (rows.isEmpty) {
+    messenger.showSnackBar(SnackBar(content: Text(s('exportEmpty'))));
+    return;
+  }
+
+  messenger.showSnackBar(SnackBar(content: Text(s('exportStarted'))));
+  try {
+    final suffix = DateFormat('yyyyMMdd_HHmm').format(today);
+    await ExcelExporter.exportAndShare(
+      fileName: 'alertes_$suffix.xlsx',
+      headers: [s('colStatus'), s('colWell'), s('colType'), s('colDate')],
+      rows: rows,
+    );
+  } catch (_) {
+    messenger.showSnackBar(SnackBar(content: Text(s('exportError'))));
+  }
+}
 
 class _OverdueItem {
   final Well well;
@@ -78,7 +130,7 @@ class AlertsScreen extends ConsumerWidget {
                       child: Icon(Icons.warning_amber_rounded, color: scheme.error),
                     ),
                     title: Text(
-                      '${outOfRange[i].well.name} · ${s(outOfRange[i].type.labelKey)}',
+                      '${outOfRange[i].well.name} · ${outOfRange[i].type.label}',
                       style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
                     subtitle: Text(
@@ -109,7 +161,7 @@ class AlertsScreen extends ConsumerWidget {
                       child: const Icon(Icons.hourglass_empty_rounded, color: accentColor),
                     ),
                     title: Text(
-                      '${overdue[i].well.name} · ${s(overdue[i].type.labelKey)}',
+                      '${overdue[i].well.name} · ${overdue[i].type.label}',
                       style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
                     subtitle: Text(s('alertsOverdueSince'), style: TextStyle(color: scheme.onSurfaceVariant)),

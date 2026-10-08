@@ -43,26 +43,25 @@ final _strings = <String, Map<String, String>>{
     'en': 'Trend charts and a visual alert as soon as a value goes out of range.',
   },
   'loginSubtitle': {
-    'fr': 'Connexion sécurisée par numéro de téléphone',
-    'en': 'Secure sign-in with your phone number',
+    'fr': 'Connexion sécurisée par email',
+    'en': 'Secure sign-in with your email',
   },
-  'loginPhoneLabel': {'fr': 'Numéro de téléphone', 'en': 'Phone number'},
-  'loginPhoneHint': {'fr': '00 000 000', 'en': '00 000 000'},
-  'loginContinue': {'fr': 'Continuer', 'en': 'Continue'},
-  'loginMultiNumberHint': {
-    'fr': 'Un seul compte peut être relié à plusieurs numéros autorisés.',
-    'en': 'One account can be linked to several authorized numbers.',
+  'loginEmailLabel': {'fr': 'Email', 'en': 'Email'},
+  'loginEmailHint': {'fr': 'nom@entreprise.com', 'en': 'name@company.com'},
+  'loginPasswordLabel': {'fr': 'Mot de passe', 'en': 'Password'},
+  'loginContinue': {'fr': 'Se connecter', 'en': 'Sign in'},
+  'loginInvalidEmail': {
+    'fr': 'Veuillez saisir une adresse email valide.',
+    'en': 'Please enter a valid email address.',
   },
-  'loginInvalidPhone': {
-    'fr': 'Veuillez saisir un numéro de téléphone valide.',
-    'en': 'Please enter a valid phone number.',
+  'loginInvalidPassword': {
+    'fr': 'Veuillez saisir votre mot de passe.',
+    'en': 'Please enter your password.',
   },
-  'codeTitle': {'fr': 'Entrez votre code', 'en': 'Enter your code'},
-  'codeSubtitle': {'fr': 'Code à 4 chiffres envoyé au ', 'en': 'A 4-digit code was sent to '},
-  'codeWrongNumber': {'fr': 'Ce n\'est pas votre numéro ?', 'en': 'Not your number?'},
-  'codeChangeNumber': {'fr': 'Modifier', 'en': 'Change'},
-  'codeError': {'fr': 'Code incorrect, réessayez.', 'en': 'Incorrect code, try again.'},
-  'codeResend': {'fr': 'Renvoyer le code', 'en': 'Resend code'},
+  'loginError': {
+    'fr': 'Email ou mot de passe incorrect.',
+    'en': 'Incorrect email or password.',
+  },
   'languageLabel': {'fr': 'Langue', 'en': 'Language'},
   'loginNoAccount': {'fr': 'Pas encore de compte ?', 'en': "Don't have an account?"},
   'loginCreateAccount': {'fr': 'Créer un compte', 'en': 'Create account'},
@@ -88,43 +87,57 @@ final _strings = <String, Map<String, String>>{
   'serviceExploitation': {'fr': 'Exploitation', 'en': 'Operations'},
   'serviceReservoir': {'fr': 'Réservoir', 'en': 'Reservoir'},
   'serviceHse': {'fr': 'HSE', 'en': 'HSE'},
+  'signupPhoneLabel': {'fr': 'Téléphone (optionnel)', 'en': 'Phone (optional)'},
+  'signupPasswordLabel': {'fr': 'Mot de passe', 'en': 'Password'},
+  'signupInvalidPassword': {
+    'fr': '8 caractères minimum.',
+    'en': 'At least 8 characters.',
+  },
   'signupSubmit': {'fr': 'Créer mon compte', 'en': 'Create my account'},
+  'signupError': {
+    'fr': 'Impossible de créer le compte. Cet email est peut-être déjà utilisé.',
+    'en': 'Could not create the account. This email may already be in use.',
+  },
   'signupHaveAccount': {'fr': 'Vous avez déjà un compte ?', 'en': 'Already have an account?'},
   'signupLogin': {'fr': 'Se connecter', 'en': 'Sign in'},
   'forgotPasswordLink': {'fr': 'Mot de passe oublié ?', 'en': 'Forgot password?'},
   'forgotPasswordTitle': {'fr': 'Mot de passe oublié', 'en': 'Forgot password'},
   'forgotPasswordSubtitle': {
-    'fr': 'Indiquez votre numéro de téléphone, nous vous enverrons un code '
-        'de vérification pour créer un nouveau mot de passe.',
-    'en': 'Enter your phone number, we\'ll send you a verification code to '
-        'set a new password.',
+    'fr': 'Indiquez votre email, nous vous enverrons un lien pour créer un '
+        'nouveau mot de passe.',
+    'en': 'Enter your email, we\'ll send you a link to set a new password.',
   },
-  'forgotPasswordSubmit': {'fr': 'Envoyer le code', 'en': 'Send code'},
+  'forgotPasswordSubmit': {'fr': 'Envoyer le lien', 'en': 'Send the link'},
+  'forgotPasswordSentTitle': {'fr': 'Email envoyé', 'en': 'Email sent'},
+  'forgotPasswordSentBody': {
+    'fr': 'Si un compte existe avec cet email, un lien de réinitialisation '
+        'vient d\'être envoyé.',
+    'en': 'If an account exists for this email, a reset link was just sent.',
+  },
   'backToLogin': {'fr': 'Retour à la connexion', 'en': 'Back to sign in'},
-  'resetPasswordTitle': {'fr': 'Nouveau mot de passe', 'en': 'New password'},
-  'resetPasswordSubtitle': {
-    'fr': 'Choisissez un nouveau mot de passe pour votre compte.',
-    'en': 'Choose a new password for your account.',
+  'pinSetupTitle': {'fr': 'Créez votre code', 'en': 'Create your code'},
+  'pinSetupSubtitle': {
+    'fr': 'Ce code à 4 chiffres vous servira à déverrouiller l\'app rapidement, sans ressaisir votre mot de passe.',
+    'en': 'This 4-digit code will let you quickly unlock the app without retyping your password.',
   },
-  'newPasswordLabel': {'fr': 'Nouveau mot de passe', 'en': 'New password'},
-  'confirmPasswordLabel': {'fr': 'Confirmer le mot de passe', 'en': 'Confirm password'},
-  'resetPasswordSubmit': {'fr': 'Enregistrer', 'en': 'Save'},
-  'resetPasswordTooShort': {
-    'fr': '8 caractères minimum.',
-    'en': 'At least 8 characters.',
+  'pinSetupConfirmTitle': {'fr': 'Confirmez votre code', 'en': 'Confirm your code'},
+  'pinSetupConfirmSubtitle': {
+    'fr': 'Saisissez à nouveau le même code.',
+    'en': 'Enter the same code again.',
   },
-  'resetPasswordMismatch': {
-    'fr': 'Les mots de passe ne correspondent pas.',
-    'en': 'Passwords do not match.',
+  'pinMismatch': {
+    'fr': 'Les deux codes ne correspondent pas, réessayez.',
+    'en': 'The two codes do not match, try again.',
   },
-  'resetPasswordSuccessTitle': {
-    'fr': 'Mot de passe mis à jour',
-    'en': 'Password updated',
+  'unlockTitle': {'fr': 'Bon retour', 'en': 'Welcome back'},
+  'unlockSubtitle': {'fr': 'Entrez votre code pour continuer', 'en': 'Enter your code to continue'},
+  'unlockBiometricReason': {
+    'fr': 'Déverrouillez Suivi Puits',
+    'en': 'Unlock Well Tracker',
   },
-  'resetPasswordSuccessBody': {
-    'fr': 'Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.',
-    'en': 'You can now sign in with your new password.',
-  },
+  'unlockWrongPin': {'fr': 'Code incorrect, réessayez.', 'en': 'Incorrect code, try again.'},
+  'unlockForgotPin': {'fr': 'Code oublié ? Se reconnecter', 'en': 'Forgot your code? Sign in again'},
+  'accountChangePin': {'fr': 'Modifier mon code', 'en': 'Change my code'},
   'homeWelcome': {'fr': 'Connecté avec succès', 'en': 'Signed in successfully'},
   'homeSubtitle': {
     'fr': 'La partie tableau de bord (puits, analyses, historique) arrive ensuite.',
@@ -186,6 +199,41 @@ final _strings = <String, Map<String, String>>{
     'fr': 'Toutes les analyses du jour sont faites 🎉',
     'en': 'All of today\'s analyses are done 🎉',
   },
+  'dashboardPeriodDay': {'fr': 'Jour', 'en': 'Day'},
+  'dashboardPeriodWeek': {'fr': 'Semaine', 'en': 'Week'},
+  'dashboardPeriodMonth': {'fr': 'Mois', 'en': 'Month'},
+  'dashboardPeriodDone': {'fr': 'faites', 'en': 'done'},
+  'dashboardPeriodAllDone': {
+    'fr': 'Tout est à jour sur cette période 🎉',
+    'en': 'Everything is up to date for this period 🎉',
+  },
+  'dashboardMissingTitle': {'fr': 'Analyses manquantes', 'en': 'Missing analyses'},
+  'dashboardMissingEmpty': {
+    'fr': 'Aucune analyse manquante sur cette période.',
+    'en': 'No missing analysis for this period.',
+  },
+  'dashboardMissingExpectedOn': {'fr': 'attendue le', 'en': 'expected on'},
+  'exportTooltip': {'fr': 'Exporter en Excel', 'en': 'Export to Excel'},
+  'exportStarted': {'fr': 'Préparation du fichier Excel...', 'en': 'Preparing the Excel file...'},
+  'exportEmpty': {
+    'fr': 'Rien à exporter pour le moment.',
+    'en': 'Nothing to export right now.',
+  },
+  'exportError': {
+    'fr': 'L\'export a échoué. Réessayez.',
+    'en': 'Export failed. Please try again.',
+  },
+  'colDate': {'fr': 'Date', 'en': 'Date'},
+  'colWell': {'fr': 'Puits', 'en': 'Well'},
+  'colType': {'fr': 'Type d\'analyse', 'en': 'Analysis type'},
+  'colValue': {'fr': 'Valeur', 'en': 'Value'},
+  'colUnit': {'fr': 'Unité', 'en': 'Unit'},
+  'colService': {'fr': 'Service', 'en': 'Department'},
+  'colOperator': {'fr': 'Opérateur', 'en': 'Operator'},
+  'colComment': {'fr': 'Commentaire', 'en': 'Comment'},
+  'colStatus': {'fr': 'Statut', 'en': 'Status'},
+  'colExpectedSince': {'fr': 'En retard depuis', 'en': 'Overdue since'},
+  'colOutOfRange': {'fr': 'Hors seuil', 'en': 'Out of range'},
 
   // Saisie rapide
   'entryTitle': {'fr': 'Nouvelle analyse', 'en': 'New analysis'},
@@ -257,10 +305,10 @@ final _strings = <String, Map<String, String>>{
 
   // Compte
   'accountTitle': {'fr': 'Compte', 'en': 'Account'},
-  'accountRoleLabel': {'fr': 'Rôle (démo)', 'en': 'Role (demo)'},
+  'accountRoleLabel': {'fr': 'Rôle', 'en': 'Role'},
   'accountRoleHint': {
-    'fr': 'Change le niveau d\'accès pour visualiser l\'app selon chaque profil.',
-    'en': 'Switch access level to preview the app for each profile.',
+    'fr': 'Géré par un administrateur depuis la base de données.',
+    'en': 'Managed by an administrator from the database.',
   },
   'accountLanguageLabel': {'fr': 'Langue', 'en': 'Language'},
   'accountAdminSettings': {'fr': 'Paramètres (types & seuils)', 'en': 'Settings (types & thresholds)'},

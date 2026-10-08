@@ -36,7 +36,7 @@ class TrendScreen extends ConsumerWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(title: Text('${s(type.labelKey)} · ${well.name}')),
+      appBar: AppBar(title: Text('${type.label} · ${well.name}')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [

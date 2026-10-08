@@ -1,38 +1,39 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../features/auth/presentation/code_screen.dart';
 import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/onboarding_screen.dart';
-import '../../features/auth/presentation/reset_password_screen.dart';
+import '../../features/auth/presentation/pin_setup_screen.dart';
 import '../../features/auth/presentation/signup_screen.dart';
+import '../../features/auth/presentation/unlock_screen.dart';
 import '../../features/admin/presentation/analysis_types_screen.dart';
 import '../../features/entry/presentation/quick_entry_screen.dart';
 import '../../features/home/presentation/home_shell.dart';
 import '../../features/wells/presentation/trend_screen.dart';
 import '../../features/wells/presentation/well_detail_screen.dart';
+import '../auth/app_lock.dart';
 import '../auth/auth_providers.dart';
 import '../models/user_role.dart';
 
 const _authFreeLocations = {
   '/onboarding',
   '/login',
-  '/login/code',
   '/signup',
   '/forgot-password',
-  '/forgot-password/code',
-  '/forgot-password/reset',
 };
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final onboardingDone = ref.watch(onboardingDoneProvider);
   final sessionAuthenticated = ref.watch(sessionAuthenticatedProvider);
   final role = ref.watch(currentRoleProvider);
+  final appLock = ref.watch(appLockProvider);
 
   String initialLocation() {
     if (!onboardingDone) return '/onboarding';
     if (!sessionAuthenticated) return '/login';
+    if (appLock.hasPin == false) return '/pin-setup';
+    if (appLock.hasPin == true && !appLock.unlocked) return '/unlock';
     return '/home';
   }
 
@@ -46,7 +47,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (!sessionAuthenticated) {
         return _authFreeLocations.contains(loc) ? null : '/login';
       }
-      if (_authFreeLocations.contains(loc)) return '/home';
+      // Session valide mais verrouillage local (code 4 chiffres / empreinte)
+      // pas encore passé : on bloque tout le reste de l'app.
+      if (appLock.hasPin == null) return null; // lecture locale en cours (quasi instantanée)
+      if (appLock.hasPin == false) {
+        return loc == '/pin-setup' ? null : '/pin-setup';
+      }
+      if (!appLock.unlocked) {
+        return loc == '/unlock' ? null : '/unlock';
+      }
+      // '/pin-setup' n'est volontairement pas dans cette liste : une fois
+      // déverrouillé, l'utilisateur peut encore y naviguer pour changer son
+      // code (depuis le compte) ; l'écran se charge alors de revenir en
+      // arrière lui-même après la saisie.
+      if (_authFreeLocations.contains(loc) || loc == '/unlock') {
+        return '/home';
+      }
       if (loc == '/entry' && !role.canEnterData) return '/home';
       if (loc == '/admin/analysis-types' && !role.canConfigure) return '/home';
       return null;
@@ -61,10 +77,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const LoginScreen(),
       ),
       GoRoute(
-        path: '/login/code',
-        builder: (context, state) => const CodeScreen(),
-      ),
-      GoRoute(
         path: '/signup',
         builder: (context, state) => const SignupScreen(),
       ),
@@ -73,12 +85,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const ForgotPasswordScreen(),
       ),
       GoRoute(
-        path: '/forgot-password/code',
-        builder: (context, state) => const CodeScreen(purpose: CodePurpose.passwordReset),
+        path: '/pin-setup',
+        builder: (context, state) => const PinSetupScreen(),
       ),
       GoRoute(
-        path: '/forgot-password/reset',
-        builder: (context, state) => const ResetPasswordScreen(),
+        path: '/unlock',
+        builder: (context, state) => const UnlockScreen(),
       ),
       GoRoute(
         path: '/home',

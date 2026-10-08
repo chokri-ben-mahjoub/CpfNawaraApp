@@ -88,13 +88,15 @@ class _QuickEntryScreenState extends ConsumerState<QuickEntryScreen> {
       if (!mounted) return;
     }
 
-    final operatorName = ref.read(pendingNameProvider) ?? 'Opérateur';
-    controller.addRecord(
+    final profile = ref.read(profileProvider);
+    final operatorName = (profile == null || profile.fullName.isEmpty) ? 'Opérateur' : profile.fullName;
+    await controller.addRecord(
       wellId: _wellId!,
       typeId: _typeId!,
       value: value,
       serviceKey: _service!,
       operatorName: operatorName,
+      operatorId: profile?.id,
       comment: _commentController.text.trim().isEmpty ? null : _commentController.text.trim(),
       replaceId: existing?.id,
     );
@@ -189,7 +191,7 @@ class _QuickEntryScreenState extends ConsumerState<QuickEntryScreen> {
                         ),
                         items: [
                           for (final AnalysisType t in types)
-                            DropdownMenuItem(value: t.id, child: Text('${s(t.labelKey)} (${t.unit})')),
+                            DropdownMenuItem(value: t.id, child: Text('${t.label} (${t.unit})')),
                         ],
                         onChanged: widget.initialTypeId != null
                             ? null

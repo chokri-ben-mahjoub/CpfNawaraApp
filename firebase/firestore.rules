@@ -1,0 +1,63 @@
+rules_version = '2';
+
+// Suivi Puits CPF Nawara — règles de sécurité Firestore.
+//
+// À coller dans la console Firebase : Firestore Database → Règles → coller
+// tout ce fichier → Publier.
+//
+// Équivalent du RLS Postgres : la lecture est ouverte à tout utilisateur
+// connecté, l'écriture est restreinte selon le rôle stocké dans
+// `profiles/{uid}.role` (admin / user / reader).
+
+function isSignedIn() {
+  return request.auth != null;
+}
+
+function role() {
+  return get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role;
+}
+
+function isAdmin() {
+  return isSignedIn() && role() == 'admin';
+}
+
+function canEnterData() {
+  return isSignedIn() && role() in ['admin', 'user'];
+}
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Chacun lit tous les profils (pour afficher les noms d'opérateurs),
+    // mais ne modifie que le sien — jamais son propre rôle (seul un admin
+    // peut changer un rôle, directement depuis la console Firebase).
+    match /profiles/{uid} {
+      allow read: if isSignedIn();
+      // Un nouveau compte ne peut se créer qu'en rôle "user" (jamais admin
+      // directement) ; un admin élève ensuite le rôle depuis la console.
+      allow create: if isSignedIn() && request.auth.uid == uid
+        && request.resource.data.role == 'user';
+      allow update: if isSignedIn() && request.auth.uid == uid
+        && request.resource.data.role == resource.data.role;
+    }
+
+    // Référentiel des puits : lecture pour tous, écriture Admin seulement.
+    match /wells/{wellId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Catalogue des types d'analyse : lecture pour tous, écriture Admin.
+    match /analysisTypes/{typeId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Analyses saisies : lecture pour tous, écriture Admin + Utilisateur
+    // (pas Lecteur).
+    match /analysisRecords/{recordId} {
+      allow read: if isSignedIn();
+      allow write: if canEnterData();
+    }
+  }
+}

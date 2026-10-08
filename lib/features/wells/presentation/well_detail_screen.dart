@@ -5,11 +5,61 @@ import 'package:intl/intl.dart';
 
 import '../../../core/auth/auth_providers.dart';
 import '../../../core/data/wells_repository.dart';
+import '../../../core/export/excel_exporter.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/analysis_record.dart';
 import '../../../core/models/analysis_type.dart';
 import '../../../core/models/user_role.dart';
+import '../../../core/models/well.dart';
 import '../../../core/theme/app_theme.dart';
+
+/// Exporte en Excel tout l'historique d'analyses d'un puits.
+Future<void> _exportWellHistory(WidgetRef ref, BuildContext context, Well well) async {
+  final locale = ref.read(localeProvider);
+  String s(String key) => tr(locale, key);
+  final messenger = ScaffoldMessenger.of(context);
+  final controller = ref.read(wellsControllerProvider.notifier);
+  final history = controller.recordsForWell(well.id);
+
+  if (history.isEmpty) {
+    messenger.showSnackBar(SnackBar(content: Text(s('exportEmpty'))));
+    return;
+  }
+
+  messenger.showSnackBar(SnackBar(content: Text(s('exportStarted'))));
+  final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
+  try {
+    final rows = [
+      for (final record in history)
+        [
+          dateFormat.format(record.dateTime),
+          controller.typeById(record.typeId).label,
+          record.value.toString(),
+          controller.typeById(record.typeId).unit,
+          s(record.serviceKey),
+          record.operatorName,
+          record.comment ?? '',
+        ],
+    ];
+    final suffix = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
+    await ExcelExporter.exportAndShare(
+      fileName: '${well.code}_$suffix.xlsx',
+      headers: [
+        s('colDate'),
+        s('colType'),
+        s('colValue'),
+        s('colUnit'),
+        s('colService'),
+        s('colOperator'),
+        s('colComment'),
+      ],
+      rows: rows,
+      shareSubject: '${well.name} (${well.code})',
+    );
+  } catch (_) {
+    messenger.showSnackBar(SnackBar(content: Text(s('exportError'))));
+  }
+}
 
 class WellDetailScreen extends ConsumerWidget {
   final String wellId;
@@ -31,7 +81,16 @@ class WellDetailScreen extends ConsumerWidget {
     final dateFormat = DateFormat('d MMM, HH:mm', locale.languageCode);
 
     return Scaffold(
-      appBar: AppBar(title: Text(well.name)),
+      appBar: AppBar(
+        title: Text(well.name),
+        actions: [
+          IconButton(
+            tooltip: s('exportTooltip'),
+            icon: const Icon(Icons.ios_share_outlined),
+            onPressed: () => _exportWellHistory(ref, context, well),
+          ),
+        ],
+      ),
       floatingActionButton: role.canEnterData
           ? FloatingActionButton.extended(
               onPressed: () => context.push('/entry?wellId=$wellId'),
@@ -160,7 +219,7 @@ class _LastValueCard extends ConsumerWidget {
               children: [
                 Expanded(
                   child: Text(
-                    s(type.labelKey),
+                    type.label,
                     style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -207,7 +266,7 @@ class _HistoryTile extends ConsumerWidget {
           size: 20,
         ),
       ),
-      title: Text('${s(type.labelKey)} — ${record.value} ${type.unit}',
+      title: Text('${type.label} — ${record.value} ${type.unit}',
           style: const TextStyle(fontWeight: FontWeight.w700)),
       subtitle: Text(
         '${s(record.serviceKey)} · ${record.operatorName} · ${dateFormat.format(record.dateTime)}',
