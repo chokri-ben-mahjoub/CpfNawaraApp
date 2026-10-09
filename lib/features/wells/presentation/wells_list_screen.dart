@@ -38,6 +38,16 @@ class _WellsListScreenState extends ConsumerState<WellsListScreen> {
       return w.name.toLowerCase().contains(q) || w.code.toLowerCase().contains(q);
     }).toList();
 
+    final byGroup = <String, List<Well>>{};
+    for (final well in filtered) {
+      final key = well.group.trim().isEmpty ? s('statsUnassignedGroup') : well.group.trim();
+      (byGroup[key] ??= []).add(well);
+    }
+    final groupNames = byGroup.keys.toList()..sort();
+    for (final list in byGroup.values) {
+      list.sort((a, b) => a.name.compareTo(b.name));
+    }
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       child: Column(
@@ -60,19 +70,30 @@ class _WellsListScreenState extends ConsumerState<WellsListScreen> {
                       style: TextStyle(color: scheme.onSurfaceVariant),
                     ),
                   )
-                : ListView.separated(
-                    itemCount: filtered.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, i) {
-                      final well = filtered[i];
-                      final (done, total) = controller.todayProgress(well.id);
-                      return _WellCard(
-                        well: well,
-                        done: done,
-                        total: total,
-                        onTap: () => context.push('/wells/${well.id}'),
-                      );
-                    },
+                : ListView(
+                    children: [
+                      for (final groupName in groupNames) ...[
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(4, 12, 4, 8),
+                          child: Text(
+                            groupName,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleSmall
+                                ?.copyWith(fontWeight: FontWeight.w800, color: scheme.onSurfaceVariant),
+                          ),
+                        ),
+                        for (final well in byGroup[groupName]!) ...[
+                          _WellCard(
+                            well: well,
+                            done: controller.todayProgress(well.id).$1,
+                            total: controller.todayProgress(well.id).$2,
+                            onTap: () => context.push('/wells/${well.id}'),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                      ],
+                    ],
                   ),
           ),
         ],

@@ -1,5 +1,5 @@
 name: cpf_nawara_suivi
-description: "Suivi Puits - CPF Nawara (connexion et design)"
+description: "PuitsTrack - suivi des analyses de puits CPF Nawara"
 publish_to: 'none'
 
 version: 0.1.0+1
@@ -49,6 +49,17 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.2
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/icon/
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/icon.png"
+  adaptive_icon_background: "#0B1E2D"
+  adaptive_icon_foreground: "assets/icon/icon_foreground.png"
+  remove_alpha_ios: true

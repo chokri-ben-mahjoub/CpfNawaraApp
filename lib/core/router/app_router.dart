@@ -6,6 +6,7 @@ import '../../features/auth/presentation/pin_setup_screen.dart';
 import '../../features/auth/presentation/profile_setup_screen.dart';
 import '../../features/auth/presentation/unlock_screen.dart';
 import '../../features/admin/presentation/analysis_types_screen.dart';
+import '../../features/admin/presentation/wells_manage_screen.dart';
 import '../../features/entry/presentation/quick_entry_screen.dart';
 import '../../features/home/presentation/home_shell.dart';
 import '../../features/wells/presentation/trend_screen.dart';
@@ -61,6 +62,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
       if (loc == '/entry' && !role.canEnterData) return '/home';
       if (loc == '/admin/analysis-types' && !role.canConfigure) return '/home';
+      if (loc == '/admin/wells' && !role.canConfigure) return '/home';
       return null;
     },
     routes: [
@@ -105,6 +107,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/admin/analysis-types',
         builder: (context, state) => const AnalysisTypesScreen(),
+      ),
+      GoRoute(
+        path: '/admin/wells',
+        builder: (context, state) => const WellsManageScreen(),
       ),
     ],
   );

@@ -6,6 +6,7 @@ import '../../account/presentation/account_screen.dart';
 import '../../alerts/presentation/alerts_screen.dart';
 import '../../auth/presentation/widgets/language_switch.dart';
 import '../../dashboard/presentation/dashboard_screen.dart';
+import '../../stats/presentation/stats_screen.dart';
 import '../../wells/presentation/wells_list_screen.dart';
 
 /// Action d'export Excel disponible dans l'AppBar pour les onglets qui ont
@@ -32,7 +33,7 @@ Widget? _exportAction(BuildContext context, WidgetRef ref, int index) {
 
 final homeTabIndexProvider = StateProvider<int>((ref) => 0);
 
-const _tabTitleKeys = ['dashboardTitle', 'navAlerts', 'wellsTitle', 'navAccount'];
+const _tabTitleKeys = ['dashboardTitle', 'navAlerts', 'wellsTitle', 'statsTitle', 'navAccount'];
 
 /// Coquille principale de l'app une fois connecté : navigation par onglets
 /// entre le tableau de bord du jour, les alertes, les puits et le compte.
@@ -62,6 +63,7 @@ class HomeShell extends ConsumerWidget {
           DashboardScreen(),
           AlertsScreen(),
           WellsListScreen(),
+          StatsScreen(),
           AccountScreen(),
         ],
       ),
@@ -83,6 +85,11 @@ class HomeShell extends ConsumerWidget {
             icon: const Icon(Icons.water_drop_outlined),
             selectedIcon: const Icon(Icons.water_drop),
             label: s('navWells'),
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.bar_chart_outlined),
+            selectedIcon: const Icon(Icons.bar_chart),
+            label: s('navStats'),
           ),
           NavigationDestination(
             icon: const Icon(Icons.person_outline),

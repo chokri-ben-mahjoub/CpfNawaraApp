@@ -104,7 +104,16 @@ class AccountScreen extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 12),
-        if (role.canConfigure)
+        if (role.canConfigure) ...[
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.water_drop_outlined, color: accentColor),
+              title: Text(s('wellsManageTitle'), style: const TextStyle(fontWeight: FontWeight.w600)),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/admin/wells'),
+            ),
+          ),
+          const SizedBox(height: 12),
           Card(
             child: ListTile(
               leading: const Icon(Icons.tune, color: accentColor),
@@ -113,7 +122,8 @@ class AccountScreen extends ConsumerWidget {
               onTap: () => context.push('/admin/analysis-types'),
             ),
           ),
-        const SizedBox(height: 12),
+          const SizedBox(height: 12),
+        ],
         Card(
           child: ListTile(
             leading: const Icon(Icons.logout, color: Colors.redAccent),

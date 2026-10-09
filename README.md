@@ -1,8 +1,8 @@
-# Suivi Puits — CPF Nawara
+# PuitsTrack — suivi des puits CPF Nawara
 
 App Flutter de suivi quotidien des analyses de puits (CPF Nawara) : profil
-local, tableau de bord du jour/semaine/mois, fiches puits, courbes de
-tendance et saisie rapide.
+local, tableau de bord du jour/semaine/mois, gestion des puits par zone,
+statistiques, courbes de tendance et saisie rapide.
 
 Le style est repris du projet de référence `C:\mobile-locations` (Material 3,
 Riverpod, go_router, Google Fonts) avec une nouvelle identité visuelle
@@ -86,8 +86,15 @@ flutter build apk --release
   - Fiche puits → tout l'historique de ce puits
   - Dans les trois cas, le fichier `.xlsx` généré s'ouvre dans le volet de
     partage natif (enregistrer, envoyer par mail/WhatsApp...)
-- **Liste des puits** (`wells_list_screen.dart`) : recherche, statut actif/
-  arrêté, progression du jour
+- **Liste des puits** (`wells_list_screen.dart`) : recherche, regroupement par
+  zone/champ, statut actif/arrêté, progression du jour
+- **Gestion des puits** (Admin, `wells_manage_screen.dart`, Compte → Gestion
+  des puits) : ajout/modification/suppression d'un puits (nom, code, zone,
+  actif/arrêté) — les zones sont libres, suggérées depuis celles déjà
+  utilisées
+- **Statistiques** (onglet dédié, `stats_screen.dart`) : par zone puis par
+  puits, sur 7 jours / 30 jours / tout l'historique — nombre d'analyses
+  saisies, taux de conformité aux seuils, analyses hors seuil
 - **Fiche puits** (`well_detail_screen.dart`) : dernières valeurs par type
   d'analyse (avec alerte visuelle hors seuil) + historique récent
 - **Saisie rapide** (`quick_entry_screen.dart`) : puits → type → valeur →
@@ -105,6 +112,10 @@ flutter build apk --release
 
 ### Design
 - Thème clair/sombre Material 3 (`lib/core/theme/app_theme.dart`)
+- Icône de l'app : derrick stylisé (généré par `tool/generate_icon.py` avec
+  Pillow, appliqué aux deux plateformes via `flutter_launcher_icons` — relancer
+  `python tool/generate_icon.py && dart run flutter_launcher_icons` après toute
+  modification du dessin)
 
 ## Limites actuelles (hors scope de cette phase)
 

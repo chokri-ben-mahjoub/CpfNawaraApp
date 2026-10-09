@@ -54,6 +54,34 @@ class PeriodProgress {
   const PeriodProgress({required this.done, required this.total, required this.missing});
 }
 
+/// Libellé affiché pour les puits sans groupe assigné.
+const unassignedGroupLabel = 'Sans groupe';
+
+/// Statistiques d'un puits sur une période : nombre d'analyses saisies,
+/// combien sont hors seuil, et taux de conformité (1.0 = tout est dans les
+/// seuils, ou aucune analyse saisie).
+class WellStats {
+  final Well well;
+  final int totalRecords;
+  final int outOfRangeCount;
+
+  const WellStats({required this.well, required this.totalRecords, required this.outOfRangeCount});
+
+  double get complianceRate => totalRecords == 0 ? 1.0 : (totalRecords - outOfRangeCount) / totalRecords;
+}
+
+/// Statistiques agrégées d'un groupe (zone/champ) de puits sur une période.
+class GroupStats {
+  final String group;
+  final List<WellStats> wells;
+
+  const GroupStats({required this.group, required this.wells});
+
+  int get totalRecords => wells.fold(0, (sum, w) => sum + w.totalRecords);
+  int get outOfRangeCount => wells.fold(0, (sum, w) => sum + w.outOfRangeCount);
+  double get complianceRate => totalRecords == 0 ? 1.0 : (totalRecords - outOfRangeCount) / totalRecords;
+}
+
 class WellsController extends StateNotifier<WellsState> {
   WellsController() : super(WellsState.empty) {
     _load();
@@ -211,6 +239,81 @@ class WellsController extends StateNotifier<WellsState> {
 
   /// Met à jour un type d'analyse existant (unité, seuils, fréquence).
   Future<void> updateAnalysisType(AnalysisType updated) => addAnalysisType(updated);
+
+  /// Noms de groupes déjà utilisés (triés, sans doublons), pour proposer un
+  /// menu déroulant tout en permettant d'en saisir un nouveau.
+  List<String> get groups {
+    final names = state.wells.map((w) => w.group).where((g) => g.trim().isNotEmpty).toSet().toList()..sort();
+    return names;
+  }
+
+  /// Ajoute un nouveau puits (paramétrage).
+  Future<void> addWell({
+    required String code,
+    required String name,
+    required bool active,
+    required String group,
+  }) async {
+    final db = await LocalDatabase.instance.database;
+    await db.insert(
+      'wells',
+      {'id': _uuid.v4(), 'code': code, 'name': name, 'active': active ? 1 : 0, 'group_name': group},
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+    await _load();
+  }
+
+  /// Met à jour un puits existant (nom, code, groupe, statut actif/arrêté).
+  Future<void> updateWell(Well updated) async {
+    final db = await LocalDatabase.instance.database;
+    await db.update(
+      'wells',
+      {'code': updated.code, 'name': updated.name, 'active': updated.active ? 1 : 0, 'group_name': updated.group},
+      where: 'id = ?',
+      whereArgs: [updated.id],
+    );
+    await _load();
+  }
+
+  /// Supprime un puits et tout son historique d'analyses.
+  Future<void> deleteWell(String wellId) async {
+    final db = await LocalDatabase.instance.database;
+    await db.delete('analysis_records', where: 'well_id = ?', whereArgs: [wellId]);
+    await db.delete('wells', where: 'id = ?', whereArgs: [wellId]);
+    await _load();
+  }
+
+  /// Statistiques par puits sur une période, regroupées par zone/champ —
+  /// base de l'écran "Statistiques".
+  List<GroupStats> statsForPeriod(DateTime start, DateTime end) {
+    final startDay = DateTime(start.year, start.month, start.day);
+    final endDay = DateTime(end.year, end.month, end.day, 23, 59, 59, 999);
+    final byGroup = <String, List<WellStats>>{};
+
+    for (final well in state.wells) {
+      final recordsInRange = state.records.where((r) =>
+          r.wellId == well.id && !r.dateTime.isBefore(startDay) && !r.dateTime.isAfter(endDay));
+      var outOfRange = 0;
+      var total = 0;
+      for (final record in recordsInRange) {
+        total++;
+        AnalysisType? type;
+        for (final t in state.analysisTypes) {
+          if (t.id == record.typeId) {
+            type = t;
+            break;
+          }
+        }
+        if (type != null && type.isOutOfRange(record.value)) outOfRange++;
+      }
+      final groupKey = well.group.trim().isEmpty ? unassignedGroupLabel : well.group.trim();
+      (byGroup[groupKey] ??= []).add(WellStats(well: well, totalRecords: total, outOfRangeCount: outOfRange));
+    }
+
+    final groups = byGroup.entries.map((e) => GroupStats(group: e.key, wells: e.value)).toList()
+      ..sort((a, b) => a.group.compareTo(b.group));
+    return groups;
+  }
 }
 
 Well _wellFromRow(Map<String, Object?> row) => Well(
@@ -218,6 +321,7 @@ Well _wellFromRow(Map<String, Object?> row) => Well(
       code: row['code'] as String,
       name: row['name'] as String,
       active: (row['active'] as int) == 1,
+      group: row['group_name'] as String? ?? '',
     );
 
 AnalysisType _typeFromRow(Map<String, Object?> row) => AnalysisType(

@@ -17,14 +17,15 @@ class LocalDatabase {
     final path = p.join(dir.path, 'suivi_puits.db');
     return openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
         await db.execute('''
           create table wells (
             id text primary key,
             code text not null,
             name text not null,
-            active integer not null default 1
+            active integer not null default 1,
+            group_name text not null default ''
           )
         ''');
         await db.execute('''
@@ -52,6 +53,11 @@ class LocalDatabase {
         ''');
         await _seed(db);
       },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute("alter table wells add column group_name text not null default ''");
+        }
+      },
     );
   }
 
@@ -60,11 +66,11 @@ class LocalDatabase {
   /// l'historique reflète uniquement les vraies saisies.
   Future<void> _seed(Database db) async {
     const wells = [
-      {'id': 'w1', 'code': 'NWR-12', 'name': 'Nawara 12', 'active': 1},
-      {'id': 'w2', 'code': 'NWR-07', 'name': 'Nawara 07', 'active': 1},
-      {'id': 'w3', 'code': 'NWR-21', 'name': 'Nawara 21', 'active': 1},
-      {'id': 'w4', 'code': 'NWR-04', 'name': 'Nawara 04', 'active': 0},
-      {'id': 'w5', 'code': 'NWR-15', 'name': 'Nawara 15', 'active': 1},
+      {'id': 'w1', 'code': 'NWR-12', 'name': 'Nawara 12', 'active': 1, 'group_name': 'Zone Nord'},
+      {'id': 'w2', 'code': 'NWR-07', 'name': 'Nawara 07', 'active': 1, 'group_name': 'Zone Nord'},
+      {'id': 'w3', 'code': 'NWR-21', 'name': 'Nawara 21', 'active': 1, 'group_name': 'Zone Sud'},
+      {'id': 'w4', 'code': 'NWR-04', 'name': 'Nawara 04', 'active': 0, 'group_name': 'Zone Sud'},
+      {'id': 'w5', 'code': 'NWR-15', 'name': 'Nawara 15', 'active': 1, 'group_name': 'Zone Sud'},
     ];
     for (final well in wells) {
       await db.insert('wells', well);

@@ -9,14 +9,14 @@ const _localeKey = 'app_locale';
 const supportedLocales = [Locale('fr'), Locale('en')];
 
 final _strings = <String, Map<String, String>>{
-  'appName': {'fr': 'Suivi Puits', 'en': 'Well Tracker'},
+  'appName': {'fr': 'PuitsTrack', 'en': 'PuitsTrack'},
   'appTagline': {
     'fr': 'CPF Nawara — suivi quotidien des analyses',
     'en': 'CPF Nawara — daily analysis tracking',
   },
   'onboardingTitle': {
-    'fr': 'Bienvenue sur Suivi Puits',
-    'en': 'Welcome to Well Tracker',
+    'fr': 'Bienvenue sur PuitsTrack',
+    'en': 'Welcome to PuitsTrack',
   },
   'onboardingBody': {
     'fr': 'Suivez les analyses quotidiennes de chaque puits (BSW, salinité, '
@@ -89,8 +89,8 @@ final _strings = <String, Map<String, String>>{
   'unlockTitle': {'fr': 'Bon retour', 'en': 'Welcome back'},
   'unlockSubtitle': {'fr': 'Entrez votre code pour continuer', 'en': 'Enter your code to continue'},
   'unlockBiometricReason': {
-    'fr': 'Déverrouillez Suivi Puits',
-    'en': 'Unlock Well Tracker',
+    'fr': 'Déverrouillez PuitsTrack',
+    'en': 'Unlock PuitsTrack',
   },
   'unlockWrongPin': {'fr': 'Code incorrect, réessayez.', 'en': 'Incorrect code, try again.'},
   'unlockForgotPin': {'fr': 'Code oublié ? En créer un nouveau', 'en': 'Forgot your code? Create a new one'},
@@ -296,6 +296,44 @@ final _strings = <String, Map<String, String>>{
   'adminSave': {'fr': 'Enregistrer', 'en': 'Save'},
   'adminTypeUpdated': {'fr': 'Type d\'analyse mis à jour.', 'en': 'Analysis type updated.'},
   'adminTypeAdded': {'fr': 'Type d\'analyse ajouté.', 'en': 'Analysis type added.'},
+
+  // Gestion des puits
+  'wellsManageTitle': {'fr': 'Gestion des puits', 'en': 'Manage wells'},
+  'wellsManageAdd': {'fr': 'Ajouter un puits', 'en': 'Add a well'},
+  'wellsManageNew': {'fr': 'Nouveau puits', 'en': 'New well'},
+  'wellsManageEdit': {'fr': 'Modifier le puits', 'en': 'Edit well'},
+  'wellsManageNameLabel': {'fr': 'Nom du puits', 'en': 'Well name'},
+  'wellsManageNameHint': {'fr': 'Ex: Nawara 23', 'en': 'e.g. Nawara 23'},
+  'wellsManageInvalidName': {'fr': 'Veuillez saisir un nom.', 'en': 'Please enter a name.'},
+  'wellsManageCodeLabel': {'fr': 'Code', 'en': 'Code'},
+  'wellsManageCodeHint': {'fr': 'Ex: NWR-23', 'en': 'e.g. NWR-23'},
+  'wellsManageInvalidCode': {'fr': 'Veuillez saisir un code.', 'en': 'Please enter a code.'},
+  'wellsManageGroupLabel': {'fr': 'Groupe / Zone', 'en': 'Group / Zone'},
+  'wellsManageGroupHint': {'fr': 'Ex: Zone Nord', 'en': 'e.g. North Zone'},
+  'wellsManageActiveLabel': {'fr': 'Puits actif', 'en': 'Active well'},
+  'wellsManageSave': {'fr': 'Enregistrer', 'en': 'Save'},
+  'wellsManageAdded': {'fr': 'Puits ajouté.', 'en': 'Well added.'},
+  'wellsManageUpdated': {'fr': 'Puits mis à jour.', 'en': 'Well updated.'},
+  'wellsManageDeleted': {'fr': 'Puits supprimé.', 'en': 'Well deleted.'},
+  'wellsManageDelete': {'fr': 'Supprimer ce puits', 'en': 'Delete this well'},
+  'wellsManageDeleteConfirmTitle': {'fr': 'Supprimer ce puits ?', 'en': 'Delete this well?'},
+  'wellsManageDeleteConfirmBody': {
+    'fr': 'Tout l\'historique d\'analyses de ce puits sera perdu définitivement.',
+    'en': 'All analysis history for this well will be permanently lost.',
+  },
+  'wellsManageEmpty': {'fr': 'Aucun puits pour le moment.', 'en': 'No wells yet.'},
+
+  // Statistiques
+  'statsTitle': {'fr': 'Statistiques', 'en': 'Statistics'},
+  'navStats': {'fr': 'Stats', 'en': 'Stats'},
+  'statsPeriod7': {'fr': '7 jours', 'en': '7 days'},
+  'statsPeriod30': {'fr': '30 jours', 'en': '30 days'},
+  'statsPeriodAll': {'fr': 'Tout', 'en': 'All time'},
+  'statsCompliance': {'fr': 'conformité', 'en': 'compliance'},
+  'statsAnalysesCount': {'fr': 'analyses', 'en': 'analyses'},
+  'statsOutOfRangeCount': {'fr': 'hors seuil', 'en': 'out of range'},
+  'statsNoData': {'fr': 'Aucune analyse sur cette période.', 'en': 'No analysis for this period.'},
+  'statsUnassignedGroup': {'fr': 'Sans groupe', 'en': 'Unassigned'},
 };
 
 /// Traduit une clé pour une [Locale] donnée ; retombe sur le français.

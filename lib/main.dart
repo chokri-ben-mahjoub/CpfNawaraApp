@@ -62,7 +62,7 @@ class _SuiviPuitsAppState extends ConsumerState<SuiviPuitsApp> with WidgetsBindi
     final router = ref.watch(appRouterProvider);
 
     return MaterialApp.router(
-      title: 'Suivi Puits',
+      title: 'PuitsTrack',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
