@@ -17,7 +17,7 @@ class LocalDatabase {
     final path = p.join(dir.path, 'suivi_puits.db');
     return openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: (db, version) async {
         await db.execute('''
           create table wells (
@@ -62,6 +62,19 @@ class LocalDatabase {
             await db.insert('analysis_types', type, conflictAlgorithm: ConflictAlgorithm.ignore);
           }
         }
+        if (oldVersion < 4) {
+          // Renomme les puits de démo "Nawara ..." vers des noms génériques —
+          // seulement s'ils n'ont pas déjà été renommés par l'utilisateur
+          // (on ne touche qu'aux id/nom encore identiques au seed d'origine).
+          for (final rename in _wellRenames) {
+            await db.update(
+              'wells',
+              {'code': rename['newCode'], 'name': rename['newName']},
+              where: 'id = ? and name = ?',
+              whereArgs: [rename['id'], rename['oldName']],
+            );
+          }
+        }
       },
     );
   }
@@ -71,11 +84,11 @@ class LocalDatabase {
   /// l'historique reflète uniquement les vraies saisies.
   Future<void> _seed(Database db) async {
     const wells = [
-      {'id': 'w1', 'code': 'NWR-12', 'name': 'Nawara 12', 'active': 1, 'group_name': 'Zone Nord'},
-      {'id': 'w2', 'code': 'NWR-07', 'name': 'Nawara 07', 'active': 1, 'group_name': 'Zone Nord'},
-      {'id': 'w3', 'code': 'NWR-21', 'name': 'Nawara 21', 'active': 1, 'group_name': 'Zone Sud'},
-      {'id': 'w4', 'code': 'NWR-04', 'name': 'Nawara 04', 'active': 0, 'group_name': 'Zone Sud'},
-      {'id': 'w5', 'code': 'NWR-15', 'name': 'Nawara 15', 'active': 1, 'group_name': 'Zone Sud'},
+      {'id': 'w1', 'code': 'PN-01', 'name': 'Puits Nord 1', 'active': 1, 'group_name': 'Zone Nord'},
+      {'id': 'w2', 'code': 'PN-02', 'name': 'Puits Nord 2', 'active': 1, 'group_name': 'Zone Nord'},
+      {'id': 'w3', 'code': 'PS-01', 'name': 'Puits Sud 1', 'active': 1, 'group_name': 'Zone Sud'},
+      {'id': 'w4', 'code': 'PS-02', 'name': 'Puits Sud 2', 'active': 0, 'group_name': 'Zone Sud'},
+      {'id': 'w5', 'code': 'PS-03', 'name': 'Puits Sud 3', 'active': 1, 'group_name': 'Zone Sud'},
     ];
     for (final well in wells) {
       await db.insert('wells', well);
@@ -95,6 +108,16 @@ class LocalDatabase {
     }
   }
 }
+
+/// Correspondance ancien → nouveau nom des 5 puits de démo, utilisée par la
+/// migration v4 (voir `onUpgrade`) pour les installations déjà existantes.
+const _wellRenames = [
+  {'id': 'w1', 'oldName': 'Nawara 12', 'newCode': 'PN-01', 'newName': 'Puits Nord 1'},
+  {'id': 'w2', 'oldName': 'Nawara 07', 'newCode': 'PN-02', 'newName': 'Puits Nord 2'},
+  {'id': 'w3', 'oldName': 'Nawara 21', 'newCode': 'PS-01', 'newName': 'Puits Sud 1'},
+  {'id': 'w4', 'oldName': 'Nawara 04', 'newCode': 'PS-02', 'newName': 'Puits Sud 2'},
+  {'id': 'w5', 'oldName': 'Nawara 15', 'newCode': 'PS-03', 'newName': 'Puits Sud 3'},
+];
 
 /// Débits de production (huile/gaz/eau), suivis quotidiennement puits par
 /// puits — voir la carte "Production" sur la fiche puits. Pas de vrai seuil

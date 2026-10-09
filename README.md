@@ -119,10 +119,11 @@ flutter build apk --release
   ajout/modification/**suppression** (nom, unité, seuils, fréquence) — la
   suppression efface aussi tout l'historique associé, pour éviter les
   références orphelines
-- 5 puits et 10 types d'analyse pré-remplis au premier lancement, dont les 3
-  débits de production huile/gaz/eau (voir `local_database.dart`) pour ne
-  pas démarrer sur un écran vide ; aucun historique de démonstration n'est
-  inventé.
+- 5 puits (Puits Nord 1/2, Puits Sud 1/2/3) et 10 types d'analyse pré-remplis
+  au premier lancement, dont les 3 débits de production huile/gaz/eau (voir
+  `local_database.dart`) pour ne pas démarrer sur un écran vide ; aucun
+  historique de démonstration n'est inventé. Renommables/supprimables à tout
+  moment depuis **Compte → Gestion des puits**.
 
 ### Design
 - Thème clair/sombre Material 3 (`lib/core/theme/app_theme.dart`)
