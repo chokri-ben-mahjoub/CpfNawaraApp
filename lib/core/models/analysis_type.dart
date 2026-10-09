@@ -54,10 +54,15 @@ class AnalysisType {
   /// Nom affiché (ex: "BSW", "Salinité") : donnée venant de la base, pas une
   /// clé de traduction — les types d'analyse sont paramétrables par l'Admin.
   final String label;
+
+  /// Unité affichée (voir `Units` : SI ou API selon les Réglages).
   final String unit;
   final double min;
   final double max;
   final AnalysisFrequency frequency;
+
+  /// Unité enregistrée en base (toujours SI).
+  final String storedUnit;
 
   const AnalysisType({
     required this.id,
@@ -66,7 +71,8 @@ class AnalysisType {
     required this.min,
     required this.max,
     required this.frequency,
-  });
+    String? storedUnit,
+  }) : storedUnit = storedUnit ?? unit;
 
   bool isOutOfRange(double value) => value < min || value > max;
 

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -7,6 +9,7 @@ import '../data/wells_repository.dart';
 import '../export/download_saver.dart';
 import '../l10n/app_strings.dart';
 import '../notifications/reminder_service.dart';
+import '../sync/sync_service.dart';
 import 'app_settings.dart';
 
 const _autoBackupSlotKey = 'settings_auto_backup_slot';
@@ -20,6 +23,8 @@ Future<void> onAppForeground(WidgetRef ref) async {
   final settings = ref.read(appSettingsProvider);
   await DownloadSaver.setSecureScreen(settings.secureScreen);
   await ref.read(wellsControllerProvider.notifier).loaded;
+  // Récupère les saisies faites sur les autres appareils (sans bloquer).
+  unawaited(ref.read(syncControllerProvider.notifier).syncNow());
   await refreshReminders(ref);
   await runAutoBackupIfDue(ref);
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../export/csv_exporter.dart';
+import '../units/unit_system.dart';
 
 enum AutoBackupFrequency { off, daily, weekly }
 
@@ -72,6 +73,9 @@ class AppSettings {
   /// Excel FR (séparateur `;`, virgule décimale).
   final bool csvInternational;
 
+  /// Unités affichées (SI ou API) ; les données restent enregistrées en SI.
+  final UnitSystem unitSystem;
+
   const AppSettings({
     this.themeMode = ThemeMode.system,
     this.biometricEnabled = true,
@@ -86,6 +90,7 @@ class AppSettings {
     this.defaultService = defaultServiceFromProfile,
     this.defaultCurrency = 'TND',
     this.csvInternational = false,
+    this.unitSystem = UnitSystem.si,
   });
 
   TimeOfDay get reminderTime => TimeOfDay(hour: reminderHour, minute: reminderMinute);
@@ -104,22 +109,23 @@ class AppSettings {
     String? defaultService,
     String? defaultCurrency,
     bool? csvInternational,
-  }) =>
-      AppSettings(
-        themeMode: themeMode ?? this.themeMode,
-        biometricEnabled: biometricEnabled ?? this.biometricEnabled,
-        autoLockSeconds: autoLockSeconds ?? this.autoLockSeconds,
-        secureScreen: secureScreen ?? this.secureScreen,
-        autoBackup: autoBackup ?? this.autoBackup,
-        lastBackupAt: lastBackupAt ?? this.lastBackupAt,
-        lastAutoBackupAt: lastAutoBackupAt ?? this.lastAutoBackupAt,
-        dailyReminder: dailyReminder ?? this.dailyReminder,
-        reminderHour: reminderHour ?? this.reminderHour,
-        reminderMinute: reminderMinute ?? this.reminderMinute,
-        defaultService: defaultService ?? this.defaultService,
-        defaultCurrency: defaultCurrency ?? this.defaultCurrency,
-        csvInternational: csvInternational ?? this.csvInternational,
-      );
+    UnitSystem? unitSystem,
+  }) => AppSettings(
+    themeMode: themeMode ?? this.themeMode,
+    biometricEnabled: biometricEnabled ?? this.biometricEnabled,
+    autoLockSeconds: autoLockSeconds ?? this.autoLockSeconds,
+    secureScreen: secureScreen ?? this.secureScreen,
+    autoBackup: autoBackup ?? this.autoBackup,
+    lastBackupAt: lastBackupAt ?? this.lastBackupAt,
+    lastAutoBackupAt: lastAutoBackupAt ?? this.lastAutoBackupAt,
+    dailyReminder: dailyReminder ?? this.dailyReminder,
+    reminderHour: reminderHour ?? this.reminderHour,
+    reminderMinute: reminderMinute ?? this.reminderMinute,
+    defaultService: defaultService ?? this.defaultService,
+    defaultCurrency: defaultCurrency ?? this.defaultCurrency,
+    csvInternational: csvInternational ?? this.csvInternational,
+    unitSystem: unitSystem ?? this.unitSystem,
+  );
 }
 
 const _kTheme = 'settings_theme_mode';
@@ -135,6 +141,7 @@ const _kReminderMinute = 'settings_reminder_minute';
 const _kDefaultService = 'settings_default_service';
 const _kCurrency = 'settings_default_currency';
 const _kCsvIntl = 'settings_csv_international';
+const _kUnits = 'settings_unit_system';
 
 class AppSettingsController extends StateNotifier<AppSettings> {
   AppSettingsController() : super(const AppSettings()) {
@@ -155,10 +162,7 @@ class AppSettingsController extends StateNotifier<AppSettings> {
     }
 
     state = AppSettings(
-      themeMode: ThemeMode.values.firstWhere(
-        (m) => m.name == p.getString(_kTheme),
-        orElse: () => ThemeMode.system,
-      ),
+      themeMode: ThemeMode.values.firstWhere((m) => m.name == p.getString(_kTheme), orElse: () => ThemeMode.system),
       biometricEnabled: p.getBool(_kBiometric) ?? true,
       autoLockSeconds: p.getInt(_kAutoLock) ?? 0,
       secureScreen: p.getBool(_kSecure) ?? false,
@@ -174,8 +178,10 @@ class AppSettingsController extends StateNotifier<AppSettings> {
       defaultService: p.getString(_kDefaultService) ?? defaultServiceFromProfile,
       defaultCurrency: p.getString(_kCurrency) ?? 'TND',
       csvInternational: p.getBool(_kCsvIntl) ?? false,
+      unitSystem: UnitSystemX.fromKey(p.getString(_kUnits)),
     );
     CsvExporter.international = state.csvInternational;
+    Units.system = state.unitSystem;
   }
 
   Future<SharedPreferences> get _prefs => SharedPreferences.getInstance();
@@ -207,20 +213,14 @@ class AppSettingsController extends StateNotifier<AppSettings> {
 
   Future<void> markBackupDone({required bool automatic}) async {
     final now = DateTime.now();
-    state = automatic
-        ? state.copyWith(lastBackupAt: now, lastAutoBackupAt: now)
-        : state.copyWith(lastBackupAt: now);
+    state = automatic ? state.copyWith(lastBackupAt: now, lastAutoBackupAt: now) : state.copyWith(lastBackupAt: now);
     final p = await _prefs;
     await p.setString(_kLastBackup, now.toIso8601String());
     if (automatic) await p.setString(_kLastAutoBackup, now.toIso8601String());
   }
 
   Future<void> setDailyReminder(bool enabled, {TimeOfDay? time}) async {
-    state = state.copyWith(
-      dailyReminder: enabled,
-      reminderHour: time?.hour,
-      reminderMinute: time?.minute,
-    );
+    state = state.copyWith(dailyReminder: enabled, reminderHour: time?.hour, reminderMinute: time?.minute);
     final p = await _prefs;
     await p.setBool(_kReminder, enabled);
     await p.setInt(_kReminderHour, state.reminderHour);
@@ -237,6 +237,14 @@ class AppSettingsController extends StateNotifier<AppSettings> {
     await (await _prefs).setString(_kCurrency, value);
   }
 
+  /// Change les unités affichées : les contrôleurs de données doivent
+  /// ensuite être relus (voir l'écran Réglages).
+  Future<void> setUnitSystem(UnitSystem value) async {
+    state = state.copyWith(unitSystem: value);
+    Units.system = value;
+    await (await _prefs).setString(_kUnits, value.name);
+  }
+
   Future<void> setCsvInternational(bool value) async {
     state = state.copyWith(csvInternational: value);
     CsvExporter.international = value;
@@ -244,5 +252,4 @@ class AppSettingsController extends StateNotifier<AppSettings> {
   }
 }
 
-final appSettingsProvider =
-    StateNotifierProvider<AppSettingsController, AppSettings>((ref) => AppSettingsController());
+final appSettingsProvider = StateNotifierProvider<AppSettingsController, AppSettings>((ref) => AppSettingsController());

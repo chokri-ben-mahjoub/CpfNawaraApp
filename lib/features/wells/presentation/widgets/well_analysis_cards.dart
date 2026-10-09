@@ -50,7 +50,10 @@ class RatiosCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(s('ratiosTitle'), style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+            Text(
+              s('ratiosTitle'),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
             const SizedBox(height: 4),
             Text(s('ratiosSubtitle'), style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
             const SizedBox(height: 14),
@@ -69,7 +72,9 @@ class RatiosCard extends ConsumerWidget {
                     latest: metrics.latest(ratio).$1,
                     previous: metrics.latest(ratio).$2,
                     dateFormat: dateFormat,
-                    emptyLabel: ratio == DerivedRatio.pi && well.reservoirPressure == null ? s('piNeedsPr') : s('wellDetailNoValue'),
+                    emptyLabel: ratio == DerivedRatio.pi && well.reservoirPressure == null
+                        ? s('piNeedsPr')
+                        : s('wellDetailNoValue'),
                     onTap: () => context.push('/wells/$wellId/ratio/${ratio.storageKey}'),
                   ),
               ],
@@ -142,8 +147,8 @@ class _RatioTile extends StatelessWidget {
                     delta > 0.5
                         ? Icons.arrow_upward
                         : delta < -0.5
-                            ? Icons.arrow_downward
-                            : Icons.arrow_forward,
+                        ? Icons.arrow_downward
+                        : Icons.arrow_forward,
                     size: 14,
                     color: scheme.onSurfaceVariant,
                   ),
@@ -227,7 +232,10 @@ class DeclineCard extends ConsumerWidget {
                         decoration: BoxDecoration(color: fluidColor(id), shape: BoxShape.circle),
                       ),
                       const SizedBox(width: 8),
-                      Text(controller.findType(id)!.label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                      Text(
+                        controller.findType(id)!.label,
+                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                      ),
                       const SizedBox(width: 8),
                       // Flexible : reste lisible (retour à la ligne) avec une
                       // grande taille de texte système.
@@ -286,17 +294,14 @@ class InterventionsSection extends ConsumerWidget {
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
             ),
-            if (role.canEnterData)
+            if (role.canManageInterventions)
               IconButton(
                 tooltip: s('interventionAdd'),
                 icon: const Icon(Icons.add_circle_outline, color: accentColor),
                 onPressed: () => showInterventionForm(context, wellId: wellId),
               ),
             if (interventions.isNotEmpty)
-              TextButton(
-                onPressed: () => context.push('/wells/$wellId/interventions'),
-                child: Text(s('seeAll')),
-              ),
+              TextButton(onPressed: () => context.push('/wells/$wellId/interventions'), child: Text(s('seeAll'))),
           ],
         ),
         const SizedBox(height: 6),
@@ -305,7 +310,7 @@ class InterventionsSection extends ConsumerWidget {
             child: ListTile(
               leading: const Icon(Icons.construction, color: interventionMarkerColor),
               title: Text(s('interventionsEmptyShort'), style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13)),
-              onTap: role.canEnterData ? () => showInterventionForm(context, wellId: wellId) : null,
+              onTap: role.canManageInterventions ? () => showInterventionForm(context, wellId: wellId) : null,
             ),
           )
         else
@@ -318,7 +323,7 @@ class InterventionsSection extends ConsumerWidget {
                     intervention: interventions[i],
                     locale: locale,
                     s: s,
-                    onTap: role.canEnterData
+                    onTap: role.canManageInterventions
                         ? () => showInterventionForm(context, wellId: wellId, existing: interventions[i])
                         : null,
                   ),

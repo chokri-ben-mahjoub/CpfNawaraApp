@@ -13,6 +13,8 @@ import 'core/router/app_router.dart';
 import 'core/settings/app_settings.dart';
 import 'core/settings/startup_tasks.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/page_transitions.dart';
+import 'features/splash/splash_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,10 +33,20 @@ class SuiviPuitsApp extends ConsumerStatefulWidget {
   ConsumerState<SuiviPuitsApp> createState() => _SuiviPuitsAppState();
 }
 
+/// Durée minimale de l'écran de démarrage : le temps de son animation
+/// d'entrée (sinon il ne ferait que clignoter).
+const _splashMinDuration = Duration(milliseconds: 1100);
+
 class _SuiviPuitsAppState extends ConsumerState<SuiviPuitsApp> with WidgetsBindingObserver {
+  bool _splashShown = false;
+  Timer? _splashTimer;
+
   @override
   void initState() {
     super.initState();
+    _splashTimer = Timer(_splashMinDuration, () {
+      if (mounted) setState(() => _splashShown = true);
+    });
     WidgetsBinding.instance.addObserver(this);
     // Écran protégé, rappels, sauvegarde automatique (voir startup_tasks.dart).
     WidgetsBinding.instance.addPostFrameCallback((_) => unawaited(onAppForeground(ref)));
@@ -42,6 +54,7 @@ class _SuiviPuitsAppState extends ConsumerState<SuiviPuitsApp> with WidgetsBindi
 
   @override
   void dispose() {
+    _splashTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -80,9 +93,13 @@ class _SuiviPuitsAppState extends ConsumerState<SuiviPuitsApp> with WidgetsBindi
     final sessionAuthenticated = ref.watch(sessionAuthenticatedProvider);
     final appLockHasPin = ref.watch(appLockProvider.select((s) => s.hasPin));
 
-    if (authReady.isLoading || (sessionAuthenticated && appLockHasPin == null)) {
-      return const MaterialApp(
-        home: Scaffold(body: Center(child: CircularProgressIndicator())),
+    // Écran de démarrage tant que l'app se prépare (réglages, profil,
+    // verrouillage), et au moins le temps de son animation.
+    if (!_splashShown || authReady.isLoading || (sessionAuthenticated && appLockHasPin == null)) {
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light(),
+        home: SplashScreen(tagline: tr(locale, 'appTagline')),
       );
     }
 
@@ -104,6 +121,8 @@ class _SuiviPuitsAppState extends ConsumerState<SuiviPuitsApp> with WidgetsBindi
         GlobalCupertinoLocalizations.delegate,
       ],
       routerConfig: router,
+      // Entrée en fondu après l'écran de démarrage.
+      builder: (context, child) => FadeInOnce(child: child ?? const SizedBox.shrink()),
     );
   }
 }

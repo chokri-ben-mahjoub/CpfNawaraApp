@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'page_transitions.dart';
+
 /// Couleur d'accent de l'app Suivi Puits (ambre énergie, inspiré du secteur gazier).
 const accentColor = Color(0xFFFF7A33);
 
@@ -22,6 +24,7 @@ class AppTheme {
       colorScheme: colorScheme,
       scaffoldBackgroundColor: colorScheme.surface,
       fontFamily: 'Manrope',
+      pageTransitionsTheme: appPageTransitionsTheme,
       appBarTheme: AppBarTheme(
         backgroundColor: colorScheme.surface,
         foregroundColor: colorScheme.onSurface,

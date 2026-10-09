@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/auth/auth_providers.dart';
 import '../../../core/l10n/app_strings.dart';
@@ -41,7 +42,9 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
     setState(() => _loading = true);
     try {
-      await ref.read(authServiceProvider).createProfile(
+      await ref
+          .read(authServiceProvider)
+          .createProfile(
             fullName: _nameController.text.trim(),
             phone: _phoneController.text.trim(),
             serviceKey: _service!,
@@ -61,6 +64,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     final serviceMissing = _serviceTouched && _service == null;
 
     return Scaffold(
+      // Retour au choix du mode (équipe / personnel).
+      appBar: AppBar(leading: BackButton(onPressed: () => context.go('/setup'))),
       body: NarrowSafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
@@ -82,31 +87,22 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                             color: accentColor.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(18),
                           ),
-                          child: const Icon(Icons.person_add_alt_1_outlined,
-                              color: accentColor, size: 26),
+                          child: const Icon(Icons.person_add_alt_1_outlined, color: accentColor, size: 26),
                         ),
                         const SizedBox(height: 18),
                         Text(
                           s('signupTitle'),
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
-                              ?.copyWith(fontWeight: FontWeight.w700),
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
                         ),
                         const SizedBox(height: 6),
                         Text(
                           s('signupSubtitle'),
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: scheme.onSurfaceVariant,
-                              ),
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
                         ),
                         const SizedBox(height: 28),
                         Text(
                           s('signupNameLabel'),
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleSmall
-                              ?.copyWith(fontWeight: FontWeight.w700),
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
                         ),
                         const SizedBox(height: 8),
                         TextFormField(
@@ -127,10 +123,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                         const SizedBox(height: 18),
                         Text(
                           s('signupServiceLabel'),
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleSmall
-                              ?.copyWith(fontWeight: FontWeight.w700),
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
                         ),
                         const SizedBox(height: 8),
                         DropdownButtonFormField<String>(
@@ -139,30 +132,20 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                             hintText: s('signupServiceHint'),
                             prefixIcon: const Icon(Icons.groups_outlined),
                           ),
-                          items: [
-                            for (final key in serviceKeys)
-                              DropdownMenuItem(value: key, child: Text(s(key))),
-                          ],
-                          onChanged: (value) =>
-                              setState(() {
-                                _service = value;
-                                _serviceTouched = true;
-                              }),
+                          items: [for (final key in serviceKeys) DropdownMenuItem(value: key, child: Text(s(key)))],
+                          onChanged: (value) => setState(() {
+                            _service = value;
+                            _serviceTouched = true;
+                          }),
                         ),
                         if (serviceMissing) ...[
                           const SizedBox(height: 8),
-                          Text(
-                            s('signupInvalidService'),
-                            style: TextStyle(color: scheme.error, fontSize: 12),
-                          ),
+                          Text(s('signupInvalidService'), style: TextStyle(color: scheme.error, fontSize: 12)),
                         ],
                         const SizedBox(height: 18),
                         Text(
                           s('signupPhoneLabel'),
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleSmall
-                              ?.copyWith(fontWeight: FontWeight.w700),
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
                         ),
                         const SizedBox(height: 8),
                         TextFormField(
@@ -191,9 +174,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: scheme.primary,
                       foregroundColor: scheme.onPrimary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                     ),
                     child: _loading
                         ? const SizedBox(
@@ -201,10 +182,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                             height: 22,
                             child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white),
                           )
-                        : Text(
-                            s('signupSubmit'),
-                            style: const TextStyle(fontWeight: FontWeight.w700),
-                          ),
+                        : Text(s('signupSubmit'), style: const TextStyle(fontWeight: FontWeight.w700)),
                   ),
                 ),
               ],

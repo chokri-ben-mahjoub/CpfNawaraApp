@@ -2,9 +2,25 @@
 // interventions, filtres, feuille d'export) avec un jeu de données réaliste,
 // sur un écran de téléphone : échoue en cas d'exception ou de débordement de
 // mise en page.
+import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:puitstrack/core/auth/auth_providers.dart';
+import 'package:puitstrack/core/config/shared_config.dart';
+import 'package:puitstrack/core/sync/firebase_config.dart';
+import 'package:puitstrack/features/admin/presentation/admin_screen.dart';
+import 'package:puitstrack/features/admin/presentation/audit_screen.dart';
+import 'package:puitstrack/features/admin/presentation/data_admin_screen.dart';
+import 'package:puitstrack/features/admin/presentation/firebase_project_screen.dart';
+import 'package:puitstrack/features/admin/presentation/sample_points_screen.dart';
+import 'package:puitstrack/features/admin/presentation/thresholds_screen.dart';
+import 'package:puitstrack/features/admin/presentation/users_screen.dart';
+import 'package:puitstrack/features/admin/presentation/wells_manage_screen.dart';
+import 'package:puitstrack/features/alerts/presentation/alerts_screen.dart';
+import 'package:puitstrack/features/setup/presentation/setup_screen.dart';
+import 'package:puitstrack/core/widgets/app_loader.dart';
+import 'package:puitstrack/features/home/presentation/home_shell.dart';
+import 'package:puitstrack/features/splash/splash_screen.dart';
 import 'package:puitstrack/core/data/wells_repository.dart';
 import 'package:puitstrack/core/export/download_saver.dart';
 import 'package:puitstrack/core/export/export_format_sheet.dart';
@@ -25,6 +41,12 @@ import 'package:puitstrack/features/stats/presentation/stats_screen.dart';
 import 'package:puitstrack/features/wells/presentation/well_detail_screen.dart';
 import 'package:puitstrack/features/wells/presentation/wells_list_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:puitstrack/core/plant/plant_catalog.dart';
+import 'package:puitstrack/core/plant/plant_repository.dart';
+import 'package:puitstrack/features/plant/presentation/plant_entry_screen.dart';
+import 'package:puitstrack/features/plant/presentation/plant_point_screen.dart';
+import 'package:puitstrack/features/plant/presentation/plant_screen.dart';
+import 'package:puitstrack/features/plant/presentation/plant_trend_screen.dart';
 import 'package:puitstrack/core/notifications/reminder_service.dart';
 import 'package:puitstrack/features/settings/presentation/settings_screen.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -39,11 +61,46 @@ WellsState _seed() {
   const types = [
     AnalysisType(id: 't_bsw', label: 'BSW', unit: '%', min: 0, max: 2, frequency: AnalysisFrequency.daily),
     AnalysisType(id: 't_h2s', label: 'H2S', unit: 'ppm', min: 0, max: 10, frequency: AnalysisFrequency.daily),
-    AnalysisType(id: 't_pressure', label: 'Pression', unit: 'bar', min: 20, max: 120, frequency: AnalysisFrequency.daily),
-    AnalysisType(id: oilFlowTypeId, label: 'Débit huile', unit: 'm³/j', min: 0, max: 100000, frequency: AnalysisFrequency.daily),
-    AnalysisType(id: gasFlowTypeId, label: 'Débit gaz', unit: 'Sm³/j', min: 0, max: 1000000, frequency: AnalysisFrequency.daily),
-    AnalysisType(id: waterFlowTypeId, label: 'Débit eau', unit: 'm³/j', min: 0, max: 100000, frequency: AnalysisFrequency.daily),
-    AnalysisType(id: bottomHolePressureTypeId, label: 'Pression de fond (Pwf)', unit: 'bar', min: 0, max: 1000, frequency: AnalysisFrequency.onDemand),
+    AnalysisType(
+      id: 't_pressure',
+      label: 'Pression',
+      unit: 'bar',
+      min: 20,
+      max: 120,
+      frequency: AnalysisFrequency.daily,
+    ),
+    AnalysisType(
+      id: oilFlowTypeId,
+      label: 'Débit huile',
+      unit: 'm³/j',
+      min: 0,
+      max: 100000,
+      frequency: AnalysisFrequency.daily,
+    ),
+    AnalysisType(
+      id: gasFlowTypeId,
+      label: 'Débit gaz',
+      unit: 'Sm³/j',
+      min: 0,
+      max: 1000000,
+      frequency: AnalysisFrequency.daily,
+    ),
+    AnalysisType(
+      id: waterFlowTypeId,
+      label: 'Débit eau',
+      unit: 'm³/j',
+      min: 0,
+      max: 100000,
+      frequency: AnalysisFrequency.daily,
+    ),
+    AnalysisType(
+      id: bottomHolePressureTypeId,
+      label: 'Pression de fond (Pwf)',
+      unit: 'bar',
+      min: 0,
+      max: 1000,
+      frequency: AnalysisFrequency.onDemand,
+    ),
   ];
   const wells = [
     Well(id: 'w1', code: 'PN-01', name: 'Puits Nord 1', active: true, group: 'Zone Nord', reservoirPressure: 210),
@@ -53,15 +110,17 @@ WellsState _seed() {
   final rnd = math.Random(4);
   final records = <AnalysisRecord>[];
   var n = 0;
-  void add(String well, String type, double v, DateTime at) => records.add(AnalysisRecord(
-        id: 'r${n++}',
-        wellId: well,
-        typeId: type,
-        value: double.parse(v.toStringAsFixed(2)),
-        serviceKey: 'serviceProduction',
-        operatorName: 'Ahmed',
-        dateTime: at,
-      ));
+  void add(String well, String type, double v, DateTime at) => records.add(
+    AnalysisRecord(
+      id: 'r${n++}',
+      wellId: well,
+      typeId: type,
+      value: double.parse(v.toStringAsFixed(2)),
+      serviceKey: 'serviceProduction',
+      operatorName: 'Ahmed',
+      dateTime: at,
+    ),
+  );
   final intervention = today.subtract(const Duration(days: 40));
   for (var d = 120; d >= 0; d--) {
     final day = today.subtract(Duration(days: d)).add(const Duration(hours: 9));
@@ -104,16 +163,80 @@ WellsState _seed() {
   return WellsState(wells: wells, analysisTypes: types, records: records, interventions: interventions);
 }
 
+/// Usine : analyses du jour sur 3 points (une hors seuil), les autres non
+/// analysés.
+PlantController _seedPlant() {
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final points = [
+    for (final row in plantSeedPoints)
+      SamplePoint(
+        id: row['id']! as String,
+        code: row['code']! as String,
+        circuit: PlantCircuitX.fromKey(row['circuit']! as String),
+        name: row['name']! as String,
+        equipment: row['equipment']! as String,
+        profile: row['profile']! as String,
+      ),
+  ];
+  PlantAnalysis analysis(String pointId, DateTime day, Map<String, Object?> values) => PlantAnalysis(
+    id: plantAnalysisId(pointId, day),
+    pointId: pointId,
+    date: day,
+    values: values,
+    source: 'plantSourceLab',
+    operatorName: 'Ahmed',
+    recordedAt: day,
+  );
+  return PlantController.seeded(
+    PlantState(
+      points: points,
+      analyses: [
+        analysis('pp_c1', today, {'density': 735.0, 'bsw': 0.8, 'water_cut': 0.5, 'salinity': 12.0, 'chlorides': 7.0}),
+        for (var d = 1; d < 20; d++)
+          analysis('pp_c1', today.subtract(Duration(days: d)), {'density': 730.0 + d % 5, 'bsw': 0.2 + (d % 4) * 0.05}),
+        analysis('pp_w1', today, {'ph': 6.8, 'appearance': 'plantAppearanceClear', 'tph': 12.0, 'iron': 0.4}),
+        analysis('pp_g3', today, {
+          'ch4': 88.2,
+          'c2h6': 6.1,
+          'c3h8': 2.3,
+          'c4plus': 1.1,
+          'co2': 1.9,
+          'n2': 0.4,
+          'h2s': 2.0,
+        }),
+        analysis('pp_la', today, {'concentration': 45.0, 'ph': 11.2, 'co2_loading': 0.02}),
+      ],
+      thresholds: const {
+        'pp_c1': {'bsw': PlantThreshold(max: 0.5)},
+        'pp_g3': {'h2s': PlantThreshold(max: 4)},
+      },
+    ),
+  );
+}
+
 class _AdminProfile extends ProfileController {
   _AdminProfile() {
-    state = const AppProfile(id: 'p', fullName: 'Ahmed', phone: '', serviceKey: 'serviceProduction', role: UserRole.admin);
+    state = const AppProfile(
+      id: 'p',
+      fullName: 'Ahmed',
+      phone: '',
+      serviceKey: 'serviceProduction',
+      role: UserRole.admin,
+    );
   }
 }
 
-Widget _app(Widget home, WellsState data, {bool dark = false}) => ProviderScope(
+Widget _app(Widget home, WellsState data, {bool dark = false, PlantView plantView = PlantView.diagram}) =>
+    ProviderScope(
       overrides: [
         wellsControllerProvider.overrideWith((ref) => WellsController.seeded(data)),
+        plantControllerProvider.overrideWith((ref) => _seedPlant()),
+        plantViewProvider.overrideWith((ref) => plantView),
         profileProvider.overrideWith((ref) => _AdminProfile()),
+        sharedConfigProvider.overrideWith(
+          (ref) => SharedConfigController.seeded(const SharedConfig({missingDeadlineKey: '00:00'})),
+        ),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -129,11 +252,18 @@ Widget _app(Widget home, WellsState data, {bool dark = false}) => ProviderScope(
       ),
     );
 
-Future<void> _render(WidgetTester tester, Widget home, {double height = 844, bool dark = false}) async {
-  tester.view.physicalSize = Size(390 * 2.0, height * 2.0);
+Future<void> _render(
+  WidgetTester tester,
+  Widget home, {
+  double height = 844,
+  double width = 390,
+  bool dark = false,
+  PlantView plantView = PlantView.diagram,
+}) async {
+  tester.view.physicalSize = Size(width * 2.0, height * 2.0);
   tester.view.devicePixelRatio = 2.0;
   addTearDown(tester.view.reset);
-  await tester.pumpWidget(_app(home, _seed(), dark: dark));
+  await tester.pumpWidget(_app(home, _seed(), dark: dark, plantView: plantView));
   await tester.pumpAndSettle();
   expect(tester.takeException(), isNull);
 }
@@ -163,21 +293,191 @@ void main() {
   testWidgets('stats', (t) => _render(t, const Scaffold(body: SafeArea(child: StatsScreen())), height: 1100));
   testWidgets('réglages', (t) => _render(t, const SettingsScreen(), height: 2900));
   testWidgets('réglages (sombre)', (t) => _render(t, const SettingsScreen(), height: 2900, dark: true));
-  testWidgets('fiche puits (sombre)', (t) => _render(t, const WellDetailScreen(wellId: 'w1'), height: 2700, dark: true));
+  testWidgets(
+    'fiche puits (sombre)',
+    (t) => _render(t, const WellDetailScreen(wellId: 'w1'), height: 2700, dark: true),
+  );
+  testWidgets('usine : schéma', (t) => _render(t, const Scaffold(body: SafeArea(child: PlantScreen())), height: 1100));
+  testWidgets(
+    'usine : liste',
+    (t) => _render(
+      t,
+      const Scaffold(body: SafeArea(child: PlantScreen())),
+      height: 2600,
+      plantView: PlantView.list,
+    ),
+  );
+  testWidgets(
+    'usine : schéma (sombre)',
+    (t) => _render(t, const Scaffold(body: SafeArea(child: PlantScreen())), height: 1100, dark: true),
+  );
+  testWidgets('usine : fiche point', (t) => _render(t, const PlantPointScreen(pointId: 'pp_c1'), height: 1600));
+  testWidgets('usine : saisie gaz export', (t) => _render(t, const PlantEntryScreen(pointId: 'pp_g3'), height: 1700));
+  testWidgets('usine : saisie eau', (t) => _render(t, const PlantEntryScreen(pointId: 'pp_w1'), height: 1500));
+  testWidgets(
+    'usine : tendance',
+    (t) => _render(t, const PlantTrendScreen(pointId: 'pp_c1', paramKey: 'bsw'), height: 1400),
+  );
+  // Administration (téléphone puis grand écran).
+  testWidgets('admin : accueil', (t) => _render(t, const AdminScreen(), height: 1300));
+  testWidgets('admin : accueil (large)', (t) => _render(t, const AdminScreen(), width: 1280, height: 900));
+  testWidgets('admin : utilisateurs (mode personnel)', (t) => _render(t, const UsersScreen()));
+  testWidgets('admin : puits', (t) => _render(t, const WellsManageScreen(), height: 1000));
+  testWidgets('admin : puits (tableau)', (t) => _render(t, const WellsManageScreen(), width: 1280, height: 800));
+  testWidgets('admin : formulaire puits', (t) async {
+    await _render(t, const WellsManageScreen(), height: 1000);
+    await t.tap(find.byType(ListTile).first);
+    await t.pumpAndSettle();
+    expect(find.text('Latitude'), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
+  testWidgets('admin : points', (t) => _render(t, const SamplePointsScreen(), height: 2600));
+  testWidgets('admin : points (tableau)', (t) => _render(t, const SamplePointsScreen(), width: 1280, height: 1400));
+  testWidgets('admin : formulaire point', (t) async {
+    await _render(t, const SamplePointsScreen(), height: 2600);
+    await t.tap(find.text('Ajouter un point'));
+    await t.pumpAndSettle();
+    expect(find.text('Paramètres analysés'), findsOneWidget);
+    final e = t.takeException();
+    if (e is FlutterError) debugPrint(e.toStringDeep());
+    expect(e, isNull);
+  });
+  testWidgets('admin : seuils', (t) => _render(t, const ThresholdsScreen(), height: 1900));
+  testWidgets('admin : seuils (large)', (t) => _render(t, const ThresholdsScreen(), width: 1280, height: 1300));
+  testWidgets('admin : données', (t) => _render(t, const DataAdminScreen(), height: 1300));
+  testWidgets('admin : projet Firebase (aucun)', (t) => _render(t, const FirebaseProjectScreen(), height: 1100));
+  testWidgets('admin : projet Firebase (configuré)', (t) async {
+    SharedPreferences.setMockInitialValues({'firebase_config': jsonEncode(FirebaseRestConfig.builtIn.toJson())});
+    addTearDown(() => SharedPreferences.setMockInitialValues({}));
+    await _render(t, const FirebaseProjectScreen(), height: 2000);
+    expect(find.text('Ajouter un appareil'), findsOneWidget);
+    expect(find.textContaining('puitstrack'), findsWidgets);
+  });
+  testWidgets('admin : journal (mode personnel)', (t) => _render(t, const AuditScreen()));
+  testWidgets('installation', (t) async {
+    await _render(t, const SetupScreen());
+    await t.tap(find.text('Équipe (synchronisé)'));
+    await t.pumpAndSettle();
+    expect(find.text('Projet PuitsTrack (recommandé)'), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
+  testWidgets('alertes (heure limite passée)', (t) async {
+    await _render(t, const Scaffold(body: AlertsScreen()), height: 2400);
+    expect(find.textContaining('00:00'), findsWidgets);
+  });
+  // Navigation, chargements.
+  testWidgets('accueil : menu latéral (téléphone)', (t) async {
+    await _render(t, const HomeShell(), height: 900);
+    await t.tap(find.byIcon(Icons.menu));
+    await t.pumpAndSettle();
+    expect(find.text('Outils'), findsOneWidget);
+    expect(find.text('Administration'), findsWidgets);
+    await t.tap(find.text('Usine').last);
+    await t.pumpAndSettle();
+    expect(find.text('Outils'), findsNothing, reason: 'menu refermé');
+    expect(t.takeException(), isNull);
+  });
+  testWidgets('accueil : menu latéral réductible (large)', (t) async {
+    await _render(t, const HomeShell(), width: 1280, height: 900);
+    expect(find.text('Réglages'), findsWidgets);
+    await t.tap(find.byTooltip('Réduire le menu'));
+    await t.pumpAndSettle();
+    expect(find.byTooltip('Agrandir le menu'), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
+  testWidgets('accueil : squelettes pendant le chargement', (t) async {
+    t.view.physicalSize = const Size(390 * 2.0, 844 * 2.0);
+    t.view.devicePixelRatio = 2.0;
+    addTearDown(t.view.reset);
+    await t.pumpWidget(ProviderScope(
+      overrides: [
+        wellsControllerProvider.overrideWith((ref) => WellsController.seeded(WellsState.empty)),
+        plantControllerProvider.overrideWith((ref) => PlantController.seeded(PlantState.empty)),
+        profileProvider.overrideWith((ref) => _AdminProfile()),
+      ],
+      child: MaterialApp(
+        theme: AppTheme.light(),
+        locale: const Locale('fr'),
+        supportedLocales: supportedLocales,
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        home: const HomeShell(),
+      ),
+    ));
+    await t.pump(const Duration(milliseconds: 600));
+    expect(find.byType(SkeletonPage), findsWidgets);
+    expect(find.byType(Shimmer), findsWidgets);
+    expect(t.takeException(), isNull);
+  });
+  testWidgets('écran de démarrage', (t) async {
+    await t.pumpWidget(MaterialApp(theme: AppTheme.light(), home: const SplashScreen()));
+    await t.pump(const Duration(milliseconds: 1200));
+    expect(find.text('PuitsTrack'), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
+  testWidgets('fenêtre de chargement + transition de page', (t) async {
+    await t.pumpWidget(MaterialApp(
+      theme: AppTheme.light(),
+      home: Builder(
+        builder: (context) => Scaffold(
+          body: Column(
+            children: [
+              ElevatedButton(
+                onPressed: () => runWithLoading(
+                  context,
+                  'Génération…',
+                  () => Future<void>.delayed(const Duration(milliseconds: 300)),
+                ),
+                child: const Text('charger'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => const Scaffold(body: Text('page 2'))),
+                ),
+                child: const Text('ouvrir'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ));
+    await t.tap(find.text('charger'));
+    await t.pump(const Duration(milliseconds: 100));
+    expect(find.text('Génération…'), findsOneWidget);
+    expect(find.byType(AppLoader), findsOneWidget);
+    await t.pump(const Duration(milliseconds: 400));
+    await t.pump(const Duration(milliseconds: 300));
+    expect(find.text('Génération…'), findsNothing, reason: 'fenêtre refermée');
+    await t.tap(find.text('ouvrir'));
+    await t.pump();
+    await t.pump(const Duration(milliseconds: 160));
+    expect(find.text('page 2', skipOffstage: false), findsOneWidget, reason: 'transition en cours');
+    await t.pumpAndSettle();
+    expect(find.text('page 2'), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
   testWidgets('feuille export', (t) async {
     t.view.physicalSize = const Size(390 * 2.0, 844 * 2.0);
     t.view.devicePixelRatio = 2.0;
     addTearDown(t.view.reset);
-    await t.pumpWidget(_app(
-      Scaffold(
-        body: Builder(
-          builder: (context) => Center(
-            child: ElevatedButton(onPressed: () => chooseExport(context, const Locale('fr')), child: const Text('go')),
+    await t.pumpWidget(
+      _app(
+        Scaffold(
+          body: Builder(
+            builder: (context) => Center(
+              child: ElevatedButton(
+                onPressed: () => chooseExport(context, const Locale('fr')),
+                child: const Text('go'),
+              ),
+            ),
           ),
         ),
+        _seed(),
       ),
-      _seed(),
-    ));
+    );
     await t.tap(find.text('go'));
     await t.pumpAndSettle();
     expect(find.text('Télécharger'), findsOneWidget);
