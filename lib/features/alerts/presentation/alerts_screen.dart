@@ -1,71 +1,78 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
 import '../../../core/auth/auth_providers.dart';
 import '../../../core/data/wells_repository.dart';
-import '../../../core/export/csv_exporter.dart';
-import '../../../core/export/excel_exporter.dart';
-import '../../../core/export/export_format_sheet.dart';
+import '../../../core/export/export_service.dart';
+import '../../../core/export/export_table.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/analysis_type.dart';
 import '../../../core/models/user_role.dart';
 import '../../../core/models/well.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/responsive.dart';
 
-/// Exporte en Excel les analyses en retard et les dernières valeurs hors
-/// seuil, tous puits actifs confondus (utile pour un rapport HSE).
+/// Exporte les analyses en retard et les dernières valeurs hors seuil, tous
+/// puits actifs confondus (utile pour un rapport HSE).
 Future<void> exportAlerts(WidgetRef ref, BuildContext context) async {
   final locale = ref.read(localeProvider);
   String s(String key) => tr(locale, key);
-  final messenger = ScaffoldMessenger.of(context);
 
   final data = ref.read(wellsControllerProvider);
   final controller = ref.read(wellsControllerProvider.notifier);
   final today = DateTime.now();
   final activeWells = data.wells.where((w) => w.active).toList();
-  final dateFormat = DateFormat('dd/MM/yyyy');
 
-  final rows = <List<String>>[];
+  final rows = <List<Object?>>[];
   for (final well in activeWells) {
     for (final type in data.analysisTypes) {
       final last = controller.lastRecord(well.id, type.id);
       if (type.isDueOn(today) && controller.statusFor(well.id, type.id, now: today) == DailyStatus.overdue) {
-        final lastInfo = last == null ? s('wellDetailNoValue') : dateFormat.format(last.dateTime);
-        rows.add([s('alertsOverdueSection'), '${well.name} (${well.code})', type.label, lastInfo]);
+        rows.add([
+          s('alertsOverdueSection'),
+          '${well.name} (${well.code})',
+          type.label,
+          last?.dateTime,
+          last?.value,
+          type.unit,
+          '${type.min} – ${type.max}',
+        ]);
       }
       if (last != null && type.isOutOfRange(last.value) && last.isSameDay(today)) {
         rows.add([
           s('alertsOutOfRangeSection'),
           '${well.name} (${well.code})',
           type.label,
-          '${last.value} ${type.unit} (${type.min}–${type.max} ${type.unit})',
+          last.dateTime,
+          last.value,
+          type.unit,
+          '${type.min} – ${type.max}',
         ]);
       }
     }
   }
 
-  if (rows.isEmpty) {
-    messenger.showSnackBar(SnackBar(content: Text(s('exportEmpty'))));
-    return;
-  }
-
-  final format = await chooseExportFormat(context, locale);
-  if (format == null) return;
-
-  messenger.showSnackBar(SnackBar(content: Text(s('exportStarted'))));
-  final headers = [s('colStatus'), s('colWell'), s('colType'), s('colDate')];
-  final suffix = DateFormat('yyyyMMdd_HHmm').format(today);
-  try {
-    if (format == ExportFormat.excel) {
-      await ExcelExporter.exportAndShare(fileName: 'alertes_$suffix.xlsx', headers: headers, rows: rows);
-    } else {
-      await CsvExporter.exportAndShare(fileName: 'alertes_$suffix.csv', headers: headers, rows: rows);
-    }
-  } catch (_) {
-    messenger.showSnackBar(SnackBar(content: Text(s('exportError'))));
-  }
+  await runExport(
+    context: context,
+    locale: locale,
+    baseName: 'alertes',
+    tables: [
+      ExportTable(
+        name: s('navAlerts'),
+        headers: [
+          s('colStatus'),
+          s('colWell'),
+          s('colType'),
+          s('colLastEntry'),
+          s('colValue'),
+          s('colUnit'),
+          s('trendThreshold'),
+        ],
+        rows: rows,
+      ),
+    ],
+  );
 }
 
 class _OverdueItem {
@@ -113,7 +120,7 @@ class AlertsScreen extends ConsumerWidget {
     final hasAlerts = overdue.isNotEmpty || outOfRange.isNotEmpty;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      padding: pagePadding(context, top: 8, bottom: 24),
       children: [
         if (!hasAlerts)
           Padding(

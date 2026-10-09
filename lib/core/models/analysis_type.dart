@@ -1,4 +1,7 @@
-enum AnalysisFrequency { daily, weekly, monthly }
+/// `onDemand` : analyse ponctuelle (ex: pression de fond mesurée lors d'un
+/// test de puits), jamais attendue un jour donné — n'apparaît donc ni dans
+/// le "à faire" du tableau de bord ni dans les alertes de retard.
+enum AnalysisFrequency { daily, weekly, monthly, onDemand }
 
 extension AnalysisFrequencyX on AnalysisFrequency {
   /// Clé de traduction associée (voir `app_strings.dart`).
@@ -10,6 +13,8 @@ extension AnalysisFrequencyX on AnalysisFrequency {
         return 'frequencyWeekly';
       case AnalysisFrequency.monthly:
         return 'frequencyMonthly';
+      case AnalysisFrequency.onDemand:
+        return 'frequencyOnDemand';
     }
   }
 
@@ -23,6 +28,8 @@ extension AnalysisFrequencyX on AnalysisFrequency {
         return 'weekly';
       case AnalysisFrequency.monthly:
         return 'monthly';
+      case AnalysisFrequency.onDemand:
+        return 'on_demand';
     }
   }
 
@@ -32,6 +39,8 @@ extension AnalysisFrequencyX on AnalysisFrequency {
         return AnalysisFrequency.weekly;
       case 'monthly':
         return AnalysisFrequency.monthly;
+      case 'on_demand':
+        return AnalysisFrequency.onDemand;
       case 'daily':
       default:
         return AnalysisFrequency.daily;
@@ -71,6 +80,8 @@ class AnalysisType {
         return 7;
       case AnalysisFrequency.monthly:
         return 30;
+      case AnalysisFrequency.onDemand:
+        return 100000;
     }
   }
 
@@ -83,6 +94,8 @@ class AnalysisType {
         return day.weekday == DateTime.monday;
       case AnalysisFrequency.monthly:
         return day.day == 1;
+      case AnalysisFrequency.onDemand:
+        return false;
     }
   }
 }

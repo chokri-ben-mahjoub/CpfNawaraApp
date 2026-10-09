@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../core/data/wells_repository.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/responsive.dart';
 import 'widgets/production_chart.dart';
 import 'widgets/trend_chart.dart';
 
@@ -74,7 +75,7 @@ class _TrendScreenState extends ConsumerState<TrendScreen> {
     return Scaffold(
       appBar: AppBar(title: Text('${type.label} · ${well.name}')),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        padding: pagePadding(context, top: 8, bottom: 24),
         children: [
           if (latest != null)
             Card(
@@ -141,7 +142,13 @@ class _TrendScreenState extends ConsumerState<TrendScreen> {
                       : Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            ProductionChart(series: combinedSeries),
+                            ProductionChart(
+                              series: combinedSeries,
+                              markers: [
+                                for (final i in controller.interventionsForWell(widget.wellId))
+                                  if (i.date.isAfter(since)) (i.date, s(i.typeKey)),
+                              ],
+                            ),
                             const SizedBox(height: 10),
                             Wrap(
                               spacing: 14,
@@ -172,7 +179,18 @@ class _TrendScreenState extends ConsumerState<TrendScreen> {
                           height: 120,
                           child: Center(child: Text(s('trendNoData'), style: TextStyle(color: scheme.onSurfaceVariant))),
                         )
-                      : TrendChart(records: records, min: type.min, max: type.max, lineColor: accentColor)),
+                      : TrendChart(
+                          records: records,
+                          min: type.min,
+                          max: type.max,
+                          lineColor: accentColor,
+                          markers: [
+                            for (final i in controller.interventionsForWell(widget.wellId))
+                              if (!i.date.isBefore(DateTime(records.first.dateTime.year, records.first.dateTime.month,
+                                  records.first.dateTime.day)))
+                                (i.date, s(i.typeKey)),
+                          ],
+                        )),
             ),
           ),
           const SizedBox(height: 20),

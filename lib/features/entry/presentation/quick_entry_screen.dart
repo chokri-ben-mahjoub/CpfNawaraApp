@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,7 +9,10 @@ import '../../../core/data/wells_repository.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/analysis_type.dart';
 import '../../../core/models/well.dart';
+import '../../../core/settings/app_settings.dart';
+import '../../../core/settings/startup_tasks.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/responsive.dart';
 
 /// Saisie rapide : puits → type d'analyse → valeur → service → enregistrer.
 /// Si [initialWellId] / [initialTypeId] sont fournis (venant d'une fiche
@@ -38,6 +43,11 @@ class _QuickEntryScreenState extends ConsumerState<QuickEntryScreen> {
     super.initState();
     _wellId = widget.initialWellId;
     _typeId = widget.initialTypeId;
+    // Service pré-sélectionné selon Réglages › Saisie (par défaut : celui du
+    // profil), toujours modifiable avant d'enregistrer.
+    final preferred = ref.read(appSettingsProvider).defaultService;
+    final candidate = preferred == defaultServiceFromProfile ? ref.read(profileProvider)?.serviceKey : preferred;
+    if (candidate != null && serviceKeys.contains(candidate)) _service = candidate;
   }
 
   @override
@@ -92,6 +102,8 @@ class _QuickEntryScreenState extends ConsumerState<QuickEntryScreen> {
       comment: _commentController.text.trim().isEmpty ? null : _commentController.text.trim(),
       replaceId: existing?.id,
     );
+    // Le rappel du jour est annulé dès que tout est saisi.
+    unawaited(refreshReminders(ref));
 
     if (!mounted) return;
     await showDialog<void>(
@@ -146,7 +158,8 @@ class _QuickEntryScreenState extends ConsumerState<QuickEntryScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(s('entryTitle'))),
-      body: SafeArea(
+      body: NarrowSafeArea(
+        maxWidth: 640,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
           child: Form(

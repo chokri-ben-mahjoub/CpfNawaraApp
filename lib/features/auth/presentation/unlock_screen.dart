@@ -6,7 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/auth/app_lock.dart';
 import '../../../core/auth/auth_providers.dart';
 import '../../../core/l10n/app_strings.dart';
+import '../../../core/settings/app_settings.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/responsive.dart';
 import 'widgets/numeric_keypad.dart';
 
 const _codeLength = 4;
@@ -34,7 +36,9 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> with SingleTickerPr
   }
 
   Future<void> _checkBiometrics() async {
-    final available = await BiometricAuth.isAvailable;
+    await ref.read(appSettingsProvider.notifier).ready;
+    // Désactivable dans Réglages › Sécurité : seul le code est alors proposé.
+    final available = ref.read(appSettingsProvider).biometricEnabled && await BiometricAuth.isAvailable;
     if (!mounted) return;
     setState(() => _biometricAvailable = available);
     if (available) unawaited(_tryBiometric());
@@ -111,7 +115,7 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> with SingleTickerPr
     String s(String key) => tr(locale, key);
 
     return Scaffold(
-      body: SafeArea(
+      body: NarrowSafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(

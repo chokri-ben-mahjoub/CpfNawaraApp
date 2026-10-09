@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,12 +7,17 @@ import 'package:intl/date_symbol_data_local.dart';
 
 import 'core/auth/app_lock.dart';
 import 'core/auth/auth_providers.dart';
+import 'core/data/db_factory.dart';
 import 'core/l10n/app_strings.dart';
 import 'core/router/app_router.dart';
+import 'core/settings/app_settings.dart';
+import 'core/settings/startup_tasks.dart';
 import 'core/theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Moteur SQLite : natif (mobile), FFI (PC) ou WebAssembly (navigateur).
+  configureDatabaseFactory();
   for (final locale in supportedLocales) {
     await initializeDateFormatting(locale.languageCode, null);
   }
@@ -29,6 +36,8 @@ class _SuiviPuitsAppState extends ConsumerState<SuiviPuitsApp> with WidgetsBindi
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Écran protégé, rappels, sauvegarde automatique (voir startup_tasks.dart).
+    WidgetsBinding.instance.addPostFrameCallback((_) => unawaited(onAppForeground(ref)));
   }
 
   @override
@@ -37,12 +46,30 @@ class _SuiviPuitsAppState extends ConsumerState<SuiviPuitsApp> with WidgetsBindi
     super.dispose();
   }
 
+  /// Moment du dernier passage en arrière-plan, quand un délai de
+  /// verrouillage automatique est réglé.
+  DateTime? _pausedAt;
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    final delay = Duration(seconds: ref.read(appSettingsProvider).autoLockSeconds);
     // Reverrouille l'app quand elle repasse en arrière-plan (code à 4
-    // chiffres / empreinte redemandés au retour), comme une app bancaire.
+    // chiffres / empreinte redemandés au retour), comme une app bancaire —
+    // immédiatement, ou après le délai choisi dans les Réglages.
     if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
-      ref.read(appLockProvider.notifier).lock();
+      if (LockGuard.active) return;
+      if (delay == Duration.zero) {
+        ref.read(appLockProvider.notifier).lock();
+      } else {
+        _pausedAt ??= DateTime.now();
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      final pausedAt = _pausedAt;
+      _pausedAt = null;
+      if (pausedAt != null && DateTime.now().difference(pausedAt) >= delay) {
+        ref.read(appLockProvider.notifier).lock();
+      }
+      unawaited(onAppForeground(ref));
     }
   }
 
@@ -61,11 +88,14 @@ class _SuiviPuitsAppState extends ConsumerState<SuiviPuitsApp> with WidgetsBindi
 
     final router = ref.watch(appRouterProvider);
 
+    final themeMode = ref.watch(appSettingsProvider.select((s) => s.themeMode));
+
     return MaterialApp.router(
       title: 'PuitsTrack',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
+      themeMode: themeMode,
       locale: locale,
       supportedLocales: supportedLocales,
       localizationsDelegates: const [

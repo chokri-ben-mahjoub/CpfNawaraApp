@@ -1,8 +1,8 @@
-name: cpf_nawara_suivi
-description: "PuitsTrack - suivi des analyses de puits CPF Nawara"
+name: puitstrack
+description: "PuitsTrack - suivi personnel des analyses de puits"
 publish_to: 'none'
 
-version: 0.1.0+1
+version: 0.2.0+2
 
 environment:
   sdk: ^3.13.3
@@ -31,6 +31,14 @@ dependencies:
   # un backend partagé plus tard (Firebase, cf. historique git) sans tout
   # réécrire — seule `wells_repository.dart` change.
   sqflite: ^2.4.1
+  # Windows (app desktop) : sqflite passe par FFI, sqlite3.dll est fourni
+  # automatiquement au build (hooks du paquet sqlite3 v3).
+  sqflite_common_ffi: ^2.4.3
+  # Web : SQLite en WebAssembly (web/sqlite3.wasm + web/sqflite_sw.js, générés
+  # par `dart run sqflite_common_ffi_web:setup`), données dans IndexedDB.
+  sqflite_common_ffi_web: ^1.2.0
+  # Téléchargement d'un fichier généré, dans le navigateur (exports, sauvegardes).
+  web: ^1.1.1
   path_provider: ^2.1.5
   path: ^1.9.1
 
@@ -38,8 +46,15 @@ dependencies:
   excel: ^4.0.6
   share_plus: ^10.1.3
 
+  # Restauration d'une sauvegarde (choix du fichier .json)
+  file_picker: ^10.3.3
+
+  # Rappel quotidien de saisie (notification locale, sans serveur)
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.9.4
+
   # Déverrouillage rapide (code à 4 chiffres + empreinte)
-  local_auth: ^2.3.0
+  local_auth: ^3.0.2
   crypto: ^3.0.6
 
 dev_dependencies:

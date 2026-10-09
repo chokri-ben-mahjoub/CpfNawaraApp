@@ -5,9 +5,8 @@ import 'package:intl/intl.dart';
 
 import '../../../core/auth/auth_providers.dart';
 import '../../../core/data/wells_repository.dart';
-import '../../../core/export/csv_exporter.dart';
-import '../../../core/export/excel_exporter.dart';
-import '../../../core/export/export_format_sheet.dart';
+import '../../../core/export/export_service.dart';
+import '../../../core/export/report_tables.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/analysis_record.dart';
 import '../../../core/models/analysis_type.dart';
@@ -15,68 +14,31 @@ import '../../../core/models/production_types.dart';
 import '../../../core/models/user_role.dart';
 import '../../../core/models/well.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/series_chart.dart';
+import '../../../core/widgets/responsive.dart';
 import 'widgets/production_chart.dart';
 import 'widgets/record_edit_sheet.dart';
+import 'widgets/well_analysis_cards.dart';
 
-/// Exporte en Excel tout l'historique d'analyses d'un puits.
-Future<void> _exportWellHistory(WidgetRef ref, BuildContext context, Well well) async {
+/// Exporte tout ce qui concerne un puits : analyses, production + ratios
+/// calculés (GOR, WOR, GLR, PI) et journal des interventions — une feuille
+/// Excel par thème (ou un fichier CSV par thème).
+Future<void> _exportWell(WidgetRef ref, BuildContext context, Well well) async {
   final locale = ref.read(localeProvider);
   String s(String key) => tr(locale, key);
-  final messenger = ScaffoldMessenger.of(context);
+  final data = ref.read(wellsControllerProvider);
   final controller = ref.read(wellsControllerProvider.notifier);
-  final history = controller.recordsForWell(well.id);
-
-  if (history.isEmpty) {
-    messenger.showSnackBar(SnackBar(content: Text(s('exportEmpty'))));
-    return;
-  }
-
-  final format = await chooseExportFormat(context, locale);
-  if (format == null) return;
-
-  messenger.showSnackBar(SnackBar(content: Text(s('exportStarted'))));
-  final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
-  final headers = [
-    s('colDate'),
-    s('colType'),
-    s('colValue'),
-    s('colUnit'),
-    s('colService'),
-    s('colOperator'),
-    s('colComment'),
-  ];
-  final rows = [
-    for (final record in history)
-      [
-        dateFormat.format(record.dateTime),
-        controller.typeById(record.typeId).label,
-        record.value.toString(),
-        controller.typeById(record.typeId).unit,
-        s(record.serviceKey),
-        record.operatorName,
-        record.comment ?? '',
-      ],
-  ];
-  final suffix = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
-  try {
-    if (format == ExportFormat.excel) {
-      await ExcelExporter.exportAndShare(
-        fileName: '${well.code}_$suffix.xlsx',
-        headers: headers,
-        rows: rows,
-        shareSubject: '${well.name} (${well.code})',
-      );
-    } else {
-      await CsvExporter.exportAndShare(
-        fileName: '${well.code}_$suffix.csv',
-        headers: headers,
-        rows: rows,
-        shareSubject: '${well.name} (${well.code})',
-      );
-    }
-  } catch (_) {
-    messenger.showSnackBar(SnackBar(content: Text(s('exportError'))));
-  }
+  await runExport(
+    context: context,
+    locale: locale,
+    baseName: well.code,
+    shareSubject: '${well.name} (${well.code})',
+    tables: [
+      analysesTable(data, controller.recordsForWell(well.id), s),
+      productionTable(data, [well], s),
+      interventionsTable(data, controller.interventionsForWell(well.id), s),
+    ],
+  );
 }
 
 class WellDetailScreen extends ConsumerWidget {
@@ -110,9 +72,14 @@ class WellDetailScreen extends ConsumerWidget {
         title: Text(well.name),
         actions: [
           IconButton(
+            tooltip: s('compareTitle'),
+            icon: const Icon(Icons.compare_arrows),
+            onPressed: () => context.push('/compare?mode=wells&wellA=$wellId'),
+          ),
+          IconButton(
             tooltip: s('exportTooltip'),
-            icon: const Icon(Icons.ios_share_outlined),
-            onPressed: () => _exportWellHistory(ref, context, well),
+            icon: const Icon(Icons.download_outlined),
+            onPressed: () => _exportWell(ref, context, well),
           ),
         ],
       ),
@@ -124,7 +91,7 @@ class WellDetailScreen extends ConsumerWidget {
             )
           : null,
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 130),
+        padding: pagePadding(context, top: 8, bottom: 130),
         children: [
           Card(
             child: Padding(
@@ -163,6 +130,12 @@ class WellDetailScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 20),
           _ProductionCard(wellId: wellId),
+          const SizedBox(height: 16),
+          RatiosCard(wellId: wellId),
+          const SizedBox(height: 16),
+          DeclineCard(wellId: wellId),
+          const SizedBox(height: 20),
+          InterventionsSection(wellId: wellId),
           const SizedBox(height: 20),
           Text(
             s('wellDetailLastValues'),
@@ -170,7 +143,7 @@ class WellDetailScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 10),
           GridView.count(
-            crossAxisCount: 2,
+            crossAxisCount: isWideLayout(context) ? 4 : 2,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             mainAxisSpacing: 10,
@@ -270,6 +243,10 @@ class _ProductionCard extends ConsumerWidget {
         ),
     ];
     final hasData = series.any((s) => s.records.isNotEmpty);
+    final markers = [
+      for (final i in controller.interventionsForWell(wellId))
+        if (!i.date.isBefore(DateTime(since.year, since.month, since.day))) (i.date, s(i.typeKey)),
+    ];
 
     return Card(
       child: Padding(
@@ -291,7 +268,7 @@ class _ProductionCard extends ConsumerWidget {
             ),
             if (hasData) ...[
               const SizedBox(height: 16),
-              ProductionChart(series: series),
+              ProductionChart(series: series, markers: markers),
               const SizedBox(height: 10),
               Wrap(
                 spacing: 14,
@@ -304,6 +281,19 @@ class _ProductionCard extends ConsumerWidget {
                         Container(width: 10, height: 10, decoration: BoxDecoration(color: ser.color, shape: BoxShape.circle)),
                         const SizedBox(width: 6),
                         Text('${ser.label} (${ser.unit})', style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
+                      ],
+                    ),
+                  if (markers.isNotEmpty)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 3,
+                          height: 12,
+                          color: interventionMarkerColor,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(s('interventionsTitle'), style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
                       ],
                     ),
                 ],

@@ -5,15 +5,15 @@ import 'package:intl/intl.dart';
 
 import '../../../core/auth/auth_providers.dart';
 import '../../../core/data/wells_repository.dart';
-import '../../../core/export/csv_exporter.dart';
-import '../../../core/export/excel_exporter.dart';
-import '../../../core/export/export_format_sheet.dart';
+import '../../../core/export/export_service.dart';
+import '../../../core/export/report_tables.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/analysis_type.dart';
 import '../../../core/models/production_types.dart';
 import '../../../core/models/user_role.dart';
 import '../../../core/models/well.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/responsive.dart';
 import 'widgets/aggregate_trend_chart.dart';
 
 enum DashboardPeriod { day, week, month }
@@ -37,67 +37,39 @@ DateTime periodStart(DashboardPeriod period, DateTime today) {
   }
 }
 
-/// Exporte en Excel toutes les analyses des puits actifs sur la période
-/// actuellement sélectionnée dans le tableau de bord.
+/// Exporte les analyses de tous les puits sur la période actuellement
+/// sélectionnée dans le tableau de bord (jour/semaine/mois), avec la
+/// production + ratios et les interventions de la même période.
 Future<void> exportDashboardPeriod(WidgetRef ref, BuildContext context) async {
   final locale = ref.read(localeProvider);
   String s(String key) => tr(locale, key);
-  final messenger = ScaffoldMessenger.of(context);
 
   final data = ref.read(wellsControllerProvider);
-  final controller = ref.read(wellsControllerProvider.notifier);
   final period = ref.read(dashboardPeriodProvider);
   final today = DateTime.now();
   final start = periodStart(period, today);
+  final startDay = DateTime(start.year, start.month, start.day);
 
-  final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
-  final rows = <List<String>>[];
-  for (final well in data.wells) {
-    for (final record in controller.recordsForWell(well.id)) {
-      final day = DateTime(record.dateTime.year, record.dateTime.month, record.dateTime.day);
-      if (day.isBefore(DateTime(start.year, start.month, start.day))) continue;
-      final type = controller.typeById(record.typeId);
-      rows.add([
-        dateFormat.format(record.dateTime),
-        '${well.name} (${well.code})',
-        type.label,
-        record.value.toString(),
-        type.unit,
-        s(record.serviceKey),
-        record.operatorName,
-        record.comment ?? '',
-      ]);
-    }
-  }
+  await runExport(
+    context: context,
+    locale: locale,
+    baseName: 'analyses_${s(_periodKey(period))}',
+    tables: [
+      analysesTable(data, data.records.where((r) => !r.dateTime.isBefore(startDay)).toList(), s, includeWell: true),
+      productionTable(data, data.wells, s, from: startDay),
+      interventionsTable(data, data.interventions.where((i) => !i.date.isBefore(startDay)).toList(), s),
+    ],
+  );
+}
 
-  if (rows.isEmpty) {
-    messenger.showSnackBar(SnackBar(content: Text(s('exportEmpty'))));
-    return;
-  }
-
-  final format = await chooseExportFormat(context, locale);
-  if (format == null) return;
-
-  messenger.showSnackBar(SnackBar(content: Text(s('exportStarted'))));
-  final headers = [
-    s('colDate'),
-    s('colWell'),
-    s('colType'),
-    s('colValue'),
-    s('colUnit'),
-    s('colService'),
-    s('colOperator'),
-    s('colComment'),
-  ];
-  final suffix = DateFormat('yyyyMMdd_HHmm').format(today);
-  try {
-    if (format == ExportFormat.excel) {
-      await ExcelExporter.exportAndShare(fileName: 'analyses_$suffix.xlsx', headers: headers, rows: rows);
-    } else {
-      await CsvExporter.exportAndShare(fileName: 'analyses_$suffix.csv', headers: headers, rows: rows);
-    }
-  } catch (_) {
-    messenger.showSnackBar(SnackBar(content: Text(s('exportError'))));
+String _periodKey(DashboardPeriod period) {
+  switch (period) {
+    case DashboardPeriod.day:
+      return 'dashboardPeriodDay';
+    case DashboardPeriod.week:
+      return 'dashboardPeriodWeek';
+    case DashboardPeriod.month:
+      return 'dashboardPeriodMonth';
   }
 }
 
@@ -118,7 +90,7 @@ class DashboardScreen extends ConsumerWidget {
     final activeWells = data.wells.where((w) => w.active).toList();
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      padding: pagePadding(context, top: 8, bottom: 24),
       children: [
         Text(
           name == null || name.isEmpty ? s('dashboardGreeting') : '${s('dashboardGreeting')}, $name',
@@ -276,8 +248,15 @@ class _DayView extends StatelessWidget {
               ),
             )
           else
-            for (final well in wells)
-              _WellDashboardSection(well: well, dueTypes: dueTypes, today: today),
+            ResponsiveWrapGrid(
+              spacing: 16,
+              runSpacing: 0,
+              minItemWidth: 420,
+              maxColumns: 2,
+              children: [
+                for (final well in wells) _WellDashboardSection(well: well, dueTypes: dueTypes, today: today),
+              ],
+            ),
         ],
       );
     });
@@ -309,7 +288,13 @@ class _PeriodView extends ConsumerWidget {
       children: [
         _ProgressBanner(done: totalDone, total: totalExpected, allDoneKey: 'dashboardPeriodAllDone'),
         const SizedBox(height: 20),
-        for (final well in wells) _PeriodWellCard(well: well, progress: progresses[well]!),
+        ResponsiveWrapGrid(
+          spacing: 16,
+          runSpacing: 0,
+          minItemWidth: 420,
+          maxColumns: 2,
+          children: [for (final well in wells) _PeriodWellCard(well: well, progress: progresses[well]!)],
+        ),
       ],
     );
   }

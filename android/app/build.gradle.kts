@@ -5,18 +5,20 @@ plugins {
 }
 
 android {
-    namespace = "com.apbs.cpf_nawara_suivi"
+    namespace = "com.puitstrack.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // Requis par flutter_local_notifications (rappel quotidien de saisie).
+        isCoreLibraryDesugaringEnabled = true
     }
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.apbs.cpf_nawara_suivi"
+        applicationId = "com.puitstrack.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -27,6 +29,15 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+    }
+
+    packaging {
+        jniLibs {
+            // libsqlite3.so vient du paquet Dart sqlite3, utilisé seulement sur
+            // PC (Windows) via FFI : sur Android, sqflite utilise le SQLite du
+            // système. Inutile de l'embarquer (≈5 Mo).
+            excludes += "**/libsqlite3.so"
+        }
     }
 
     buildTypes {
@@ -46,4 +57,8 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

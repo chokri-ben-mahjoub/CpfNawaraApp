@@ -4,14 +4,14 @@ import 'package:intl/intl.dart';
 
 import '../../../core/auth/auth_providers.dart';
 import '../../../core/data/wells_repository.dart';
-import '../../../core/export/csv_exporter.dart';
-import '../../../core/export/excel_exporter.dart';
-import '../../../core/export/export_format_sheet.dart';
+import '../../../core/export/export_service.dart';
+import '../../../core/export/report_tables.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/analysis_record.dart';
 import '../../../core/models/analysis_type.dart';
 import '../../../core/models/user_role.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/responsive.dart';
 import 'widgets/record_edit_sheet.dart';
 
 /// Historique complet et détaillé d'un puits : toutes les analyses, toutes
@@ -31,61 +31,15 @@ class _WellHistoryScreenState extends ConsumerState<WellHistoryScreen> {
   Future<void> _export(List<AnalysisRecord> records) async {
     final locale = ref.read(localeProvider);
     String s(String key) => tr(locale, key);
-    final messenger = ScaffoldMessenger.of(context);
-    final controller = ref.read(wellsControllerProvider.notifier);
-    final well = controller.wellById(widget.wellId);
-
-    if (records.isEmpty) {
-      messenger.showSnackBar(SnackBar(content: Text(s('exportEmpty'))));
-      return;
-    }
-
-    final format = await chooseExportFormat(context, locale);
-    if (format == null) return;
-
-    messenger.showSnackBar(SnackBar(content: Text(s('exportStarted'))));
-    final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
-    final headers = [
-      s('colDate'),
-      s('colType'),
-      s('colValue'),
-      s('colUnit'),
-      s('colService'),
-      s('colOperator'),
-      s('colComment'),
-    ];
-    final rows = [
-      for (final record in records)
-        [
-          dateFormat.format(record.dateTime),
-          controller.typeById(record.typeId).label,
-          record.value.toString(),
-          controller.typeById(record.typeId).unit,
-          s(record.serviceKey),
-          record.operatorName,
-          record.comment ?? '',
-        ],
-    ];
-    final suffix = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
-    try {
-      if (format == ExportFormat.excel) {
-        await ExcelExporter.exportAndShare(
-          fileName: '${well.code}_$suffix.xlsx',
-          headers: headers,
-          rows: rows,
-          shareSubject: '${well.name} (${well.code})',
-        );
-      } else {
-        await CsvExporter.exportAndShare(
-          fileName: '${well.code}_$suffix.csv',
-          headers: headers,
-          rows: rows,
-          shareSubject: '${well.name} (${well.code})',
-        );
-      }
-    } catch (_) {
-      messenger.showSnackBar(SnackBar(content: Text(s('exportError'))));
-    }
+    final data = ref.read(wellsControllerProvider);
+    final well = ref.read(wellsControllerProvider.notifier).wellById(widget.wellId);
+    await runExport(
+      context: context,
+      locale: locale,
+      baseName: well.code,
+      shareSubject: '${well.name} (${well.code})',
+      tables: [analysesTable(data, records, s)],
+    );
   }
 
   @override
@@ -130,7 +84,7 @@ class _WellHistoryScreenState extends ConsumerState<WellHistoryScreen> {
         actions: [
           IconButton(
             tooltip: s('exportTooltip'),
-            icon: const Icon(Icons.ios_share_outlined),
+            icon: const Icon(Icons.download_outlined),
             onPressed: () => _export(history),
           ),
         ],
@@ -139,7 +93,7 @@ class _WellHistoryScreenState extends ConsumerState<WellHistoryScreen> {
         children: [
           if (filterTypes.length > 1)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              padding: pagePadding(context, top: 12, bottom: 0),
               child: SizedBox(
                 height: 40,
                 child: ListView(
@@ -169,7 +123,7 @@ class _WellHistoryScreenState extends ConsumerState<WellHistoryScreen> {
                     child: Text(s('wellHistoryEmpty'), style: TextStyle(color: scheme.onSurfaceVariant)),
                   )
                 : ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                    padding: pagePadding(context, top: 12, bottom: 24),
                     children: [
                       for (final day in days) ...[
                         Padding(

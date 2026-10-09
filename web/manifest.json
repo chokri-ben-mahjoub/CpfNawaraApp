@@ -1,0 +1,36 @@
+{
+    "name": "PuitsTrack",
+    "short_name": "PuitsTrack",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#0B1E2D",
+    "theme_color": "#FF7A33",
+    "description": "Suivi personnel des analyses de puits : débits, ratios GOR/WOR/GLR/PI, déclin, interventions.",
+    "lang": "fr",
+    "orientation": "any",
+    "prefer_related_applications": false,
+    "icons": [
+        {
+            "src": "icons/Icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-maskable-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "icons/Icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}

@@ -6,6 +6,7 @@ import '../../../core/data/wells_repository.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/analysis_type.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/responsive.dart';
 
 const _uuid = Uuid();
 
@@ -27,7 +28,7 @@ class AnalysisTypesScreen extends ConsumerWidget {
         label: Text(s('adminAddType')),
       ),
       body: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 130),
+        padding: pagePadding(context, top: 12, bottom: 130),
         itemCount: types.length,
         separatorBuilder: (_, _) => const SizedBox(height: 10),
         itemBuilder: (context, i) {

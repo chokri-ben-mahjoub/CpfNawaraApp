@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/auth/auth_providers.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/responsive.dart';
 import 'widgets/language_switch.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
@@ -24,7 +25,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     String s(String key) => tr(locale, key);
 
     return Scaffold(
-      body: SafeArea(
+      body: NarrowSafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(

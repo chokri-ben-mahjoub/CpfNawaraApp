@@ -1,9 +1,13 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/analysis_record.dart';
 import '../models/analysis_type.dart';
+import '../models/intervention.dart';
 import '../models/well.dart';
 import 'local_database.dart';
 
@@ -13,11 +17,13 @@ class WellsState {
   final List<Well> wells;
   final List<AnalysisType> analysisTypes;
   final List<AnalysisRecord> records;
+  final List<Intervention> interventions;
 
   const WellsState({
     required this.wells,
     required this.analysisTypes,
     required this.records,
+    this.interventions = const [],
   });
 
   static const empty = WellsState(wells: [], analysisTypes: [], records: []);
@@ -26,11 +32,13 @@ class WellsState {
     List<Well>? wells,
     List<AnalysisType>? analysisTypes,
     List<AnalysisRecord>? records,
+    List<Intervention>? interventions,
   }) =>
       WellsState(
         wells: wells ?? this.wells,
         analysisTypes: analysisTypes ?? this.analysisTypes,
         records: records ?? this.records,
+        interventions: interventions ?? this.interventions,
       );
 }
 
@@ -87,17 +95,51 @@ class WellsController extends StateNotifier<WellsState> {
     _load();
   }
 
+  /// Contrôleur pré-rempli, sans lecture de la base locale (tests de rendu
+  /// des écrans).
+  @visibleForTesting
+  WellsController.seeded(super.initial) {
+    _loaded.complete();
+  }
+
   static const _uuid = Uuid();
+
+  final _loaded = Completer<void>();
+
+  /// Terminé après la première lecture de la base (utile aux tâches de
+  /// démarrage : rappels, sauvegarde automatique).
+  Future<void> get loaded => _loaded.future;
+
+  /// Relit toute la base (ex: après la restauration d'une sauvegarde).
+  Future<void> reload() => _load();
 
   Future<void> _load() async {
     final db = await LocalDatabase.instance.database;
     final wells = (await db.query('wells')).map(_wellFromRow).toList();
     final types = (await db.query('analysis_types')).map(_typeFromRow).toList();
     final records = (await db.query('analysis_records')).map(_recordFromRow).toList();
-    state = WellsState(wells: wells, analysisTypes: types, records: records);
+    final interventions = (await db.query('interventions')).map(_interventionFromRow).toList();
+    state = WellsState(wells: wells, analysisTypes: types, records: records, interventions: interventions);
+    if (!_loaded.isCompleted) _loaded.complete();
   }
 
   Well wellById(String id) => state.wells.firstWhere((w) => w.id == id);
+
+  /// Variante tolérante de [wellById] (puits supprimé entre-temps, lien
+  /// obsolète...).
+  Well? findWell(String id) {
+    for (final w in state.wells) {
+      if (w.id == id) return w;
+    }
+    return null;
+  }
+
+  AnalysisType? findType(String id) {
+    for (final t in state.analysisTypes) {
+      if (t.id == id) return t;
+    }
+    return null;
+  }
 
   AnalysisType typeById(String id) => state.analysisTypes.firstWhere((t) => t.id == id);
 
@@ -309,11 +351,19 @@ class WellsController extends StateNotifier<WellsState> {
     required String name,
     required bool active,
     required String group,
+    double? reservoirPressure,
   }) async {
     final db = await LocalDatabase.instance.database;
     await db.insert(
       'wells',
-      {'id': _uuid.v4(), 'code': code, 'name': name, 'active': active ? 1 : 0, 'group_name': group},
+      {
+        'id': _uuid.v4(),
+        'code': code,
+        'name': name,
+        'active': active ? 1 : 0,
+        'group_name': group,
+        'reservoir_pressure': reservoirPressure,
+      },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
     await _load();
@@ -324,18 +374,77 @@ class WellsController extends StateNotifier<WellsState> {
     final db = await LocalDatabase.instance.database;
     await db.update(
       'wells',
-      {'code': updated.code, 'name': updated.name, 'active': updated.active ? 1 : 0, 'group_name': updated.group},
+      {
+        'code': updated.code,
+        'name': updated.name,
+        'active': updated.active ? 1 : 0,
+        'group_name': updated.group,
+        'reservoir_pressure': updated.reservoirPressure,
+      },
       where: 'id = ?',
       whereArgs: [updated.id],
     );
     await _load();
   }
 
-  /// Supprime un puits et tout son historique d'analyses.
+  /// Supprime un puits, tout son historique d'analyses et ses interventions.
   Future<void> deleteWell(String wellId) async {
     final db = await LocalDatabase.instance.database;
     await db.delete('analysis_records', where: 'well_id = ?', whereArgs: [wellId]);
+    await db.delete('interventions', where: 'well_id = ?', whereArgs: [wellId]);
     await db.delete('wells', where: 'id = ?', whereArgs: [wellId]);
+    await _load();
+  }
+
+  /// Met à jour uniquement la pression de gisement (Pr) d'un puits.
+  Future<void> setReservoirPressure(String wellId, double? value) async {
+    final db = await LocalDatabase.instance.database;
+    await db.update('wells', {'reservoir_pressure': value}, where: 'id = ?', whereArgs: [wellId]);
+    await _load();
+  }
+
+  /// Interventions d'un puits, de la plus récente à la plus ancienne.
+  List<Intervention> interventionsForWell(String wellId) {
+    final list = state.interventions.where((i) => i.wellId == wellId).toList()
+      ..sort((a, b) => b.date.compareTo(a.date));
+    return list;
+  }
+
+  Intervention? findIntervention(String id) {
+    for (final i in state.interventions) {
+      if (i.id == id) return i;
+    }
+    return null;
+  }
+
+  /// Ajoute une intervention, ou la remplace si [Intervention.id] existe déjà
+  /// (un id vide = nouvelle intervention).
+  Future<void> saveIntervention(Intervention intervention) async {
+    final db = await LocalDatabase.instance.database;
+    final id = intervention.id.isEmpty ? _uuid.v4() : intervention.id;
+    final day = DateTime(intervention.date.year, intervention.date.month, intervention.date.day);
+    await db.insert(
+      'interventions',
+      {
+        'id': id,
+        'well_id': intervention.wellId,
+        'intervention_date': day.toIso8601String(),
+        'type_key': intervention.typeKey,
+        'cost': intervention.cost,
+        'currency': intervention.currency,
+        'result_key': intervention.resultKey,
+        'description': intervention.description,
+        'operator_name': intervention.operatorName,
+        'created_at': DateTime.now().toIso8601String(),
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+    await _load();
+  }
+
+  Future<void> deleteIntervention(String id) async {
+    final db = await LocalDatabase.instance.database;
+    await db.delete('interventions', where: 'id = ?', whereArgs: [id]);
     await _load();
   }
 
@@ -378,6 +487,7 @@ Well _wellFromRow(Map<String, Object?> row) => Well(
       name: row['name'] as String,
       active: (row['active'] as int) == 1,
       group: row['group_name'] as String? ?? '',
+      reservoirPressure: (row['reservoir_pressure'] as num?)?.toDouble(),
     );
 
 AnalysisType _typeFromRow(Map<String, Object?> row) => AnalysisType(
@@ -399,6 +509,18 @@ AnalysisRecord _recordFromRow(Map<String, Object?> row) => AnalysisRecord(
       operatorId: row['operator_id'] as String?,
       dateTime: DateTime.parse(row['recorded_at'] as String),
       comment: row['comment'] as String?,
+    );
+
+Intervention _interventionFromRow(Map<String, Object?> row) => Intervention(
+      id: row['id'] as String,
+      wellId: row['well_id'] as String,
+      date: DateTime.parse(row['intervention_date'] as String),
+      typeKey: row['type_key'] as String,
+      cost: (row['cost'] as num?)?.toDouble(),
+      currency: row['currency'] as String? ?? 'TND',
+      resultKey: row['result_key'] as String,
+      description: row['description'] as String?,
+      operatorName: row['operator_name'] as String,
     );
 
 final wellsControllerProvider = StateNotifierProvider<WellsController, WellsState>((ref) => WellsController());

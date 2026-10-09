@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/auth/auth_providers.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/responsive.dart';
 
 /// Configuration du profil local de cet appareil (nom, service, téléphone) :
 /// une seule fois, juste après l'onboarding (mode 100% local, pas de compte
@@ -60,7 +61,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     final serviceMissing = _serviceTouched && _service == null;
 
     return Scaffold(
-      body: SafeArea(
+      body: NarrowSafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
           child: Form(

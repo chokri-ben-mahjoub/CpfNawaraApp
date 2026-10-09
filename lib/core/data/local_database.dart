@@ -2,22 +2,38 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
+import '../platform/app_platform.dart';
+
 /// Base locale SQLite (sqflite) : seule source de données tant qu'aucun
 /// backend partagé n'est branché (voir README, section "Mode local actuel").
 class LocalDatabase {
   LocalDatabase._();
   static final LocalDatabase instance = LocalDatabase._();
 
+  /// Version du schéma (voir `onUpgrade`), enregistrée dans les sauvegardes.
+  static const schemaVersion = 5;
+
+  /// Tables sauvegardées / restaurées (voir `backup_service.dart`).
+  static const dataTables = ['wells', 'analysis_types', 'analysis_records', 'interventions'];
+
   Database? _db;
 
   Future<Database> get database async => _db ??= await _open();
 
+  /// Chemin du fichier de base (affiché dans Réglages › Données). Sur PC, dans
+  /// AppData (dossier de l'app) plutôt que dans "Documents", visible et
+  /// modifiable par l'utilisateur.
+  Future<String> get path async {
+    // Navigateur : simple nom de base (stockée dans IndexedDB).
+    if (isWeb) return 'suivi_puits.db';
+    final dir = isAndroid || isIOS ? await getApplicationDocumentsDirectory() : await getApplicationSupportDirectory();
+    return p.join(dir.path, 'suivi_puits.db');
+  }
+
   Future<Database> _open() async {
-    final dir = await getApplicationDocumentsDirectory();
-    final path = p.join(dir.path, 'suivi_puits.db');
     return openDatabase(
-      path,
-      version: 4,
+      await path,
+      version: schemaVersion,
       onCreate: (db, version) async {
         await db.execute('''
           create table wells (
@@ -25,7 +41,8 @@ class LocalDatabase {
             code text not null,
             name text not null,
             active integer not null default 1,
-            group_name text not null default ''
+            group_name text not null default '',
+            reservoir_pressure real
           )
         ''');
         await db.execute('''
@@ -51,6 +68,7 @@ class LocalDatabase {
             recorded_at text not null
           )
         ''');
+        await _createInterventionsTable(db);
         await _seed(db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
@@ -75,8 +93,29 @@ class LocalDatabase {
             );
           }
         }
+        if (oldVersion < 5) {
+          // Journal des interventions + pression de gisement (Pr) par puits
+          // + type "Pression de fond (Pwf)" : de quoi calculer le PI.
+          await db.execute('alter table wells add column reservoir_pressure real');
+          await _createInterventionsTable(db);
+          await db.insert('analysis_types', _bottomHolePressureType, conflictAlgorithm: ConflictAlgorithm.ignore);
+        }
       },
     );
+  }
+
+  /// Réajoute les types d'analyse intégrés apparus après la version
+  /// [fromVersion] du schéma (débits en v3, Pwf en v5) — utilisé après la
+  /// restauration d'une sauvegarde créée par une version plus ancienne.
+  static Future<void> addBuiltInTypesSince(DatabaseExecutor db, int fromVersion) async {
+    if (fromVersion < 3) {
+      for (final type in _productionFlowTypes) {
+        await db.insert('analysis_types', type, conflictAlgorithm: ConflictAlgorithm.ignore);
+      }
+    }
+    if (fromVersion < 5) {
+      await db.insert('analysis_types', _bottomHolePressureType, conflictAlgorithm: ConflictAlgorithm.ignore);
+    }
   }
 
   /// Puits et types d'analyse de démarrage, pour ne pas ouvrir l'app sur un
@@ -102,12 +141,42 @@ class LocalDatabase {
       {'id': 't_pressure', 'label': 'Pression', 'unit': 'bar', 'min_value': 20.0, 'max_value': 120.0, 'frequency': 'daily'},
       {'id': 't_temperature', 'label': 'Température', 'unit': '°C', 'min_value': 15.0, 'max_value': 90.0, 'frequency': 'daily'},
       ..._productionFlowTypes,
+      _bottomHolePressureType,
     ];
     for (final type in types) {
       await db.insert('analysis_types', type);
     }
   }
 }
+
+Future<void> _createInterventionsTable(Database db) async {
+  await db.execute('''
+    create table if not exists interventions (
+      id text primary key,
+      well_id text not null,
+      intervention_date text not null,
+      type_key text not null,
+      cost real,
+      currency text not null default 'TND',
+      result_key text not null,
+      description text,
+      operator_name text not null,
+      created_at text not null
+    )
+  ''');
+}
+
+/// Pression de fond dynamique (Pwf) : mesure ponctuelle ("à la demande"),
+/// jamais attendue un jour donné — elle n'ajoute donc aucune tâche "à faire"
+/// ni alerte de retard. Plage très large : pas de vrai seuil de conformité.
+const _bottomHolePressureType = {
+  'id': 't_pwf',
+  'label': 'Pression de fond (Pwf)',
+  'unit': 'bar',
+  'min_value': 0.0,
+  'max_value': 1000.0,
+  'frequency': 'on_demand',
+};
 
 /// Correspondance ancien → nouveau nom des 5 puits de démo, utilisée par la
 /// migration v4 (voir `onUpgrade`) pour les installations déjà existantes.

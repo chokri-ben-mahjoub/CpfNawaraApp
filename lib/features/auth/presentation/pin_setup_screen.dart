@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/auth/app_lock.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/responsive.dart';
 import 'widgets/numeric_keypad.dart';
 
 const _codeLength = 4;
@@ -89,7 +90,7 @@ class _PinSetupScreenState extends ConsumerState<PinSetupScreen> with SingleTick
 
     return Scaffold(
       appBar: AppBar(),
-      body: SafeArea(
+      body: NarrowSafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(

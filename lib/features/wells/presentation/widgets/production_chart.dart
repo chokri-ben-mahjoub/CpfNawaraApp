@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/models/analysis_record.dart';
+import '../../../../core/widgets/series_chart.dart';
 
 /// Une courbe de production (huile, gaz ou eau) à tracer dans [ProductionChart].
 class ProductionSeries {
@@ -21,10 +22,13 @@ class ProductionSeries {
 /// dessinées à la main (pas de dépendance externe). Chaque courbe a sa
 /// propre échelle verticale (affichée en légende) pour rester lisible même
 /// si les débits ont des ordres de grandeur très différents.
+///
+/// [markers] : interventions (date + libellé) dessinées en lignes verticales.
 class ProductionChart extends StatelessWidget {
   final List<ProductionSeries> series;
+  final List<(DateTime, String)> markers;
 
-  const ProductionChart({super.key, required this.series});
+  const ProductionChart({super.key, required this.series, this.markers = const []});
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +39,11 @@ class ProductionChart extends StatelessWidget {
       height: 200,
       width: double.infinity,
       child: CustomPaint(
-        painter: _ProductionPainter(series: nonEmpty, gridColor: scheme.outlineVariant),
+        painter: _ProductionPainter(
+          series: nonEmpty,
+          markers: markers,
+          gridColor: scheme.outlineVariant,
+        ),
       ),
     );
   }
@@ -43,25 +51,34 @@ class ProductionChart extends StatelessWidget {
 
 class _ProductionPainter extends CustomPainter {
   final List<ProductionSeries> series;
+  final List<(DateTime, String)> markers;
   final Color gridColor;
 
-  _ProductionPainter({required this.series, required this.gridColor});
+  _ProductionPainter({required this.series, required this.markers, required this.gridColor});
 
   @override
   void paint(Canvas canvas, Size size) {
     const leftPadding = 8.0;
     const bottomPadding = 4.0;
+    final topPadding = markers.isEmpty ? 0.0 : 14.0;
     final chartWidth = size.width - leftPadding * 2;
-    final chartHeight = size.height - bottomPadding;
+    final chartHeight = size.height - bottomPadding - topPadding;
 
     final baselinePaint = Paint()
       ..color = gridColor
       ..strokeWidth = 1;
-    canvas.drawLine(Offset(leftPadding, chartHeight), Offset(size.width - leftPadding, chartHeight), baselinePaint);
+    canvas.drawLine(
+      Offset(leftPadding, topPadding + chartHeight),
+      Offset(size.width - leftPadding, topPadding + chartHeight),
+      baselinePaint,
+    );
 
     if (series.isEmpty) return;
 
-    final allDates = [for (final s in series) for (final r in s.records) r.dateTime];
+    final allDates = [
+      for (final s in series) for (final r in s.records) r.dateTime,
+      for (final m in markers) m.$1,
+    ];
     final minDate = allDates.reduce((a, b) => a.isBefore(b) ? a : b);
     final maxDate = allDates.reduce((a, b) => a.isAfter(b) ? a : b);
     final totalSpan = maxDate.difference(minDate).inMinutes;
@@ -71,11 +88,38 @@ class _ProductionPainter extends CustomPainter {
       return leftPadding + chartWidth * date.difference(minDate).inMinutes / totalSpan;
     }
 
+    // Interventions : lignes verticales pointillées + libellé court.
+    var lastLabelEnd = double.negativeInfinity;
+    for (final (date, label) in [...markers]..sort((a, b) => a.$1.compareTo(b.$1))) {
+      final x = xFor(date);
+      final paint = Paint()
+        ..color = interventionMarkerColor.withValues(alpha: 0.8)
+        ..strokeWidth = 1.4;
+      for (var y = topPadding; y < topPadding + chartHeight; y += 9) {
+        canvas.drawLine(Offset(x, y), Offset(x, (y + 5).clamp(0, topPadding + chartHeight)), paint);
+      }
+      canvas.drawCircle(Offset(x, topPadding), 3.5, Paint()..color = interventionMarkerColor);
+      if (x + 5 > lastLabelEnd + 4) {
+        final painter = TextPainter(
+          text: TextSpan(
+            text: label,
+            style: const TextStyle(fontFamily: 'Manrope', fontSize: 9.5, color: interventionMarkerColor, fontWeight: FontWeight.w600),
+          ),
+          textDirection: TextDirection.ltr,
+          maxLines: 1,
+          ellipsis: '…',
+        )..layout(maxWidth: 90);
+        final labelX = (x + 5).clamp(0.0, size.width - painter.width);
+        painter.paint(canvas, Offset(labelX, 0));
+        lastLabelEnd = labelX + painter.width;
+      }
+    }
+
     for (final s in series) {
       final values = s.records.map((r) => r.value).toList();
       final hi = values.reduce((a, b) => a > b ? a : b) * 1.15;
       final span = hi <= 0 ? 1 : hi;
-      double yFor(double v) => chartHeight - (v / span) * chartHeight;
+      double yFor(double v) => topPadding + chartHeight - (v / span) * chartHeight;
 
       final linePaint = Paint()
         ..color = s.color
@@ -100,5 +144,6 @@ class _ProductionPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _ProductionPainter oldDelegate) => oldDelegate.series != series;
+  bool shouldRepaint(covariant _ProductionPainter oldDelegate) =>
+      oldDelegate.series != series || oldDelegate.markers != markers;
 }

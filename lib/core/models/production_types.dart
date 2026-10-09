@@ -4,3 +4,7 @@
 const oilFlowTypeId = 't_oil_flow';
 const gasFlowTypeId = 't_gas_flow';
 const waterFlowTypeId = 't_water_flow';
+
+/// Pression de fond dynamique (Pwf), saisie à la demande lors d'un test de
+/// puits — combinée à la pression de gisement du puits pour calculer le PI.
+const bottomHolePressureTypeId = 't_pwf';

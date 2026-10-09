@@ -7,11 +7,17 @@ import '../../features/auth/presentation/profile_setup_screen.dart';
 import '../../features/auth/presentation/unlock_screen.dart';
 import '../../features/admin/presentation/analysis_types_screen.dart';
 import '../../features/admin/presentation/wells_manage_screen.dart';
+import '../../features/analysis/presentation/compare_screen.dart';
+import '../../features/analysis/presentation/decline_screen.dart';
+import '../../features/analysis/presentation/ratio_trend_screen.dart';
 import '../../features/entry/presentation/quick_entry_screen.dart';
 import '../../features/home/presentation/home_shell.dart';
+import '../../features/interventions/presentation/interventions_screen.dart';
+import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/wells/presentation/trend_screen.dart';
 import '../../features/wells/presentation/well_detail_screen.dart';
 import '../../features/wells/presentation/well_history_screen.dart';
+import '../analysis/production_metrics.dart';
 import '../auth/app_lock.dart';
 import '../auth/auth_providers.dart';
 import '../models/user_role.dart';
@@ -101,6 +107,41 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           wellId: state.pathParameters['id']!,
           typeId: state.pathParameters['typeId']!,
         ),
+      ),
+      GoRoute(
+        path: '/wells/:id/interventions',
+        builder: (context, state) => InterventionsScreen(wellId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/wells/:id/decline',
+        builder: (context, state) => DeclineScreen(
+          wellId: state.pathParameters['id']!,
+          initialFluid: state.uri.queryParameters['fluid'],
+        ),
+      ),
+      GoRoute(
+        path: '/wells/:id/ratio/:ratio',
+        builder: (context, state) => RatioTrendScreen(
+          wellId: state.pathParameters['id']!,
+          ratio: DerivedRatioX.fromKey(state.pathParameters['ratio']!) ?? DerivedRatio.gor,
+        ),
+      ),
+      GoRoute(
+        path: '/settings',
+        builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/compare',
+        builder: (context, state) {
+          final q = state.uri.queryParameters;
+          return CompareScreen(
+            initialMode: q['mode'] == 'periods' ? CompareMode.periods : CompareMode.wells,
+            initialWellA: q['wellA'],
+            initialWellB: q['wellB'],
+            initialMetric: q['metric'],
+            initialInterventionId: q['interventionId'],
+          );
+        },
       ),
       GoRoute(
         path: '/entry',

@@ -1,30 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/data/wells_repository.dart';
+import '../../../core/filters/well_filter.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/analysis_type.dart';
 import '../../../core/models/well.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/filter_pills.dart';
+import '../../../core/widgets/responsive.dart';
 import 'widgets/threshold_gauge.dart';
-
-enum StatsPeriod { week, month, all }
 
 enum StatsViewMode { compliance, thresholds }
 
-final statsPeriodProvider = StateProvider<StatsPeriod>((ref) => StatsPeriod.week);
-
 final statsViewModeProvider = StateProvider<StatsViewMode>((ref) => StatsViewMode.compliance);
 
-DateTime _statsStart(StatsPeriod period, DateTime today) {
-  switch (period) {
-    case StatsPeriod.week:
-      return today.subtract(const Duration(days: 6));
-    case StatsPeriod.month:
-      return today.subtract(const Duration(days: 29));
-    case StatsPeriod.all:
-      return DateTime(2000);
-  }
-}
+/// Filtres des statistiques : champ, statut, période, recherche par nom.
+final statsFilterProvider = StateProvider<WellFilter>((ref) => const WellFilter(period: PeriodSelection.days7));
 
 Color _complianceColor(double rate) {
   if (rate >= 0.95) return Colors.green.shade600;
@@ -43,8 +36,26 @@ class StatsScreen extends ConsumerWidget {
     String s(String key) => tr(locale, key);
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      padding: pagePadding(context, top: 8, bottom: 24),
       children: [
+        Card(
+          child: ListTile(
+            leading: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: accentColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.compare_arrows, color: accentColor),
+            ),
+            title: Text(s('compareTitle'), style: const TextStyle(fontWeight: FontWeight.w700)),
+            subtitle: Text(s('compareEntrySubtitle'), style: const TextStyle(fontSize: 12)),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/compare'),
+          ),
+        ),
+        const SizedBox(height: 16),
         SegmentedButton<StatsViewMode>(
           segments: [
             ButtonSegment(value: StatsViewMode.compliance, label: Text(s('statsModeCompliance'))),
@@ -53,8 +64,93 @@ class StatsScreen extends ConsumerWidget {
           selected: {mode},
           onSelectionChanged: (selection) => ref.read(statsViewModeProvider.notifier).state = selection.first,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
+        _StatsFilterBar(mode: mode),
+        const SizedBox(height: 12),
         if (mode == StatsViewMode.compliance) const _ComplianceView() else const _ThresholdsView(),
+      ],
+    );
+  }
+}
+
+/// Barre de filtres des statistiques. La vue "Seuils" montre l'état actuel
+/// des puits actifs : période et statut n'y ont pas de sens, seuls la
+/// recherche et le champ s'appliquent.
+class _StatsFilterBar extends ConsumerStatefulWidget {
+  final StatsViewMode mode;
+  const _StatsFilterBar({required this.mode});
+
+  @override
+  ConsumerState<_StatsFilterBar> createState() => _StatsFilterBarState();
+}
+
+class _StatsFilterBarState extends ConsumerState<_StatsFilterBar> {
+  late final TextEditingController _search = TextEditingController(text: ref.read(statsFilterProvider).query);
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final locale = ref.watch(localeProvider);
+    final filter = ref.watch(statsFilterProvider);
+    final controller = ref.read(wellsControllerProvider.notifier);
+    final wells = ref.watch(wellsControllerProvider).wells;
+    String s(String key) => tr(locale, key);
+    void update(WellFilter f) => ref.read(statsFilterProvider.notifier).state = f;
+    final compliance = widget.mode == StatsViewMode.compliance;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextField(
+          controller: _search,
+          onChanged: (v) => update(filter.copyWith(query: v)),
+          decoration: InputDecoration(
+            hintText: s('wellsSearchHint'),
+            prefixIcon: const Icon(Icons.search),
+            isDense: true,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            FilterPill<String?>(
+              icon: Icons.map_outlined,
+              title: s('filterField'),
+              options: [
+                PillOption(null, s('filterFieldAll')),
+                for (final g in controller.groups) PillOption(g, g),
+                if (wells.any((w) => w.group.trim().isEmpty)) PillOption('', s('statsUnassignedGroup')),
+              ],
+              selected: filter.group,
+              active: filter.group != null,
+              onSelected: (v) => update(filter.copyWith(group: () => v)),
+            ),
+            if (compliance)
+              FilterPill<WellStatusFilter>(
+                icon: Icons.power_settings_new,
+                title: s('filterStatus'),
+                options: [for (final st in WellStatusFilter.values) PillOption(st, s(st.labelKey))],
+                selected: filter.status,
+                active: filter.status != WellStatusFilter.all,
+                onSelected: (v) => update(filter.copyWith(status: v)),
+              ),
+            if (compliance)
+              PeriodPill(
+                value: filter.period,
+                title: s('filterPeriod'),
+                s: s,
+                active: true,
+                onChanged: (p) => update(filter.copyWith(period: p)),
+              ),
+          ],
+        ),
       ],
     );
   }
@@ -67,26 +163,19 @@ class _ComplianceView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     final locale = ref.watch(localeProvider);
-    final period = ref.watch(statsPeriodProvider);
+    final filter = ref.watch(statsFilterProvider);
     final controller = ref.watch(wellsControllerProvider.notifier);
     String s(String key) => tr(locale, key);
 
-    final today = DateTime.now();
-    final groups = controller.statsForPeriod(_statsStart(period, today), today);
+    final range = filter.period.resolve(DateTime.now());
+    final groups = [
+      for (final g in controller.statsForPeriod(range.start, range.end))
+        GroupStats(group: g.group, wells: g.wells.where((w) => filter.matches(w.well)).toList()),
+    ].where((g) => g.wells.isNotEmpty).toList();
     final hasAnyRecord = groups.any((g) => g.totalRecords > 0);
 
     return Column(
       children: [
-        SegmentedButton<StatsPeriod>(
-          segments: [
-            ButtonSegment(value: StatsPeriod.week, label: Text(s('statsPeriod7'))),
-            ButtonSegment(value: StatsPeriod.month, label: Text(s('statsPeriod30'))),
-            ButtonSegment(value: StatsPeriod.all, label: Text(s('statsPeriodAll'))),
-          ],
-          selected: {period},
-          onSelectionChanged: (selection) => ref.read(statsPeriodProvider.notifier).state = selection.first,
-        ),
-        const SizedBox(height: 16),
         if (!hasAnyRecord)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 60),
@@ -212,7 +301,9 @@ class _ThresholdsView extends ConsumerWidget {
     final controller = ref.watch(wellsControllerProvider.notifier);
     String s(String key) => tr(locale, key);
 
-    final activeWells = data.wells.where((w) => w.active).toList();
+    final filter = ref.watch(statsFilterProvider);
+    final activeWells =
+        data.wells.where((w) => w.active && filter.copyWith(status: WellStatusFilter.all).matches(w)).toList();
     final byGroup = <String, List<Well>>{};
     for (final well in activeWells) {
       final key = well.group.trim().isEmpty ? unassignedGroupLabel : well.group.trim();

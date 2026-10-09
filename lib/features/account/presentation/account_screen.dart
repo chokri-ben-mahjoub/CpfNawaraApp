@@ -6,6 +6,7 @@ import '../../../core/auth/auth_providers.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/user_role.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/responsive.dart';
 
 class AccountScreen extends ConsumerWidget {
   const AccountScreen({super.key});
@@ -23,7 +24,7 @@ class AccountScreen extends ConsumerWidget {
     final service = profile?.serviceKey;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      padding: pagePadding(context, top: 16, bottom: 24),
       children: [
         Card(
           child: Padding(
@@ -95,6 +96,16 @@ class AccountScreen extends ConsumerWidget {
           ),
         ],
         const SizedBox(height: 24),
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.settings_outlined, color: accentColor),
+            title: Text(s('settingsTitle'), style: const TextStyle(fontWeight: FontWeight.w700)),
+            subtitle: Text(s('settingsEntrySubtitle'), style: const TextStyle(fontSize: 12)),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/settings'),
+          ),
+        ),
+        const SizedBox(height: 12),
         Card(
           child: ListTile(
             leading: const Icon(Icons.pin_outlined, color: accentColor),

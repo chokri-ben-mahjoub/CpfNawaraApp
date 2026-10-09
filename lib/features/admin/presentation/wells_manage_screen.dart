@@ -5,6 +5,7 @@ import '../../../core/data/wells_repository.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/well.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/responsive.dart';
 
 class WellsManageScreen extends ConsumerWidget {
   const WellsManageScreen({super.key});
@@ -30,7 +31,7 @@ class WellsManageScreen extends ConsumerWidget {
       body: wells.isEmpty
           ? Center(child: Text(s('wellsManageEmpty'), style: TextStyle(color: scheme.onSurfaceVariant)))
           : ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 130),
+              padding: pagePadding(context, top: 12, bottom: 130),
               itemCount: wells.length,
               separatorBuilder: (_, _) => const SizedBox(height: 10),
               itemBuilder: (context, i) {
@@ -83,6 +84,7 @@ class _WellFormState extends ConsumerState<_WellForm> {
   late final TextEditingController _nameController;
   late final TextEditingController _codeController;
   late final TextEditingController _groupController;
+  late final TextEditingController _prController;
   late bool _active;
 
   bool get _isNew => widget.existing == null;
@@ -94,6 +96,10 @@ class _WellFormState extends ConsumerState<_WellForm> {
     _nameController = TextEditingController(text: e?.name ?? '');
     _codeController = TextEditingController(text: e?.code ?? '');
     _groupController = TextEditingController(text: e?.group ?? '');
+    final pr = e?.reservoirPressure;
+    _prController = TextEditingController(
+      text: pr == null ? '' : (pr == pr.roundToDouble() ? pr.toInt().toString() : pr.toString()),
+    );
     _active = e?.active ?? true;
   }
 
@@ -102,6 +108,7 @@ class _WellFormState extends ConsumerState<_WellForm> {
     _nameController.dispose();
     _codeController.dispose();
     _groupController.dispose();
+    _prController.dispose();
     super.dispose();
   }
 
@@ -111,12 +118,15 @@ class _WellFormState extends ConsumerState<_WellForm> {
     final locale = ref.read(localeProvider);
     String s(String key) => tr(locale, key);
 
+    final prText = _prController.text.trim().replaceAll(',', '.');
+    final reservoirPressure = prText.isEmpty ? null : double.parse(prText);
     if (_isNew) {
       await controller.addWell(
         code: _codeController.text.trim(),
         name: _nameController.text.trim(),
         active: _active,
         group: _groupController.text.trim(),
+        reservoirPressure: reservoirPressure,
       );
       _showSnack(s('wellsManageAdded'));
     } else {
@@ -126,6 +136,7 @@ class _WellFormState extends ConsumerState<_WellForm> {
         name: _nameController.text.trim(),
         active: _active,
         group: _groupController.text.trim(),
+        reservoirPressure: reservoirPressure,
       ));
       _showSnack(s('wellsManageUpdated'));
     }
@@ -225,6 +236,22 @@ class _WellFormState extends ConsumerState<_WellForm> {
                 ],
               ),
             ],
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _prController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                labelText: s('reservoirPressureLabel'),
+                helperText: s('reservoirPressureHelper'),
+                suffixText: 'bar',
+              ),
+              validator: (v) {
+                final text = (v ?? '').trim().replaceAll(',', '.');
+                if (text.isEmpty) return null;
+                final value = double.tryParse(text);
+                return value == null || value <= 0 ? s('adminInvalidThreshold') : null;
+              },
+            ),
             const SizedBox(height: 4),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,

@@ -22,8 +22,8 @@ const serviceKeys = [
 final _strings = <String, Map<String, String>>{
   'appName': {'fr': 'PuitsTrack', 'en': 'PuitsTrack'},
   'appTagline': {
-    'fr': 'CPF Nawara — suivi quotidien des analyses',
-    'en': 'CPF Nawara — daily analysis tracking',
+    'fr': 'Suivi quotidien des analyses de puits',
+    'en': 'Daily well analysis tracking',
   },
   'onboardingTitle': {
     'fr': 'Bienvenue sur PuitsTrack',
@@ -214,16 +214,15 @@ final _strings = <String, Map<String, String>>{
     'fr': 'L\'export a échoué. Réessayez.',
     'en': 'Export failed. Please try again.',
   },
-  'exportChooseFormatTitle': {'fr': 'Exporter en...', 'en': 'Export as...'},
   'exportFormatExcel': {'fr': 'Excel (.xlsx)', 'en': 'Excel (.xlsx)'},
   'exportFormatExcelHint': {
-    'fr': 'Mise en forme tableau, s\'ouvre dans Excel ou Google Sheets.',
-    'en': 'Table formatting, opens in Excel or Google Sheets.',
+    'fr': 'Une feuille par thème, s\'ouvre dans Excel ou Sheets.',
+    'en': 'One sheet per topic, opens in Excel or Sheets.',
   },
   'exportFormatCsv': {'fr': 'CSV (.csv)', 'en': 'CSV (.csv)'},
   'exportFormatCsvHint': {
-    'fr': 'Fichier texte simple, compatible avec tous les tableurs.',
-    'en': 'Plain text file, compatible with any spreadsheet app.',
+    'fr': 'Texte simple, un fichier par thème.',
+    'en': 'Plain text, one file per topic.',
   },
   'wellsExportZoneTooltip': {'fr': 'Exporter cette zone', 'en': 'Export this zone'},
   'colDate': {'fr': 'Date', 'en': 'Date'},
@@ -394,14 +393,482 @@ final _strings = <String, Map<String, String>>{
   'statsModeCompliance': {'fr': 'Conformité', 'en': 'Compliance'},
   'statsModeThresholds': {'fr': 'Seuils', 'en': 'Thresholds'},
   'navStats': {'fr': 'Stats', 'en': 'Stats'},
-  'statsPeriod7': {'fr': '7 jours', 'en': '7 days'},
-  'statsPeriod30': {'fr': '30 jours', 'en': '30 days'},
-  'statsPeriodAll': {'fr': 'Tout', 'en': 'All time'},
   'statsCompliance': {'fr': 'conformité', 'en': 'compliance'},
   'statsAnalysesCount': {'fr': 'analyses', 'en': 'analyses'},
   'statsOutOfRangeCount': {'fr': 'hors seuil', 'en': 'out of range'},
   'statsNoData': {'fr': 'Aucune analyse sur cette période.', 'en': 'No analysis for this period.'},
   'statsUnassignedGroup': {'fr': 'Sans groupe', 'en': 'Unassigned'},
+
+  // Commun
+  'yes': {'fr': 'Oui', 'en': 'Yes'},
+  'no': {'fr': 'Non', 'en': 'No'},
+  'edit': {'fr': 'Modifier', 'en': 'Edit'},
+  'set': {'fr': 'Renseigner', 'en': 'Set'},
+  'notSet': {'fr': 'non renseignée', 'en': 'not set'},
+  'seeAll': {'fr': 'Voir tout', 'en': 'See all'},
+  'daysShort': {'fr': 'j', 'en': 'd'},
+  'yearShort': {'fr': 'an', 'en': 'yr'},
+  'dayPrefix': {'fr': 'J', 'en': 'D'},
+  'frequencyOnDemand': {'fr': 'À la demande (ponctuelle)', 'en': 'On demand (occasional)'},
+
+  // Export : télécharger ou partager
+  'exportSheetTitle': {'fr': 'Exporter', 'en': 'Export'},
+  'exportSheetSubtitle': {
+    'fr': 'Choisissez le format, puis téléchargez le fichier sur cet appareil ou partagez-le.',
+    'en': 'Choose the format, then download the file to this device or share it.',
+  },
+  'exportActionDownload': {'fr': 'Télécharger', 'en': 'Download'},
+  'exportActionDownloadHint': {
+    'fr': 'Enregistré dans Téléchargements › PuitsTrack',
+    'en': 'Saved to Downloads › PuitsTrack',
+  },
+  'exportActionShare': {'fr': 'Partager', 'en': 'Share'},
+  'exportActionShareHint': {
+    'fr': 'WhatsApp, e-mail, Drive...',
+    'en': 'WhatsApp, email, Drive...',
+  },
+  'exportSavedOne': {
+    'fr': 'Fichier enregistré dans Téléchargements › PuitsTrack :',
+    'en': 'File saved to Downloads › PuitsTrack:',
+  },
+  'exportSavedMany': {
+    'fr': 'fichiers enregistrés dans Téléchargements › PuitsTrack',
+    'en': 'files saved to Downloads › PuitsTrack',
+  },
+  'exportOpen': {'fr': 'Ouvrir', 'en': 'Open'},
+  'exportDownloadedOne': {'fr': 'Fichier téléchargé :', 'en': 'File downloaded:'},
+  'exportDownloadedMany': {'fr': 'fichiers téléchargés', 'en': 'files downloaded'},
+  'exportActionDownloadHintWeb': {
+    'fr': 'Dans le dossier Téléchargements du navigateur',
+    'en': 'To the browser\'s Downloads folder',
+  },
+  'exportNoAppToOpen': {
+    'fr': 'Aucune application installée pour ouvrir ce fichier (Excel, Google Sheets, WPS...). '
+        'Il reste disponible dans Téléchargements.',
+    'en': 'No installed app can open this file (Excel, Google Sheets, WPS...). '
+        'It is still available in Downloads.',
+  },
+  'exportPermissionDenied': {
+    'fr': 'Autorisation de stockage refusée : impossible d\'enregistrer le fichier. Utilisez "Partager".',
+    'en': 'Storage permission denied: the file could not be saved. Use "Share" instead.',
+  },
+  'exportSheetAnalyses': {'fr': 'Analyses', 'en': 'Analyses'},
+  'exportSheetProduction': {'fr': 'Production et ratios', 'en': 'Production and ratios'},
+  'exportSheetInterventions': {'fr': 'Interventions', 'en': 'Interventions'},
+  'exportSheetSummary': {'fr': 'Synthèse', 'en': 'Summary'},
+  'exportSheetData': {'fr': 'Données', 'en': 'Data'},
+  'colMin': {'fr': 'Seuil min', 'en': 'Min threshold'},
+  'colMax': {'fr': 'Seuil max', 'en': 'Max threshold'},
+  'colLastEntry': {'fr': 'Dernière saisie', 'en': 'Last entry'},
+
+  // Filtres
+  'filterField': {'fr': 'Champ / zone', 'en': 'Field / zone'},
+  'filterFieldAll': {'fr': 'Tous les champs', 'en': 'All fields'},
+  'filterStatus': {'fr': 'Statut', 'en': 'Status'},
+  'filterStatusAll': {'fr': 'Tous statuts', 'en': 'All statuses'},
+  'filterStatusActive': {'fr': 'Actifs', 'en': 'Active'},
+  'filterStatusStopped': {'fr': 'Arrêtés', 'en': 'Stopped'},
+  'filterPeriod': {'fr': 'Période', 'en': 'Period'},
+  'filterWell': {'fr': 'Puits', 'en': 'Well'},
+  'filterReset': {'fr': 'Effacer', 'en': 'Clear'},
+  'periodToday': {'fr': 'Aujourd\'hui', 'en': 'Today'},
+  'period7': {'fr': '7 jours', 'en': '7 days'},
+  'period30': {'fr': '30 jours', 'en': '30 days'},
+  'period90': {'fr': '90 jours', 'en': '90 days'},
+  'period180': {'fr': '6 mois', 'en': '6 months'},
+  'period365': {'fr': '12 mois', 'en': '12 months'},
+  'periodAll': {'fr': 'Tout l\'historique', 'en': 'All time'},
+  'periodCustom': {'fr': 'Dates personnalisées...', 'en': 'Custom dates...'},
+  'wellsCountSingular': {'fr': 'puits', 'en': 'well'},
+  'wellsCountPlural': {'fr': 'puits', 'en': 'wells'},
+
+  // Indicateurs calculés
+  'ratiosTitle': {'fr': 'Indicateurs calculés', 'en': 'Calculated indicators'},
+  'ratiosSubtitle': {
+    'fr': 'Calculés automatiquement à partir des débits saisis — touchez un indicateur pour son évolution.',
+    'en': 'Calculated automatically from the entered rates — tap an indicator to see its trend.',
+  },
+  'ratioGor': {'fr': 'GOR', 'en': 'GOR'},
+  'ratioWor': {'fr': 'WOR', 'en': 'WOR'},
+  'ratioGlr': {'fr': 'GLR', 'en': 'GLR'},
+  'ratioPi': {'fr': 'PI', 'en': 'PI'},
+  'ratioGorDesc': {
+    'fr': 'GOR (Gas-Oil Ratio) = débit gaz ÷ débit huile, le même jour.',
+    'en': 'GOR (Gas-Oil Ratio) = gas rate ÷ oil rate, same day.',
+  },
+  'ratioWorDesc': {
+    'fr': 'WOR (Water-Oil Ratio) = débit eau ÷ débit huile, le même jour.',
+    'en': 'WOR (Water-Oil Ratio) = water rate ÷ oil rate, same day.',
+  },
+  'ratioGlrDesc': {
+    'fr': 'GLR (Gas-Liquid Ratio) = débit gaz ÷ (débit huile + débit eau), le même jour.',
+    'en': 'GLR (Gas-Liquid Ratio) = gas rate ÷ (oil rate + water rate), same day.',
+  },
+  'ratioPiDesc': {
+    'fr': 'PI (indice de productivité) = débit liquide ÷ (Pr − Pwf). Calculé à chaque mesure de la '
+        'pression de fond (Pwf), avec la pression de gisement (Pr) du puits.',
+    'en': 'PI (productivity index) = liquid rate ÷ (Pr − Pwf). Calculated for every bottom-hole '
+        'pressure (Pwf) measurement, using the well\'s reservoir pressure (Pr).',
+  },
+  'ratioMissingInputs': {
+    'fr': 'Pas encore de données : ce ratio nécessite des débits saisis le même jour.',
+    'en': 'No data yet: this ratio needs rates entered on the same day.',
+  },
+  'piMissingInputs': {
+    'fr': 'Le PI nécessite la pression de gisement (Pr) du puits et au moins une mesure de '
+        '"Pression de fond (Pwf)" avec un débit huile saisi à moins de 3 jours.',
+    'en': 'PI needs the well\'s reservoir pressure (Pr) and at least one "Bottom-hole pressure (Pwf)" '
+        'measurement with an oil rate entered within 3 days.',
+  },
+  'piNeedsPr': {'fr': 'Renseigner Pr', 'en': 'Set Pr first'},
+  'reservoirPressureTitle': {'fr': 'Pression de gisement', 'en': 'Reservoir pressure'},
+  'reservoirPressureLabel': {'fr': 'Pression de gisement (Pr)', 'en': 'Reservoir pressure (Pr)'},
+  'reservoirPressureHint': {
+    'fr': 'Valeur issue du dernier test de remontée de pression. Elle sert au calcul de l\'indice de '
+        'productivité (PI). Laisser vide si inconnue.',
+    'en': 'Value from the latest pressure build-up test. Used to compute the productivity index (PI). '
+        'Leave empty if unknown.',
+  },
+  'reservoirPressureHelper': {
+    'fr': 'Optionnel — nécessaire pour calculer le PI',
+    'en': 'Optional — needed to compute PI',
+  },
+
+  // Déclin
+  'declineTitle': {'fr': 'Courbe de déclin', 'en': 'Decline curve'},
+  'declineCardSubtitle': {
+    'fr': 'Taux de déclin effectif annuel, calculé automatiquement (depuis la dernière intervention).',
+    'en': 'Effective annual decline rate, calculated automatically (since the last intervention).',
+  },
+  'declineFluid': {'fr': 'Débit analysé', 'en': 'Analysed rate'},
+  'declineWindow': {'fr': 'Données utilisées', 'en': 'Data used'},
+  'declineWindowAuto': {'fr': 'Auto (depuis la dernière intervention)', 'en': 'Auto (since last intervention)'},
+  'declineHorizon': {'fr': 'Horizon de prévision', 'en': 'Forecast horizon'},
+  'declineForecast': {'fr': 'Prévision', 'en': 'Forecast'},
+  'declineLogScale': {'fr': 'Échelle log', 'en': 'Log scale'},
+  'declineMeasured': {'fr': 'Mesuré', 'en': 'Measured'},
+  'declineFitted': {'fr': 'Ajusté', 'en': 'Fitted'},
+  'declineOutsideWindow': {'fr': 'Hors fenêtre', 'en': 'Outside window'},
+  'declineNoData': {
+    'fr': 'Pas encore assez de débits saisis pour tracer une courbe.',
+    'en': 'Not enough rates entered yet to draw a curve.',
+  },
+  'declineNotEnoughPoints': {
+    'fr': 'Le calcul du déclin nécessite au moins 3 débits positifs, sur au moins 2 jours différents, '
+        'dans la fenêtre choisie.',
+    'en': 'The decline calculation needs at least 3 positive rates, on at least 2 different days, '
+        'within the selected window.',
+  },
+  'declineNotEnoughShort': {'fr': 'Données insuffisantes', 'en': 'Not enough data'},
+  'declineEffectiveAnnual': {'fr': 'Déclin effectif annuel', 'en': 'Effective annual decline'},
+  'declineGrowthAnnual': {'fr': 'Hausse annuelle (pas de déclin)', 'en': 'Annual growth (no decline)'},
+  'declineEffectiveMonthly': {'fr': 'Déclin effectif mensuel', 'en': 'Effective monthly decline'},
+  'declineNominalAnnual': {'fr': 'Déclin nominal annuel (D × 365)', 'en': 'Nominal annual decline (D × 365)'},
+  'declineQi': {'fr': 'Débit initial ajusté', 'en': 'Fitted initial rate'},
+  'declinePoints': {'fr': 'Mesures utilisées', 'en': 'Measurements used'},
+  'declineFitGood': {'fr': 'bon ajustement', 'en': 'good fit'},
+  'declineFitMedium': {'fr': 'ajustement moyen', 'en': 'moderate fit'},
+  'declineFitPoor': {'fr': 'données dispersées, à interpréter avec prudence', 'en': 'scattered data, interpret with care'},
+  'declineSinceIntervention': {
+    'fr': 'Calculé depuis la dernière intervention.',
+    'en': 'Calculated since the last intervention.',
+  },
+  'declineOnWindow': {'fr': 'Calculé sur la fenêtre de données choisie.', 'en': 'Calculated on the selected data window.'},
+  'declineForecastTitle': {'fr': 'Prévision (modèle exponentiel)', 'en': 'Forecast (exponential model)'},
+  'declineRateIn': {'fr': 'Débit prévu dans', 'en': 'Forecast rate in'},
+  'declineCumulative': {'fr': 'Production cumulée prévue sur', 'en': 'Forecast cumulative production over'},
+  'declineLimitLabel': {'fr': 'Débit limite économique (optionnel)', 'en': 'Economic limit rate (optional)'},
+  'declineLimitReached': {
+    'fr': 'Débit limite atteint dans environ {days} jours (vers le {date}).',
+    'en': 'Limit rate reached in about {days} days (around {date}).',
+  },
+  'declineLimitNever': {
+    'fr': 'Le débit limite n\'est pas atteint avec la tendance actuelle (ou est déjà dépassé).',
+    'en': 'The limit rate is not reached with the current trend (or is already passed).',
+  },
+  'declineMethodNote': {
+    'fr': 'Méthode : déclin exponentiel d\'Arps (b = 0), q(t) = qi·e^(−D·t), ajusté par régression '
+        'linéaire de ln(q) sur le temps. Déclin effectif = 1 − e^(−D·durée). En mode Auto, le calcul '
+        'repart du lendemain de la dernière intervention, qui modifie généralement le comportement du puits.',
+    'en': 'Method: Arps exponential decline (b = 0), q(t) = qi·e^(−D·t), fitted by linear regression of '
+        'ln(q) over time. Effective decline = 1 − e^(−D·duration). In Auto mode, the fit restarts the day '
+        'after the last intervention, which usually changes the well\'s behaviour.',
+  },
+  'declineIndicator': {'fr': 'Indicateur', 'en': 'Indicator'},
+  'declineFrom': {'fr': 'Du', 'en': 'From'},
+  'declineTo': {'fr': 'Au', 'en': 'To'},
+  'declineUsed': {'fr': 'Utilisé pour le calcul', 'en': 'Used in fit'},
+
+  // Comparaison
+  'compareTitle': {'fr': 'Comparer', 'en': 'Compare'},
+  'compareEntrySubtitle': {
+    'fr': 'Deux puits, deux périodes, ou avant/après une intervention',
+    'en': 'Two wells, two periods, or before/after an intervention',
+  },
+  'compareModeWells': {'fr': 'Deux puits', 'en': 'Two wells'},
+  'compareModePeriods': {'fr': 'Deux périodes', 'en': 'Two periods'},
+  'compareMetric': {'fr': 'Paramètre', 'en': 'Parameter'},
+  'compareWellA': {'fr': 'Puits A', 'en': 'Well A'},
+  'compareWellB': {'fr': 'Puits B', 'en': 'Well B'},
+  'comparePivot': {'fr': 'Comparer autour de', 'en': 'Compare around'},
+  'compareFreeDates': {'fr': 'Dates libres (période A / B)', 'en': 'Free dates (period A / B)'},
+  'compareWindow': {'fr': 'Durée avant / après', 'en': 'Window before / after'},
+  'comparePeriodA': {'fr': 'Période A', 'en': 'Period A'},
+  'comparePeriodB': {'fr': 'Période B', 'en': 'Period B'},
+  'compareBefore': {'fr': 'Avant', 'en': 'Before'},
+  'compareAfter': {'fr': 'Après', 'en': 'After'},
+  'compareNoData': {'fr': 'Pas de données sur ces périodes pour ce paramètre.', 'en': 'No data for this parameter over these periods.'},
+  'compareNoInterventionHint': {
+    'fr': 'Astuce : enregistrez une intervention sur ce puits (fiche puits › Interventions) pour comparer '
+        'automatiquement avant / après.',
+    'en': 'Tip: record an intervention on this well (well page › Interventions) to compare before / after '
+        'automatically.',
+  },
+  'compareStatPeriod': {'fr': 'Période', 'en': 'Period'},
+  'compareStatCount': {'fr': 'Mesures', 'en': 'Measurements'},
+  'compareStatMean': {'fr': 'Moyenne', 'en': 'Average'},
+  'compareStatMin': {'fr': 'Minimum', 'en': 'Minimum'},
+  'compareStatMax': {'fr': 'Maximum', 'en': 'Maximum'},
+  'compareStatFirst': {'fr': 'Première', 'en': 'First'},
+  'compareStatLast': {'fr': 'Dernière', 'en': 'Last'},
+  'compareDeltaPct': {'fr': 'Écart', 'en': 'Change'},
+  'compareSeries': {'fr': 'Série', 'en': 'Series'},
+  'compareHigher': {'fr': 'supérieure', 'en': 'higher'},
+  'compareLower': {'fr': 'inférieure', 'en': 'lower'},
+  'compareVerdictWells': {
+    'fr': 'Période {period} : la moyenne de {b} est {diff} {dir} à celle de {a}.',
+    'en': 'Period {period}: the average of {b} is {diff} {dir} than that of {a}.',
+  },
+  'compareVerdictIntervention': {
+    'fr': 'Après {type} du {date}, la moyenne de {metric} a varié de {change}.',
+    'en': 'After the {type} on {date}, the {metric} average changed by {change}.',
+  },
+  'compareVerdictPeriods': {
+    'fr': 'De la période A à la période B, la moyenne de {metric} a varié de {change}.',
+    'en': 'From period A to period B, the {metric} average changed by {change}.',
+  },
+
+  // Interventions
+  'interventionsTitle': {'fr': 'Interventions', 'en': 'Interventions'},
+  'interventionsShort': {'fr': 'intervention(s)', 'en': 'intervention(s)'},
+  'interventionsEmpty': {
+    'fr': 'Aucune intervention enregistrée sur ce puits.\nAjoutez workovers, stimulations, changements de '
+        'duse... : ils apparaîtront en marqueurs sur les courbes.',
+    'en': 'No intervention recorded on this well.\nAdd workovers, stimulations, choke changes...: they will '
+        'show up as markers on the charts.',
+  },
+  'interventionsEmptyShort': {
+    'fr': 'Aucune intervention — touchez + pour en ajouter une.',
+    'en': 'No intervention — tap + to add one.',
+  },
+  'interventionsCount': {'fr': 'Interventions', 'en': 'Interventions'},
+  'interventionsTotalCost': {'fr': 'Coût total', 'en': 'Total cost'},
+  'interventionsMarkersHint': {
+    'fr': 'Chaque intervention apparaît en ligne verticale violette sur les courbes du puits. '
+        'Le bouton à flèches violettes compare le paramètre choisi avant / après.',
+    'en': 'Each intervention appears as a purple vertical line on the well\'s charts. '
+        'The purple arrows button compares the chosen parameter before / after.',
+  },
+  'interventionAdd': {'fr': 'Ajouter une intervention', 'en': 'Add an intervention'},
+  'interventionNew': {'fr': 'Nouvelle intervention', 'en': 'New intervention'},
+  'interventionEdit': {'fr': 'Modifier l\'intervention', 'en': 'Edit intervention'},
+  'interventionAdded': {'fr': 'Intervention enregistrée.', 'en': 'Intervention saved.'},
+  'interventionUpdated': {'fr': 'Intervention mise à jour.', 'en': 'Intervention updated.'},
+  'interventionDeleted': {'fr': 'Intervention supprimée.', 'en': 'Intervention deleted.'},
+  'interventionDelete': {'fr': 'Supprimer', 'en': 'Delete'},
+  'interventionDeleteConfirmTitle': {'fr': 'Supprimer cette intervention ?', 'en': 'Delete this intervention?'},
+  'interventionDeleteConfirmBody': {
+    'fr': 'Elle disparaîtra du journal et des courbes. Les analyses du puits ne sont pas touchées.',
+    'en': 'It will be removed from the log and the charts. The well\'s analyses are not affected.',
+  },
+  'interventionDateLabel': {'fr': 'Date', 'en': 'Date'},
+  'interventionTypeLabel': {'fr': 'Type d\'intervention', 'en': 'Intervention type'},
+  'interventionCostLabel': {'fr': 'Coût (optionnel)', 'en': 'Cost (optional)'},
+  'interventionInvalidCost': {'fr': 'Montant invalide.', 'en': 'Invalid amount.'},
+  'interventionCurrencyLabel': {'fr': 'Devise', 'en': 'Currency'},
+  'interventionResultLabel': {'fr': 'Résultat', 'en': 'Result'},
+  'interventionDescriptionLabel': {'fr': 'Description / observations', 'en': 'Description / notes'},
+  'interventionDescriptionHint': {
+    'fr': 'Ex: duse 32/64 → 40/64, acidification 15 % HCl...',
+    'en': 'e.g. choke 32/64 → 40/64, 15% HCl acid job...',
+  },
+  'interventionCompareBeforeAfter': {'fr': 'Comparer avant / après', 'en': 'Compare before / after'},
+  'interventionTypeWorkover': {'fr': 'Workover', 'en': 'Workover'},
+  'interventionTypeStimulation': {'fr': 'Stimulation (acidification)', 'en': 'Stimulation (acidizing)'},
+  'interventionTypeFracturing': {'fr': 'Fracturation', 'en': 'Hydraulic fracturing'},
+  'interventionTypeChokeChange': {'fr': 'Changement de duse', 'en': 'Choke change'},
+  'interventionTypeCleanout': {'fr': 'Nettoyage (coiled tubing)', 'en': 'Cleanout (coiled tubing)'},
+  'interventionTypeWireline': {'fr': 'Wireline / slickline', 'en': 'Wireline / slickline'},
+  'interventionTypePerforation': {'fr': 'Perforation', 'en': 'Perforation'},
+  'interventionTypeArtificialLift': {'fr': 'Activation (pompe, gas lift)', 'en': 'Artificial lift (pump, gas lift)'},
+  'interventionTypeShutIn': {'fr': 'Arrêt / remise en production', 'en': 'Shut-in / back on production'},
+  'interventionTypeOther': {'fr': 'Autre', 'en': 'Other'},
+  'interventionResultSuccess': {'fr': 'Succès', 'en': 'Success'},
+  'interventionResultPartial': {'fr': 'Partiel', 'en': 'Partial'},
+  'interventionResultFailure': {'fr': 'Échec', 'en': 'Failure'},
+  'interventionResultPending': {'fr': 'À évaluer', 'en': 'To be assessed'},
+
+  // Réglages
+  'settingsTitle': {'fr': 'Réglages', 'en': 'Settings'},
+  'settingsEntrySubtitle': {
+    'fr': 'Apparence, sécurité, sauvegarde, rappels...',
+    'en': 'Appearance, security, backup, reminders...',
+  },
+  'settingsProfile': {'fr': 'Profil', 'en': 'Profile'},
+  'settingsEditProfile': {'fr': 'Modifier le profil', 'en': 'Edit profile'},
+  'settingsAppearance': {'fr': 'Apparence', 'en': 'Appearance'},
+  'settingsTheme': {'fr': 'Thème', 'en': 'Theme'},
+  'themeLight': {'fr': 'Clair', 'en': 'Light'},
+  'themeAuto': {'fr': 'Auto', 'en': 'Auto'},
+  'themeDark': {'fr': 'Sombre', 'en': 'Dark'},
+  'themeAutoHint': {
+    'fr': 'Auto suit le réglage du téléphone (clair le jour, sombre si le mode sombre est activé).',
+    'en': 'Auto follows the phone setting (light, or dark when dark mode is on).',
+  },
+  'settingsSecurity': {'fr': 'Sécurité', 'en': 'Security'},
+  'settingsBiometric': {'fr': 'Déverrouillage par empreinte', 'en': 'Fingerprint unlock'},
+  'settingsBiometricHint': {
+    'fr': 'Proposer l\'empreinte (ou le visage) au déverrouillage, en plus du code.',
+    'en': 'Offer fingerprint (or face) unlock, in addition to the code.',
+  },
+  'settingsBiometricUnavailable': {
+    'fr': 'Non disponible ou non configuré sur ce téléphone.',
+    'en': 'Not available or not set up on this phone.',
+  },
+  'settingsAutoLock': {'fr': 'Verrouillage automatique', 'en': 'Auto-lock'},
+  'settingsAutoLockHint': {
+    'fr': 'Délai avant de redemander le code quand l\'app passe en arrière-plan.',
+    'en': 'Delay before asking for the code again once the app is in the background.',
+  },
+  'autoLockImmediate': {'fr': 'Immédiat', 'en': 'Immediately'},
+  'settingsSecureScreen': {'fr': 'Écran protégé', 'en': 'Protected screen'},
+  'settingsSecureScreenHint': {
+    'fr': 'Bloque les captures d\'écran et masque le contenu dans les applications récentes.',
+    'en': 'Blocks screenshots and hides the content in the recent apps view.',
+  },
+  'settingsBackup': {'fr': 'Sauvegarde', 'en': 'Backup'},
+  'backupIntro': {
+    'fr': 'Les données (puits, seuils, analyses, interventions) sont stockées uniquement sur cet appareil. '
+        'Envoyez régulièrement une sauvegarde sur Drive ou par e-mail pour ne rien perdre en cas de perte '
+        'ou de changement de téléphone.',
+    'en': 'Data (wells, thresholds, analyses, interventions) is stored on this device only. '
+        'Regularly send a backup to Drive or by email so nothing is lost if the phone is lost or replaced.',
+  },
+  'backupLast': {'fr': 'Dernière sauvegarde', 'en': 'Last backup'},
+  'backupNever': {'fr': 'jamais', 'en': 'never'},
+  'backupToday': {'fr': 'aujourd\'hui', 'en': 'today'},
+  'backupDaysAgo': {'fr': 'il y a {n} j', 'en': '{n} days ago'},
+  'backupSaveToPhone': {'fr': 'Enregistrer sur le téléphone', 'en': 'Save to phone'},
+  'backupDownload': {'fr': 'Télécharger la sauvegarde', 'en': 'Download the backup'},
+  'backupDownloaded': {'fr': 'Sauvegarde téléchargée :', 'en': 'Backup downloaded:'},
+  'backupShare': {'fr': 'Envoyer (Drive, e-mail, WhatsApp...)', 'en': 'Send (Drive, email, WhatsApp...)'},
+  'backupShareSubject': {'fr': 'Sauvegarde PuitsTrack', 'en': 'PuitsTrack backup'},
+  'backupRestore': {'fr': 'Restaurer une sauvegarde', 'en': 'Restore a backup'},
+  'backupSaved': {
+    'fr': 'Sauvegarde enregistrée dans Téléchargements › PuitsTrack › Sauvegardes :',
+    'en': 'Backup saved to Downloads › PuitsTrack › Sauvegardes:',
+  },
+  'backupFailed': {'fr': 'La sauvegarde a échoué. Réessayez.', 'en': 'The backup failed. Try again.'},
+  'backupRestoreConfirmTitle': {'fr': 'Restaurer cette sauvegarde ?', 'en': 'Restore this backup?'},
+  'backupRestoreConfirmBody': {
+    'fr': 'Sauvegarde du {date} : {wells} puits, {records} analyses, {interventions} interventions.\n\n'
+        'Toutes les données actuelles seront remplacées. Une copie de sécurité des données actuelles est '
+        'd\'abord enregistrée dans Téléchargements › PuitsTrack › Sauvegardes.',
+    'en': 'Backup from {date}: {wells} wells, {records} analyses, {interventions} interventions.\n\n'
+        'All current data will be replaced. A safety copy of the current data is saved first in '
+        'Downloads › PuitsTrack › Sauvegardes.',
+  },
+  'backupRestoreConfirm': {'fr': 'Restaurer', 'en': 'Restore'},
+  'backupRestored': {'fr': 'Sauvegarde restaurée.', 'en': 'Backup restored.'},
+  'backupRestoreFailed': {
+    'fr': 'La restauration a échoué : les données actuelles n\'ont pas été modifiées.',
+    'en': 'The restore failed: current data was not changed.',
+  },
+  'backupErrorNotJson': {'fr': 'Ce fichier n\'est pas une sauvegarde valide.', 'en': 'This file is not a valid backup.'},
+  'backupErrorNotPuitsTrack': {
+    'fr': 'Ce fichier n\'est pas une sauvegarde PuitsTrack.',
+    'en': 'This file is not a PuitsTrack backup.',
+  },
+  'backupErrorTooRecent': {
+    'fr': 'Sauvegarde créée par une version plus récente de l\'app : mettez d\'abord l\'app à jour.',
+    'en': 'Backup made by a newer version of the app: update the app first.',
+  },
+  'backupErrorCorrupted': {
+    'fr': 'Le contenu de la sauvegarde est incomplet ou corrompu.',
+    'en': 'The backup content is incomplete or corrupted.',
+  },
+  'backupErrorEmpty': {'fr': 'Cette sauvegarde ne contient aucune donnée.', 'en': 'This backup contains no data.'},
+  'autoBackupTitle': {'fr': 'Sauvegarde automatique', 'en': 'Automatic backup'},
+  'autoBackupHint': {
+    'fr': 'À l\'ouverture de l\'app, dans Téléchargements › PuitsTrack › Sauvegardes '
+        '(2 fichiers utilisés à tour de rôle).',
+    'en': 'When the app opens, in Downloads › PuitsTrack › Sauvegardes (2 files used in turn).',
+  },
+  'autoBackupOff': {'fr': 'Désactivée', 'en': 'Off'},
+  'autoBackupDaily': {'fr': 'Chaque jour', 'en': 'Daily'},
+  'autoBackupWeekly': {'fr': 'Chaque semaine', 'en': 'Weekly'},
+  'settingsReminders': {'fr': 'Rappels', 'en': 'Reminders'},
+  'reminderDaily': {'fr': 'Rappel quotidien de saisie', 'en': 'Daily entry reminder'},
+  'reminderDailyHint': {
+    'fr': 'Notification chaque jour à l\'heure choisie, sautée si tout est déjà saisi.',
+    'en': 'Notification every day at the chosen time, skipped when everything is already entered.',
+  },
+  'reminderTime': {'fr': 'Heure du rappel', 'en': 'Reminder time'},
+  'reminderPermissionDenied': {
+    'fr': 'Notifications refusées : autorisez-les dans les paramètres du téléphone.',
+    'en': 'Notifications denied: allow them in the phone settings.',
+  },
+  'reminderChannelName': {'fr': 'Rappel de saisie', 'en': 'Entry reminder'},
+  'reminderTitle': {'fr': 'Analyses du jour', 'en': 'Today\'s analyses'},
+  'reminderBody': {
+    'fr': 'Pensez à saisir les analyses de vos puits.',
+    'en': 'Remember to enter your wells\' analyses.',
+  },
+  'settingsEntryExport': {'fr': 'Saisie et export', 'en': 'Entry and export'},
+  'settingsDefaultService': {'fr': 'Service par défaut', 'en': 'Default department'},
+  'settingsDefaultServiceHint': {
+    'fr': 'Pré-sélectionné à chaque nouvelle analyse (modifiable).',
+    'en': 'Pre-selected for every new analysis (can be changed).',
+  },
+  'settingsServiceFromProfile': {'fr': 'Celui de mon profil', 'en': 'From my profile'},
+  'settingsServiceNone': {'fr': 'Aucun (choisir à chaque fois)', 'en': 'None (choose every time)'},
+  'settingsDefaultCurrency': {'fr': 'Devise des interventions', 'en': 'Intervention currency'},
+  'settingsDefaultCurrencyHint': {
+    'fr': 'Devise proposée par défaut pour le coût d\'une intervention.',
+    'en': 'Currency proposed by default for an intervention cost.',
+  },
+  'settingsCsvFormat': {'fr': 'Format CSV', 'en': 'CSV format'},
+  'csvFormatFr': {'fr': 'Excel FR', 'en': 'Excel FR'},
+  'csvFormatIntl': {'fr': 'International', 'en': 'International'},
+  'csvFormatFrHint': {
+    'fr': 'Séparateur « ; » et virgule décimale (Excel en français).',
+    'en': 'Separator ";" and decimal comma (French Excel).',
+  },
+  'csvFormatIntlHint': {
+    'fr': 'Séparateur « , » et point décimal (Excel en anglais, Google Sheets).',
+    'en': 'Separator "," and decimal point (English Excel, Google Sheets).',
+  },
+  'settingsConfiguration': {'fr': 'Paramétrage', 'en': 'Configuration'},
+  'settingsData': {'fr': 'Données', 'en': 'Data'},
+  'settingsDataHint': {
+    'fr': 'Stockées localement sur ce téléphone (mode hors-ligne, sans compte).',
+    'en': 'Stored locally on this phone (offline mode, no account).',
+  },
+  'settingsDbSize': {'fr': 'Taille de la base', 'en': 'Database size'},
+  'settingsDataHintWeb': {
+    'fr': 'Stockées dans ce navigateur, sur ce PC (effacer les données du site les supprime : '
+        'gardez des sauvegardes).',
+    'en': 'Stored in this browser, on this PC (clearing site data deletes them: keep backups).',
+  },
+  'settingsDataHintDesktop': {
+    'fr': 'Stockées localement sur ce PC (mode hors-ligne, sans compte).',
+    'en': 'Stored locally on this PC (offline mode, no account).',
+  },
+  'settingsAbout': {'fr': 'À propos', 'en': 'About'},
+  'settingsAboutBody': {
+    'fr': 'Application personnelle de suivi des analyses de puits. Fonctionne hors-ligne.',
+    'en': 'Personal well analysis tracking app. Works offline.',
+  },
 };
 
 /// Traduit une clé pour une [Locale] donnée ; retombe sur le français.
@@ -409,6 +876,13 @@ String tr(Locale locale, String key) {
   final entry = _strings[key];
   if (entry == null) return key;
   return entry[locale.languageCode] ?? entry['fr'] ?? key;
+}
+
+/// Remplace les marqueurs `{nom}` d'une chaîne traduite par leurs valeurs.
+String fill(String template, Map<String, String> values) {
+  var result = template;
+  values.forEach((key, value) => result = result.replaceAll('{$key}', value));
+  return result;
 }
 
 extension TrX on BuildContext {

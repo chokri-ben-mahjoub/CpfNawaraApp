@@ -88,6 +88,22 @@ class ProfileController extends StateNotifier<AppProfile?> {
     state = AppProfile(id: id, fullName: fullName, phone: phone, serviceKey: serviceKey, role: UserRole.admin);
   }
 
+  /// Modifie le profil existant en gardant son identifiant (le code à 4
+  /// chiffres, rattaché à cet identifiant, reste valable).
+  Future<void> updateProfile({
+    required String fullName,
+    required String phone,
+    required String serviceKey,
+  }) async {
+    final current = state;
+    if (current == null) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_profileNameKey, fullName);
+    await prefs.setString(_profilePhoneKey, phone);
+    await prefs.setString(_profileServiceKey, serviceKey);
+    state = AppProfile(id: current.id, fullName: fullName, phone: phone, serviceKey: serviceKey, role: current.role);
+  }
+
   /// Efface le profil local (ne touche pas aux données des puits) : utile
   /// pour reconfigurer l'appareil pour un autre opérateur.
   Future<void> reset() async {

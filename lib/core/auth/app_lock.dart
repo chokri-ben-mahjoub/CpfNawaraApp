@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../platform/app_platform.dart';
 import 'auth_providers.dart';
 
 String _pinKey(String userId) => 'app_lock_pin_$userId';
@@ -102,6 +103,27 @@ class AppLockController extends StateNotifier<AppLockState> {
 
 final appLockProvider = StateNotifierProvider<AppLockController, AppLockState>((ref) => AppLockController(ref));
 
+/// Pendant une action qui ouvre brièvement une autre activité Android
+/// (sélecteur de fichier, demande d'autorisation...), l'app passe en
+/// arrière-plan : on ne la reverrouille pas, sinon l'écran en cours serait
+/// fermé au retour et l'action perdue (ex: restauration d'une sauvegarde).
+class LockGuard {
+  static int _depth = 0;
+
+  static bool get active => _depth > 0;
+
+  static Future<T> run<T>(Future<T> Function() action) async {
+    _depth++;
+    try {
+      return await action();
+    } finally {
+      // Le retour au premier plan peut être signalé juste après la fin de
+      // l'action : la protection est gardée encore un court instant.
+      Future<void>.delayed(const Duration(seconds: 2), () => _depth--);
+    }
+  }
+}
+
 /// Authentification biométrique (empreinte / visage), best-effort : toute
 /// erreur (capteur absent, non configuré, annulé...) est traitée comme un
 /// simple échec, l'utilisateur retombe sur le code à 4 chiffres.
@@ -120,7 +142,10 @@ class BiometricAuth {
     try {
       return await _auth.authenticate(
         localizedReason: reason,
-        options: const AuthenticationOptions(biometricOnly: true, stickyAuth: true),
+        // Windows Hello ne sait pas se limiter à la biométrie (il propose
+        // aussi le code PIN Windows) : on l'accepte tel quel sur PC.
+        biometricOnly: !isWindows,
+        persistAcrossBackgrounding: true,
       );
     } catch (_) {
       return false;
