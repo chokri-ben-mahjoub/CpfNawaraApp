@@ -84,7 +84,14 @@ class WellDetailScreen extends ConsumerWidget {
     String s(String key) => tr(locale, key);
 
     final well = controller.wellById(wellId);
-    final types = ref.watch(wellsControllerProvider).analysisTypes;
+    // Les 3 débits de production ont déjà leur propre carte dédiée
+    // ("Production", avec courbe) : pas besoin de les répéter ici.
+    const productionTypeIds = {_oilFlowTypeId, _gasFlowTypeId, _waterFlowTypeId};
+    final types = ref
+        .watch(wellsControllerProvider)
+        .analysisTypes
+        .where((t) => !productionTypeIds.contains(t.id))
+        .toList();
     final history = controller.recordsForWell(wellId).take(20).toList();
     final dateFormat = DateFormat('d MMM, HH:mm', locale.languageCode);
 
@@ -107,7 +114,7 @@ class WellDetailScreen extends ConsumerWidget {
             )
           : null,
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 130),
         children: [
           Card(
             child: Padding(

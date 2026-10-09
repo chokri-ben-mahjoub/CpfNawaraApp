@@ -77,6 +77,7 @@ final _strings = <String, Map<String, String>>{
   'serviceReservoir': {'fr': 'Réservoir', 'en': 'Reservoir'},
   'serviceHse': {'fr': 'HSE', 'en': 'HSE'},
   'signupPhoneLabel': {'fr': 'Téléphone (optionnel)', 'en': 'Phone (optional)'},
+  'phoneHint': {'fr': '00 000 000', 'en': '00 000 000'},
   'signupPasswordLabel': {'fr': 'Mot de passe', 'en': 'Password'},
   'signupInvalidPassword': {
     'fr': '8 caractères minimum.',

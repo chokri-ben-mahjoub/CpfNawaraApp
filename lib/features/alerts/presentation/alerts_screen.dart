@@ -163,12 +163,20 @@ class AlertsScreen extends ConsumerWidget {
                     title: Text(
                       '${overdue[i].well.name} · ${overdue[i].type.label}',
                       style: const TextStyle(fontWeight: FontWeight.w700),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     subtitle: Text(s('alertsOverdueSince'), style: TextStyle(color: scheme.onSurfaceVariant)),
                     trailing: role.canEnterData
                         ? FilledButton(
                             onPressed: () =>
                                 context.push('/entry?wellId=${overdue[i].well.id}&typeId=${overdue[i].type.id}'),
+                            style: FilledButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                            ),
                             child: Text(s('wellDetailAddAnalysis')),
                           )
                         : null,

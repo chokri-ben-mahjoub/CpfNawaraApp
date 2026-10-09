@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// Couleur d'accent de l'app Suivi Puits (ambre énergie, inspiré du secteur gazier).
 const accentColor = Color(0xFFFF7A33);
@@ -17,29 +16,22 @@ class AppTheme {
       seedColor: accentColor,
       brightness: brightness,
     );
-    final textTheme = GoogleFonts.manropeTextTheme();
-
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: colorScheme.surface,
-      textTheme: brightness == Brightness.dark
-          ? textTheme.apply(
-              bodyColor: colorScheme.onSurface,
-              displayColor: colorScheme.onSurface,
-            )
-          : textTheme,
+      fontFamily: 'Manrope',
       appBarTheme: AppBarTheme(
         backgroundColor: colorScheme.surface,
         foregroundColor: colorScheme.onSurface,
         elevation: 0,
         centerTitle: false,
-        titleTextStyle: GoogleFonts.manrope(
+        titleTextStyle: const TextStyle(
+          fontFamily: 'Manrope',
           fontSize: 20,
           fontWeight: FontWeight.w700,
-          color: colorScheme.onSurface,
-        ),
+        ).copyWith(color: colorScheme.onSurface),
       ),
       cardTheme: CardThemeData(
         elevation: 0,

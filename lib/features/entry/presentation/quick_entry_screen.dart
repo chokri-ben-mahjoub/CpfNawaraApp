@@ -159,7 +159,7 @@ class _QuickEntryScreenState extends ConsumerState<QuickEntryScreen> {
                     children: [
                       _FieldLabel(s('entryWellLabel')),
                       DropdownButtonFormField<String>(
-                        value: _wellId,
+                        initialValue: _wellId,
                         decoration: InputDecoration(
                           hintText: s('entrySelectWell'),
                           prefixIcon: const Icon(Icons.water_drop_outlined),
@@ -176,7 +176,7 @@ class _QuickEntryScreenState extends ConsumerState<QuickEntryScreen> {
                       const SizedBox(height: 16),
                       _FieldLabel(s('entryTypeLabel')),
                       DropdownButtonFormField<String>(
-                        value: _typeId,
+                        initialValue: _typeId,
                         decoration: InputDecoration(
                           hintText: s('entrySelectType'),
                           prefixIcon: const Icon(Icons.science_outlined),
@@ -209,7 +209,7 @@ class _QuickEntryScreenState extends ConsumerState<QuickEntryScreen> {
                       const SizedBox(height: 16),
                       _FieldLabel(s('entryServiceLabel')),
                       DropdownButtonFormField<String>(
-                        value: _service,
+                        initialValue: _service,
                         decoration: InputDecoration(
                           hintText: s('signupServiceHint'),
                           prefixIcon: const Icon(Icons.groups_outlined),

@@ -50,7 +50,7 @@ class HomeShell extends ConsumerWidget {
       appBar: AppBar(
         title: Text(s(_tabTitleKeys[index])),
         actions: [
-          if (_exportAction(context, ref, index) case final action?) action,
+          ?_exportAction(context, ref, index),
           const Padding(
             padding: EdgeInsets.only(right: 12),
             child: Center(child: LanguageSwitch()),

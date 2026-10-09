@@ -62,13 +62,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 height: 54,
                 child: ElevatedButton(
                   onPressed: _saving ? null : _confirm,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: scheme.primary,
+                    foregroundColor: scheme.onPrimary,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  ),
                   child: _saving
-                      ? const SizedBox(
+                      ? SizedBox(
                           height: 20,
                           width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: CircularProgressIndicator(strokeWidth: 2, color: scheme.onPrimary),
                         )
-                      : Text(s('onboardingCta')),
+                      : Text(s('onboardingCta'), style: const TextStyle(fontWeight: FontWeight.w700)),
                 ),
               ),
             ],

@@ -30,9 +30,9 @@ class WellsManageScreen extends ConsumerWidget {
       body: wells.isEmpty
           ? Center(child: Text(s('wellsManageEmpty'), style: TextStyle(color: scheme.onSurfaceVariant)))
           : ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 130),
               itemCount: wells.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              separatorBuilder: (_, _) => const SizedBox(height: 10),
               itemBuilder: (context, i) {
                 final well = wells[i];
                 return Card(

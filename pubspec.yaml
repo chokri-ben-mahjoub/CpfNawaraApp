@@ -22,9 +22,6 @@ dependencies:
   # Préférences locales (langue choisie, onboarding vu)
   shared_preferences: ^2.3.4
 
-  # UI
-  google_fonts: ^6.2.1
-
   # Utils
   intl: ^0.20.3
   uuid: ^4.5.1
@@ -55,6 +52,23 @@ flutter:
   uses-material-design: true
   assets:
     - assets/icon/
+  fonts:
+    - family: Manrope
+      fonts:
+        # Police variable embarquée (voir tool/README ci-dessous) : une seule
+        # police couvre tous les poids, contrairement à google_fonts qui la
+        # téléchargeait au premier lancement — et plantait sans réseau, ce
+        # qui est inacceptable pour une app pensée hors-ligne.
+        - asset: assets/fonts/Manrope-Variable.ttf
+          weight: 400
+        - asset: assets/fonts/Manrope-Variable.ttf
+          weight: 500
+        - asset: assets/fonts/Manrope-Variable.ttf
+          weight: 600
+        - asset: assets/fonts/Manrope-Variable.ttf
+          weight: 700
+        - asset: assets/fonts/Manrope-Variable.ttf
+          weight: 800
 
 flutter_launcher_icons:
   android: true

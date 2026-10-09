@@ -169,7 +169,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                           keyboardType: TextInputType.phone,
                           style: const TextStyle(fontWeight: FontWeight.w600, letterSpacing: 0.5),
                           decoration: InputDecoration(
-                            hintText: s('loginPhoneHint'),
+                            hintText: s('phoneHint'),
                             prefixIcon: const Padding(
                               padding: EdgeInsets.symmetric(horizontal: 14),
                               child: Text('+216', style: TextStyle(fontWeight: FontWeight.w600)),

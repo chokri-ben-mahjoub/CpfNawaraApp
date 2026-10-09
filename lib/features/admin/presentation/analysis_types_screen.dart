@@ -27,9 +27,9 @@ class AnalysisTypesScreen extends ConsumerWidget {
         label: Text(s('adminAddType')),
       ),
       body: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 130),
         itemCount: types.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        separatorBuilder: (_, _) => const SizedBox(height: 10),
         itemBuilder: (context, i) {
           final type = types[i];
           return Card(
@@ -235,7 +235,7 @@ class _AnalysisTypeFormState extends ConsumerState<_AnalysisTypeForm> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<AnalysisFrequency>(
-              value: _frequency,
+              initialValue: _frequency,
               decoration: InputDecoration(labelText: s('adminFrequencyLabel')),
               items: [
                 for (final f in AnalysisFrequency.values)
