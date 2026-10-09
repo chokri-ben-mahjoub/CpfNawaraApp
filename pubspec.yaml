@@ -1,8 +1,8 @@
-name: cpf_nawara_suivi
-description: "Suivi Puits - CPF Nawara (connexion et design)"
+name: puitstrack
+description: "PuitsTrack - suivi personnel des analyses de puits"
 publish_to: 'none'
 
-version: 0.1.0+1
+version: 0.2.0+2
 
 environment:
   sdk: ^3.13.3
@@ -22,16 +22,73 @@ dependencies:
   # Préférences locales (langue choisie, onboarding vu)
   shared_preferences: ^2.3.4
 
-  # UI
-  google_fonts: ^6.2.1
-
   # Utils
   intl: ^0.20.3
+  uuid: ^4.5.1
+
+  # Stockage 100% local pour l'instant (pas de backend cloud configuré) :
+  # voir E:\CpfNawaraApp\README.md "Mode local actuel" pour comment brancher
+  # un backend partagé plus tard (Firebase, cf. historique git) sans tout
+  # réécrire — seule `wells_repository.dart` change.
+  sqflite: ^2.4.1
+  # Windows (app desktop) : sqflite passe par FFI, sqlite3.dll est fourni
+  # automatiquement au build (hooks du paquet sqlite3 v3).
+  sqflite_common_ffi: ^2.4.3
+  # Web : SQLite en WebAssembly (web/sqlite3.wasm + web/sqflite_sw.js, générés
+  # par `dart run sqflite_common_ffi_web:setup`), données dans IndexedDB.
+  sqflite_common_ffi_web: ^1.2.0
+  # Téléchargement d'un fichier généré, dans le navigateur (exports, sauvegardes).
+  web: ^1.1.1
+  path_provider: ^2.1.5
+  path: ^1.9.1
+
+  # Export Excel + partage du fichier généré
+  excel: ^4.0.6
+  share_plus: ^10.1.3
+
+  # Restauration d'une sauvegarde (choix du fichier .json)
+  file_picker: ^10.3.3
+
+  # Rappel quotidien de saisie (notification locale, sans serveur)
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.9.4
+
+  # Déverrouillage rapide (code à 4 chiffres + empreinte)
+  local_auth: ^3.0.2
+  crypto: ^3.0.6
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.2
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/icon/
+  fonts:
+    - family: Manrope
+      fonts:
+        # Police variable embarquée (voir tool/README ci-dessous) : une seule
+        # police couvre tous les poids, contrairement à google_fonts qui la
+        # téléchargeait au premier lancement — et plantait sans réseau, ce
+        # qui est inacceptable pour une app pensée hors-ligne.
+        - asset: assets/fonts/Manrope-Variable.ttf
+          weight: 400
+        - asset: assets/fonts/Manrope-Variable.ttf
+          weight: 500
+        - asset: assets/fonts/Manrope-Variable.ttf
+          weight: 600
+        - asset: assets/fonts/Manrope-Variable.ttf
+          weight: 700
+        - asset: assets/fonts/Manrope-Variable.ttf
+          weight: 800
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/icon.png"
+  adaptive_icon_background: "#0B1E2D"
+  adaptive_icon_foreground: "assets/icon/icon_foreground.png"
+  remove_alpha_ios: true

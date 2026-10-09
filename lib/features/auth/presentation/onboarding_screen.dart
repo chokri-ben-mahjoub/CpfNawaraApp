@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/auth/auth_providers.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/responsive.dart';
 import 'widgets/language_switch.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
@@ -24,7 +25,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     String s(String key) => tr(locale, key);
 
     return Scaffold(
-      body: SafeArea(
+      body: NarrowSafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -62,13 +63,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 height: 54,
                 child: ElevatedButton(
                   onPressed: _saving ? null : _confirm,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: scheme.primary,
+                    foregroundColor: scheme.onPrimary,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  ),
                   child: _saving
-                      ? const SizedBox(
+                      ? SizedBox(
                           height: 20,
                           width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: CircularProgressIndicator(strokeWidth: 2, color: scheme.onPrimary),
                         )
-                      : Text(s('onboardingCta')),
+                      : Text(s('onboardingCta'), style: const TextStyle(fontWeight: FontWeight.w700)),
                 ),
               ),
             ],
@@ -82,6 +88,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     setState(() => _saving = true);
     await ref.read(onboardingDoneProvider.notifier).complete();
     if (!mounted) return;
-    context.go('/login');
+    context.go('/setup-profile');
   }
 }

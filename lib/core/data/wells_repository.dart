@@ -1,41 +1,145 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:uuid/uuid.dart';
 
 import '../models/analysis_record.dart';
 import '../models/analysis_type.dart';
+import '../models/intervention.dart';
 import '../models/well.dart';
-import '../utils/id_generator.dart';
+import 'local_database.dart';
 
-/// État en mémoire du périmètre "puits / analyses", avec un jeu de données
-/// de démonstration. À remplacer par la base locale (SQLite) + synchronisation
-/// cloud prévues dans le cahier des charges complet.
+/// État courant du périmètre "puits / types d'analyse / analyses", reflet de
+/// la base locale (voir `local_database.dart`).
 class WellsState {
   final List<Well> wells;
   final List<AnalysisType> analysisTypes;
   final List<AnalysisRecord> records;
+  final List<Intervention> interventions;
 
   const WellsState({
     required this.wells,
     required this.analysisTypes,
     required this.records,
+    this.interventions = const [],
   });
 
+  static const empty = WellsState(wells: [], analysisTypes: [], records: []);
+
   WellsState copyWith({
-    List<AnalysisRecord>? records,
+    List<Well>? wells,
     List<AnalysisType>? analysisTypes,
+    List<AnalysisRecord>? records,
+    List<Intervention>? interventions,
   }) =>
       WellsState(
-        wells: wells,
+        wells: wells ?? this.wells,
         analysisTypes: analysisTypes ?? this.analysisTypes,
         records: records ?? this.records,
+        interventions: interventions ?? this.interventions,
       );
 }
 
 enum DailyStatus { done, pending, overdue }
 
+/// Une occurrence d'analyse attendue (type + date) non réalisée sur la
+/// période consultée (vue semaine/mois du tableau de bord).
+class MissingOccurrence {
+  final AnalysisType type;
+  final DateTime date;
+  const MissingOccurrence({required this.type, required this.date});
+}
+
+/// Progression d'un puits sur une période (semaine/mois) : combien
+/// d'occurrences attendues ont bien été saisies le jour prévu, et lesquelles
+/// manquent encore (dates déjà passées sans analyse correspondante).
+class PeriodProgress {
+  final int done;
+  final int total;
+  final List<MissingOccurrence> missing;
+  const PeriodProgress({required this.done, required this.total, required this.missing});
+}
+
+/// Libellé affiché pour les puits sans groupe assigné.
+const unassignedGroupLabel = 'Sans groupe';
+
+/// Statistiques d'un puits sur une période : nombre d'analyses saisies,
+/// combien sont hors seuil, et taux de conformité (1.0 = tout est dans les
+/// seuils, ou aucune analyse saisie).
+class WellStats {
+  final Well well;
+  final int totalRecords;
+  final int outOfRangeCount;
+
+  const WellStats({required this.well, required this.totalRecords, required this.outOfRangeCount});
+
+  double get complianceRate => totalRecords == 0 ? 1.0 : (totalRecords - outOfRangeCount) / totalRecords;
+}
+
+/// Statistiques agrégées d'un groupe (zone/champ) de puits sur une période.
+class GroupStats {
+  final String group;
+  final List<WellStats> wells;
+
+  const GroupStats({required this.group, required this.wells});
+
+  int get totalRecords => wells.fold(0, (sum, w) => sum + w.totalRecords);
+  int get outOfRangeCount => wells.fold(0, (sum, w) => sum + w.outOfRangeCount);
+  double get complianceRate => totalRecords == 0 ? 1.0 : (totalRecords - outOfRangeCount) / totalRecords;
+}
+
 class WellsController extends StateNotifier<WellsState> {
-  WellsController() : super(_seed());
+  WellsController() : super(WellsState.empty) {
+    _load();
+  }
+
+  /// Contrôleur pré-rempli, sans lecture de la base locale (tests de rendu
+  /// des écrans).
+  @visibleForTesting
+  WellsController.seeded(super.initial) {
+    _loaded.complete();
+  }
+
+  static const _uuid = Uuid();
+
+  final _loaded = Completer<void>();
+
+  /// Terminé après la première lecture de la base (utile aux tâches de
+  /// démarrage : rappels, sauvegarde automatique).
+  Future<void> get loaded => _loaded.future;
+
+  /// Relit toute la base (ex: après la restauration d'une sauvegarde).
+  Future<void> reload() => _load();
+
+  Future<void> _load() async {
+    final db = await LocalDatabase.instance.database;
+    final wells = (await db.query('wells')).map(_wellFromRow).toList();
+    final types = (await db.query('analysis_types')).map(_typeFromRow).toList();
+    final records = (await db.query('analysis_records')).map(_recordFromRow).toList();
+    final interventions = (await db.query('interventions')).map(_interventionFromRow).toList();
+    state = WellsState(wells: wells, analysisTypes: types, records: records, interventions: interventions);
+    if (!_loaded.isCompleted) _loaded.complete();
+  }
 
   Well wellById(String id) => state.wells.firstWhere((w) => w.id == id);
+
+  /// Variante tolérante de [wellById] (puits supprimé entre-temps, lien
+  /// obsolète...).
+  Well? findWell(String id) {
+    for (final w in state.wells) {
+      if (w.id == id) return w;
+    }
+    return null;
+  }
+
+  AnalysisType? findType(String id) {
+    for (final t in state.analysisTypes) {
+      if (t.id == id) return t;
+    }
+    return null;
+  }
 
   AnalysisType typeById(String id) => state.analysisTypes.firstWhere((t) => t.id == id);
 
@@ -86,182 +190,337 @@ class WellsController extends StateNotifier<WellsState> {
     return (done, total);
   }
 
+  /// Dates (minuit) comprises entre [start] et [end] inclus où [type] est
+  /// attendu — base de la vue semaine/mois du tableau de bord.
+  List<DateTime> dueDatesInRange(AnalysisType type, DateTime start, DateTime end) {
+    final dates = <DateTime>[];
+    var day = DateTime(start.year, start.month, start.day);
+    final last = DateTime(end.year, end.month, end.day);
+    while (!day.isAfter(last)) {
+      if (type.isDueOn(day)) dates.add(day);
+      day = day.add(const Duration(days: 1));
+    }
+    return dates;
+  }
+
+  bool _hasRecordOnDay(String wellId, String typeId, DateTime day) {
+    return state.records.any((r) => r.wellId == wellId && r.typeId == typeId && r.isSameDay(day));
+  }
+
+  /// Progression d'un puits sur une période (semaine/mois) : une occurrence
+  /// compte comme "faite" si une valeur a été saisie le jour même où elle
+  /// était attendue. Les occurrences déjà passées sans valeur apparaissent
+  /// dans `missing` ; celles encore à venir ne comptent pas comme manquantes.
+  PeriodProgress periodProgress(String wellId, DateTime start, DateTime end) {
+    final today = DateTime.now();
+    var done = 0;
+    var total = 0;
+    final missing = <MissingOccurrence>[];
+    for (final type in state.analysisTypes) {
+      for (final day in dueDatesInRange(type, start, end)) {
+        total++;
+        if (_hasRecordOnDay(wellId, type.id, day)) {
+          done++;
+        } else if (!day.isAfter(today)) {
+          missing.add(MissingOccurrence(type: type, date: day));
+        }
+      }
+    }
+    missing.sort((a, b) => a.date.compareTo(b.date));
+    return PeriodProgress(done: done, total: total, missing: missing);
+  }
+
   /// Ajoute (ou remplace, si [replaceId] est fourni) un enregistrement.
-  void addRecord({
+  Future<void> addRecord({
     required String wellId,
     required String typeId,
     required double value,
     required String serviceKey,
     required String operatorName,
+    String? operatorId,
     String? comment,
     String? replaceId,
-  }) {
-    final record = AnalysisRecord(
-      id: replaceId ?? newLocalId(),
-      wellId: wellId,
-      typeId: typeId,
-      value: value,
-      serviceKey: serviceKey,
-      operatorName: operatorName,
-      dateTime: DateTime.now(),
-      comment: comment,
+  }) async {
+    final id = replaceId ?? _uuid.v4();
+    final db = await LocalDatabase.instance.database;
+    await db.insert(
+      'analysis_records',
+      {
+        'id': id,
+        'well_id': wellId,
+        'type_id': typeId,
+        'value': value,
+        'service_key': serviceKey,
+        'operator_name': operatorName,
+        'operator_id': operatorId,
+        'comment': comment,
+        'recorded_at': DateTime.now().toIso8601String(),
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
-    final updated = [
-      for (final r in state.records)
-        if (r.id != replaceId) r,
-      record,
-    ];
-    state = state.copyWith(records: updated);
+    await _load();
   }
 
   /// Ajoute un nouveau type d'analyse au catalogue (paramétrage Admin).
-  void addAnalysisType(AnalysisType type) {
-    state = state.copyWith(analysisTypes: [...state.analysisTypes, type]);
+  Future<void> addAnalysisType(AnalysisType type) async {
+    final db = await LocalDatabase.instance.database;
+    await db.insert(
+      'analysis_types',
+      {
+        'id': type.id,
+        'label': type.label,
+        'unit': type.unit,
+        'min_value': type.min,
+        'max_value': type.max,
+        'frequency': type.frequency.storageKey,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+    await _load();
   }
 
   /// Met à jour un type d'analyse existant (unité, seuils, fréquence).
-  void updateAnalysisType(AnalysisType updated) {
-    state = state.copyWith(
-      analysisTypes: [
-        for (final t in state.analysisTypes)
-          if (t.id == updated.id) updated else t,
-      ],
+  Future<void> updateAnalysisType(AnalysisType updated) => addAnalysisType(updated);
+
+  /// Supprime un type d'analyse et tout l'historique associé (sur tous les
+  /// puits) : sans ça, les analyses déjà saisies pour ce type deviendraient
+  /// orphelines et feraient planter les écrans qui résolvent un type par id.
+  Future<void> deleteAnalysisType(String typeId) async {
+    final db = await LocalDatabase.instance.database;
+    await db.delete('analysis_records', where: 'type_id = ?', whereArgs: [typeId]);
+    await db.delete('analysis_types', where: 'id = ?', whereArgs: [typeId]);
+    await _load();
+  }
+
+  /// Met à jour une analyse déjà enregistrée (valeur, service, commentaire),
+  /// y compris pour corriger une saisie d'un jour précédent — la date et
+  /// l'opérateur d'origine sont conservés.
+  Future<void> updateRecord({
+    required String recordId,
+    required double value,
+    required String serviceKey,
+    String? comment,
+  }) async {
+    final db = await LocalDatabase.instance.database;
+    await db.update(
+      'analysis_records',
+      {'value': value, 'service_key': serviceKey, 'comment': comment},
+      where: 'id = ?',
+      whereArgs: [recordId],
     );
+    await _load();
+  }
+
+  /// Supprime une analyse enregistrée (ex: saisie en double ou erronée).
+  Future<void> deleteRecord(String recordId) async {
+    final db = await LocalDatabase.instance.database;
+    await db.delete('analysis_records', where: 'id = ?', whereArgs: [recordId]);
+    await _load();
+  }
+
+  /// Total journalier (somme sur tous les puits actifs) d'un type d'analyse
+  /// sur les [days] derniers jours (aujourd'hui inclus) — base de la courbe
+  /// de tendance globale du tableau de bord.
+  List<(DateTime day, double total)> aggregateDailyTotals(String typeId, {int days = 7}) {
+    final today = DateTime.now();
+    final activeWellIds = state.wells.where((w) => w.active).map((w) => w.id).toSet();
+    final result = <(DateTime, double)>[];
+    for (var i = days - 1; i >= 0; i--) {
+      final day = DateTime(today.year, today.month, today.day).subtract(Duration(days: i));
+      var total = 0.0;
+      for (final record in state.records) {
+        if (record.typeId == typeId && activeWellIds.contains(record.wellId) && record.isSameDay(day)) {
+          total += record.value;
+        }
+      }
+      result.add((day, total));
+    }
+    return result;
+  }
+
+  /// Noms de groupes déjà utilisés (triés, sans doublons), pour proposer un
+  /// menu déroulant tout en permettant d'en saisir un nouveau.
+  List<String> get groups {
+    final names = state.wells.map((w) => w.group).where((g) => g.trim().isNotEmpty).toSet().toList()..sort();
+    return names;
+  }
+
+  /// Ajoute un nouveau puits (paramétrage).
+  Future<void> addWell({
+    required String code,
+    required String name,
+    required bool active,
+    required String group,
+    double? reservoirPressure,
+  }) async {
+    final db = await LocalDatabase.instance.database;
+    await db.insert(
+      'wells',
+      {
+        'id': _uuid.v4(),
+        'code': code,
+        'name': name,
+        'active': active ? 1 : 0,
+        'group_name': group,
+        'reservoir_pressure': reservoirPressure,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+    await _load();
+  }
+
+  /// Met à jour un puits existant (nom, code, groupe, statut actif/arrêté).
+  Future<void> updateWell(Well updated) async {
+    final db = await LocalDatabase.instance.database;
+    await db.update(
+      'wells',
+      {
+        'code': updated.code,
+        'name': updated.name,
+        'active': updated.active ? 1 : 0,
+        'group_name': updated.group,
+        'reservoir_pressure': updated.reservoirPressure,
+      },
+      where: 'id = ?',
+      whereArgs: [updated.id],
+    );
+    await _load();
+  }
+
+  /// Supprime un puits, tout son historique d'analyses et ses interventions.
+  Future<void> deleteWell(String wellId) async {
+    final db = await LocalDatabase.instance.database;
+    await db.delete('analysis_records', where: 'well_id = ?', whereArgs: [wellId]);
+    await db.delete('interventions', where: 'well_id = ?', whereArgs: [wellId]);
+    await db.delete('wells', where: 'id = ?', whereArgs: [wellId]);
+    await _load();
+  }
+
+  /// Met à jour uniquement la pression de gisement (Pr) d'un puits.
+  Future<void> setReservoirPressure(String wellId, double? value) async {
+    final db = await LocalDatabase.instance.database;
+    await db.update('wells', {'reservoir_pressure': value}, where: 'id = ?', whereArgs: [wellId]);
+    await _load();
+  }
+
+  /// Interventions d'un puits, de la plus récente à la plus ancienne.
+  List<Intervention> interventionsForWell(String wellId) {
+    final list = state.interventions.where((i) => i.wellId == wellId).toList()
+      ..sort((a, b) => b.date.compareTo(a.date));
+    return list;
+  }
+
+  Intervention? findIntervention(String id) {
+    for (final i in state.interventions) {
+      if (i.id == id) return i;
+    }
+    return null;
+  }
+
+  /// Ajoute une intervention, ou la remplace si [Intervention.id] existe déjà
+  /// (un id vide = nouvelle intervention).
+  Future<void> saveIntervention(Intervention intervention) async {
+    final db = await LocalDatabase.instance.database;
+    final id = intervention.id.isEmpty ? _uuid.v4() : intervention.id;
+    final day = DateTime(intervention.date.year, intervention.date.month, intervention.date.day);
+    await db.insert(
+      'interventions',
+      {
+        'id': id,
+        'well_id': intervention.wellId,
+        'intervention_date': day.toIso8601String(),
+        'type_key': intervention.typeKey,
+        'cost': intervention.cost,
+        'currency': intervention.currency,
+        'result_key': intervention.resultKey,
+        'description': intervention.description,
+        'operator_name': intervention.operatorName,
+        'created_at': DateTime.now().toIso8601String(),
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+    await _load();
+  }
+
+  Future<void> deleteIntervention(String id) async {
+    final db = await LocalDatabase.instance.database;
+    await db.delete('interventions', where: 'id = ?', whereArgs: [id]);
+    await _load();
+  }
+
+  /// Statistiques par puits sur une période, regroupées par zone/champ —
+  /// base de l'écran "Statistiques".
+  List<GroupStats> statsForPeriod(DateTime start, DateTime end) {
+    final startDay = DateTime(start.year, start.month, start.day);
+    final endDay = DateTime(end.year, end.month, end.day, 23, 59, 59, 999);
+    final byGroup = <String, List<WellStats>>{};
+
+    for (final well in state.wells) {
+      final recordsInRange = state.records.where((r) =>
+          r.wellId == well.id && !r.dateTime.isBefore(startDay) && !r.dateTime.isAfter(endDay));
+      var outOfRange = 0;
+      var total = 0;
+      for (final record in recordsInRange) {
+        total++;
+        AnalysisType? type;
+        for (final t in state.analysisTypes) {
+          if (t.id == record.typeId) {
+            type = t;
+            break;
+          }
+        }
+        if (type != null && type.isOutOfRange(record.value)) outOfRange++;
+      }
+      final groupKey = well.group.trim().isEmpty ? unassignedGroupLabel : well.group.trim();
+      (byGroup[groupKey] ??= []).add(WellStats(well: well, totalRecords: total, outOfRangeCount: outOfRange));
+    }
+
+    final groups = byGroup.entries.map((e) => GroupStats(group: e.key, wells: e.value)).toList()
+      ..sort((a, b) => a.group.compareTo(b.group));
+    return groups;
   }
 }
 
-final wellsControllerProvider =
-    StateNotifierProvider<WellsController, WellsState>((ref) => WellsController());
+Well _wellFromRow(Map<String, Object?> row) => Well(
+      id: row['id'] as String,
+      code: row['code'] as String,
+      name: row['name'] as String,
+      active: (row['active'] as int) == 1,
+      group: row['group_name'] as String? ?? '',
+      reservoirPressure: (row['reservoir_pressure'] as num?)?.toDouble(),
+    );
 
-WellsState _seed() {
-  const wells = [
-    Well(id: 'w1', code: 'NWR-12', name: 'Nawara 12', active: true),
-    Well(id: 'w2', code: 'NWR-07', name: 'Nawara 07', active: true),
-    Well(id: 'w3', code: 'NWR-21', name: 'Nawara 21', active: true),
-    Well(id: 'w4', code: 'NWR-04', name: 'Nawara 04', active: false),
-    Well(id: 'w5', code: 'NWR-15', name: 'Nawara 15', active: true),
-  ];
+AnalysisType _typeFromRow(Map<String, Object?> row) => AnalysisType(
+      id: row['id'] as String,
+      label: row['label'] as String,
+      unit: row['unit'] as String,
+      min: (row['min_value'] as num).toDouble(),
+      max: (row['max_value'] as num).toDouble(),
+      frequency: AnalysisFrequencyX.fromStorageKey(row['frequency'] as String),
+    );
 
-  const types = [
-    AnalysisType(
-      id: 't_bsw',
-      labelKey: 'analysisBsw',
-      unit: '%',
-      min: 0,
-      max: 2,
-      frequency: AnalysisFrequency.daily,
-    ),
-    AnalysisType(
-      id: 't_salinity',
-      labelKey: 'analysisSalinity',
-      unit: 'mg/L',
-      min: 0,
-      max: 5000,
-      frequency: AnalysisFrequency.daily,
-    ),
-    AnalysisType(
-      id: 't_density',
-      labelKey: 'analysisDensity',
-      unit: 'kg/m³',
-      min: 780,
-      max: 860,
-      frequency: AnalysisFrequency.weekly,
-    ),
-    AnalysisType(
-      id: 't_h2s',
-      labelKey: 'analysisH2s',
-      unit: 'ppm',
-      min: 0,
-      max: 10,
-      frequency: AnalysisFrequency.daily,
-    ),
-    AnalysisType(
-      id: 't_pressure',
-      labelKey: 'analysisPressure',
-      unit: 'bar',
-      min: 20,
-      max: 120,
-      frequency: AnalysisFrequency.daily,
-    ),
-    AnalysisType(
-      id: 't_temperature',
-      labelKey: 'analysisTemperature',
-      unit: '°C',
-      min: 15,
-      max: 90,
-      frequency: AnalysisFrequency.daily,
-    ),
-    AnalysisType(
-      id: 't_flow',
-      labelKey: 'analysisFlow',
-      unit: 'm³/h',
-      min: 0,
-      max: 500,
-      frequency: AnalysisFrequency.monthly,
-    ),
-  ];
+AnalysisRecord _recordFromRow(Map<String, Object?> row) => AnalysisRecord(
+      id: row['id'] as String,
+      wellId: row['well_id'] as String,
+      typeId: row['type_id'] as String,
+      value: (row['value'] as num).toDouble(),
+      serviceKey: row['service_key'] as String,
+      operatorName: row['operator_name'] as String,
+      operatorId: row['operator_id'] as String?,
+      dateTime: DateTime.parse(row['recorded_at'] as String),
+      comment: row['comment'] as String?,
+    );
 
-  final now = DateTime.now();
-  DateTime daysAgo(int d) => DateTime(now.year, now.month, now.day - d, 8, 30);
+Intervention _interventionFromRow(Map<String, Object?> row) => Intervention(
+      id: row['id'] as String,
+      wellId: row['well_id'] as String,
+      date: DateTime.parse(row['intervention_date'] as String),
+      typeKey: row['type_key'] as String,
+      cost: (row['cost'] as num?)?.toDouble(),
+      currency: row['currency'] as String? ?? 'TND',
+      resultKey: row['result_key'] as String,
+      description: row['description'] as String?,
+      operatorName: row['operator_name'] as String,
+    );
 
-  final records = <AnalysisRecord>[
-    // NWR-12 : tout fait aujourd'hui.
-    AnalysisRecord(
-      id: 'r1', wellId: 'w1', typeId: 't_bsw', value: 0.8,
-      serviceKey: 'serviceLaboratoire', operatorName: 'Amine T.', dateTime: daysAgo(0),
-    ),
-    AnalysisRecord(
-      id: 'r2', wellId: 'w1', typeId: 't_h2s', value: 3.2,
-      serviceKey: 'serviceHse', operatorName: 'Sana K.', dateTime: daysAgo(0),
-    ),
-    AnalysisRecord(
-      id: 'r3', wellId: 'w1', typeId: 't_pressure', value: 64,
-      serviceKey: 'serviceExploitation', operatorName: 'Walid B.', dateTime: daysAgo(0),
-    ),
-    AnalysisRecord(
-      id: 'r4', wellId: 'w1', typeId: 't_temperature', value: 52,
-      serviceKey: 'serviceExploitation', operatorName: 'Walid B.', dateTime: daysAgo(0),
-    ),
-    AnalysisRecord(
-      id: 'r5', wellId: 'w1', typeId: 't_salinity', value: 1200,
-      serviceKey: 'serviceLaboratoire', operatorName: 'Amine T.', dateTime: daysAgo(0),
-    ),
-
-    // NWR-07 : fait hier, donc "à faire" aujourd'hui (pas encore en retard).
-    AnalysisRecord(
-      id: 'r6', wellId: 'w2', typeId: 't_bsw', value: 1.4,
-      serviceKey: 'serviceLaboratoire', operatorName: 'Nour H.', dateTime: daysAgo(1),
-    ),
-    AnalysisRecord(
-      id: 'r7', wellId: 'w2', typeId: 't_h2s', value: 6.5,
-      serviceKey: 'serviceHse', operatorName: 'Sana K.', dateTime: daysAgo(0),
-    ),
-    AnalysisRecord(
-      id: 'r8', wellId: 'w2', typeId: 't_pressure', value: 58,
-      serviceKey: 'serviceExploitation', operatorName: 'Walid B.', dateTime: daysAgo(1),
-    ),
-
-    // NWR-21 : rien depuis plusieurs jours -> "en retard".
-    AnalysisRecord(
-      id: 'r9', wellId: 'w3', typeId: 't_bsw', value: 1.1,
-      serviceKey: 'serviceLaboratoire', operatorName: 'Nour H.', dateTime: daysAgo(4),
-    ),
-    AnalysisRecord(
-      id: 'r10', wellId: 'w3', typeId: 't_pressure', value: 112,
-      serviceKey: 'serviceExploitation', operatorName: 'Walid B.', dateTime: daysAgo(5),
-    ),
-
-    // NWR-15 : une valeur hors seuil pour illustrer l'alerte.
-    AnalysisRecord(
-      id: 'r11', wellId: 'w5', typeId: 't_h2s', value: 14.8,
-      serviceKey: 'serviceHse', operatorName: 'Sana K.', dateTime: daysAgo(0),
-      comment: 'Capteur réétalonné ce matin.',
-    ),
-    AnalysisRecord(
-      id: 'r12', wellId: 'w5', typeId: 't_bsw', value: 0.6,
-      serviceKey: 'serviceLaboratoire', operatorName: 'Amine T.', dateTime: daysAgo(0),
-    ),
-  ];
-
-  return WellsState(wells: wells, analysisTypes: types, records: records);
-}
+final wellsControllerProvider = StateNotifierProvider<WellsController, WellsState>((ref) => WellsController());

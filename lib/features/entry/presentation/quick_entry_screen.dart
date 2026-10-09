@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,15 +9,10 @@ import '../../../core/data/wells_repository.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/analysis_type.dart';
 import '../../../core/models/well.dart';
+import '../../../core/settings/app_settings.dart';
+import '../../../core/settings/startup_tasks.dart';
 import '../../../core/theme/app_theme.dart';
-
-const _serviceKeys = [
-  'serviceLaboratoire',
-  'serviceProduction',
-  'serviceExploitation',
-  'serviceReservoir',
-  'serviceHse',
-];
+import '../../../core/widgets/responsive.dart';
 
 /// Saisie rapide : puits → type d'analyse → valeur → service → enregistrer.
 /// Si [initialWellId] / [initialTypeId] sont fournis (venant d'une fiche
@@ -46,6 +43,11 @@ class _QuickEntryScreenState extends ConsumerState<QuickEntryScreen> {
     super.initState();
     _wellId = widget.initialWellId;
     _typeId = widget.initialTypeId;
+    // Service pré-sélectionné selon Réglages › Saisie (par défaut : celui du
+    // profil), toujours modifiable avant d'enregistrer.
+    final preferred = ref.read(appSettingsProvider).defaultService;
+    final candidate = preferred == defaultServiceFromProfile ? ref.read(profileProvider)?.serviceKey : preferred;
+    if (candidate != null && serviceKeys.contains(candidate)) _service = candidate;
   }
 
   @override
@@ -88,16 +90,20 @@ class _QuickEntryScreenState extends ConsumerState<QuickEntryScreen> {
       if (!mounted) return;
     }
 
-    final operatorName = ref.read(pendingNameProvider) ?? 'Opérateur';
-    controller.addRecord(
+    final profile = ref.read(profileProvider);
+    final operatorName = (profile == null || profile.fullName.isEmpty) ? 'Opérateur' : profile.fullName;
+    await controller.addRecord(
       wellId: _wellId!,
       typeId: _typeId!,
       value: value,
       serviceKey: _service!,
       operatorName: operatorName,
+      operatorId: profile?.id,
       comment: _commentController.text.trim().isEmpty ? null : _commentController.text.trim(),
       replaceId: existing?.id,
     );
+    // Le rappel du jour est annulé dès que tout est saisi.
+    unawaited(refreshReminders(ref));
 
     if (!mounted) return;
     await showDialog<void>(
@@ -152,7 +158,8 @@ class _QuickEntryScreenState extends ConsumerState<QuickEntryScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(s('entryTitle'))),
-      body: SafeArea(
+      body: NarrowSafeArea(
+        maxWidth: 640,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
           child: Form(
@@ -165,7 +172,7 @@ class _QuickEntryScreenState extends ConsumerState<QuickEntryScreen> {
                     children: [
                       _FieldLabel(s('entryWellLabel')),
                       DropdownButtonFormField<String>(
-                        value: _wellId,
+                        initialValue: _wellId,
                         decoration: InputDecoration(
                           hintText: s('entrySelectWell'),
                           prefixIcon: const Icon(Icons.water_drop_outlined),
@@ -182,14 +189,14 @@ class _QuickEntryScreenState extends ConsumerState<QuickEntryScreen> {
                       const SizedBox(height: 16),
                       _FieldLabel(s('entryTypeLabel')),
                       DropdownButtonFormField<String>(
-                        value: _typeId,
+                        initialValue: _typeId,
                         decoration: InputDecoration(
                           hintText: s('entrySelectType'),
                           prefixIcon: const Icon(Icons.science_outlined),
                         ),
                         items: [
                           for (final AnalysisType t in types)
-                            DropdownMenuItem(value: t.id, child: Text('${s(t.labelKey)} (${t.unit})')),
+                            DropdownMenuItem(value: t.id, child: Text('${t.label} (${t.unit})')),
                         ],
                         onChanged: widget.initialTypeId != null
                             ? null
@@ -215,13 +222,13 @@ class _QuickEntryScreenState extends ConsumerState<QuickEntryScreen> {
                       const SizedBox(height: 16),
                       _FieldLabel(s('entryServiceLabel')),
                       DropdownButtonFormField<String>(
-                        value: _service,
+                        initialValue: _service,
                         decoration: InputDecoration(
                           hintText: s('signupServiceHint'),
                           prefixIcon: const Icon(Icons.groups_outlined),
                         ),
                         items: [
-                          for (final key in _serviceKeys)
+                          for (final key in serviceKeys)
                             DropdownMenuItem(value: key, child: Text(s(key))),
                         ],
                         onChanged: (value) => setState(() => _service = value),

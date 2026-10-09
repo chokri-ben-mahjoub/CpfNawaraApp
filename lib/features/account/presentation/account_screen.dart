@@ -6,6 +6,7 @@ import '../../../core/auth/auth_providers.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/user_role.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/responsive.dart';
 
 class AccountScreen extends ConsumerWidget {
   const AccountScreen({super.key});
@@ -14,14 +15,16 @@ class AccountScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     final locale = ref.watch(localeProvider);
-    final name = ref.watch(pendingNameProvider);
-    final phone = ref.watch(pendingPhoneProvider);
-    final service = ref.watch(pendingServiceProvider);
+    final profile = ref.watch(profileProvider);
     final role = ref.watch(currentRoleProvider);
     String s(String key) => tr(locale, key);
 
+    final name = profile?.fullName;
+    final phone = profile?.phone;
+    final service = profile?.serviceKey;
+
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      padding: pagePadding(context, top: 16, bottom: 24),
       children: [
         Card(
           child: Padding(
@@ -46,8 +49,9 @@ class AccountScreen extends ConsumerWidget {
                         style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
                       ),
                       if (phone != null && phone.isNotEmpty)
-                        Text('+216 $phone', style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13)),
-                      if (service != null) Text(s(service), style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13)),
+                        Text(phone, style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13)),
+                      if (service != null && service.isNotEmpty)
+                        Text(s(service), style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13)),
                     ],
                   ),
                 ),
@@ -60,12 +64,19 @@ class AccountScreen extends ConsumerWidget {
         const SizedBox(height: 4),
         Text(s('accountRoleHint'), style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
         const SizedBox(height: 10),
-        SegmentedButton<UserRole>(
-          segments: [
-            for (final r in UserRole.values) ButtonSegment(value: r, label: Text(s(r.labelKey)))
-          ],
-          selected: {role},
-          onSelectionChanged: (selection) => ref.read(currentRoleProvider.notifier).state = selection.first,
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: scheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.shield_outlined, color: accentColor, size: 18),
+              const SizedBox(width: 10),
+              Text(s(role.labelKey), style: const TextStyle(fontWeight: FontWeight.w700)),
+            ],
+          ),
         ),
         if (role == UserRole.reader) ...[
           const SizedBox(height: 10),
@@ -85,7 +96,35 @@ class AccountScreen extends ConsumerWidget {
           ),
         ],
         const SizedBox(height: 24),
-        if (role.canConfigure)
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.settings_outlined, color: accentColor),
+            title: Text(s('settingsTitle'), style: const TextStyle(fontWeight: FontWeight.w700)),
+            subtitle: Text(s('settingsEntrySubtitle'), style: const TextStyle(fontSize: 12)),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/settings'),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.pin_outlined, color: accentColor),
+            title: Text(s('accountChangePin'), style: const TextStyle(fontWeight: FontWeight.w600)),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/pin-setup'),
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (role.canConfigure) ...[
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.water_drop_outlined, color: accentColor),
+              title: Text(s('wellsManageTitle'), style: const TextStyle(fontWeight: FontWeight.w600)),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/admin/wells'),
+            ),
+          ),
+          const SizedBox(height: 12),
           Card(
             child: ListTile(
               leading: const Icon(Icons.tune, color: accentColor),
@@ -94,17 +133,13 @@ class AccountScreen extends ConsumerWidget {
               onTap: () => context.push('/admin/analysis-types'),
             ),
           ),
-        const SizedBox(height: 12),
+          const SizedBox(height: 12),
+        ],
         Card(
           child: ListTile(
             leading: const Icon(Icons.logout, color: Colors.redAccent),
             title: Text(s('logout'), style: const TextStyle(fontWeight: FontWeight.w600)),
-            onTap: () {
-              ref.read(sessionAuthenticatedProvider.notifier).state = false;
-              ref.read(pendingPhoneProvider.notifier).state = null;
-              ref.read(pendingNameProvider.notifier).state = null;
-              ref.read(pendingServiceProvider.notifier).state = null;
-            },
+            onTap: () => ref.read(authServiceProvider).signOut(),
           ),
         ),
       ],

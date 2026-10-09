@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../core/data/wells_repository.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/analysis_type.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/utils/id_generator.dart';
+import '../../../core/widgets/responsive.dart';
+
+const _uuid = Uuid();
 
 class AnalysisTypesScreen extends ConsumerWidget {
   const AnalysisTypesScreen({super.key});
@@ -25,15 +28,15 @@ class AnalysisTypesScreen extends ConsumerWidget {
         label: Text(s('adminAddType')),
       ),
       body: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+        padding: pagePadding(context, top: 12, bottom: 130),
         itemCount: types.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        separatorBuilder: (_, _) => const SizedBox(height: 10),
         itemBuilder: (context, i) {
           final type = types[i];
           return Card(
             child: ListTile(
               leading: const Icon(Icons.science_outlined, color: accentColor),
-              title: Text('${s(type.labelKey)} (${type.unit})', style: const TextStyle(fontWeight: FontWeight.w700)),
+              title: Text('${type.label} (${type.unit})', style: const TextStyle(fontWeight: FontWeight.w700)),
               subtitle: Text(
                 '${type.min} – ${type.max} ${type.unit} · ${s(type.frequency.labelKey)}',
                 style: TextStyle(color: scheme.onSurfaceVariant),
@@ -95,6 +98,33 @@ class _AnalysisTypeFormState extends ConsumerState<_AnalysisTypeForm> {
     super.dispose();
   }
 
+  Future<void> _delete() async {
+    final locale = ref.read(localeProvider);
+    String s(String key) => tr(locale, key);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(s('adminDeleteTypeConfirmTitle')),
+        content: Text(s('adminDeleteTypeConfirmBody')),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: Text(s('cancel'))),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Theme.of(dialogContext).colorScheme.error),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(s('adminDeleteType')),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await ref.read(wellsControllerProvider.notifier).deleteAnalysisType(widget.existing!.id);
+    if (mounted) {
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s('adminTypeDeleted'))));
+    }
+  }
+
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
     final min = double.parse(_minController.text.replaceAll(',', '.'));
@@ -105,8 +135,8 @@ class _AnalysisTypeFormState extends ConsumerState<_AnalysisTypeForm> {
 
     if (_isNew) {
       controller.addAnalysisType(AnalysisType(
-        id: newLocalId(),
-        labelKey: _nameController.text.trim(),
+        id: _uuid.v4(),
+        label: _nameController.text.trim(),
         unit: _unitController.text.trim(),
         min: min,
         max: max,
@@ -116,7 +146,7 @@ class _AnalysisTypeFormState extends ConsumerState<_AnalysisTypeForm> {
     } else {
       controller.updateAnalysisType(AnalysisType(
         id: widget.existing!.id,
-        labelKey: widget.existing!.labelKey,
+        label: widget.existing!.label,
         unit: _unitController.text.trim(),
         min: min,
         max: max,
@@ -145,9 +175,21 @@ class _AnalysisTypeFormState extends ConsumerState<_AnalysisTypeForm> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              _isNew ? s('adminNewType') : s('adminEditType'),
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _isNew ? s('adminNewType') : s('adminEditType'),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                if (!_isNew)
+                  IconButton(
+                    onPressed: _delete,
+                    icon: Icon(Icons.delete_outline, color: scheme.error),
+                    tooltip: s('adminDeleteType'),
+                  ),
+              ],
             ),
             const SizedBox(height: 16),
             if (_isNew) ...[
@@ -161,7 +203,7 @@ class _AnalysisTypeFormState extends ConsumerState<_AnalysisTypeForm> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Text(
-                  s(widget.existing!.labelKey),
+                  widget.existing!.label,
                   style: TextStyle(color: scheme.onSurfaceVariant, fontWeight: FontWeight.w600),
                 ),
               ),
@@ -194,7 +236,7 @@ class _AnalysisTypeFormState extends ConsumerState<_AnalysisTypeForm> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<AnalysisFrequency>(
-              value: _frequency,
+              initialValue: _frequency,
               decoration: InputDecoration(labelText: s('adminFrequencyLabel')),
               items: [
                 for (final f in AnalysisFrequency.values)

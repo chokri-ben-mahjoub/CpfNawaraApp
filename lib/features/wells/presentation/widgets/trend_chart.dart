@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/models/analysis_record.dart';
+import '../../../../core/widgets/series_chart.dart';
 
 /// Courbe d'évolution dessinée à la main (pas de dépendance externe) :
-/// ligne reliant les valeurs dans l'ordre chronologique, bande de seuil
-/// min/max en arrière-plan, points hors seuil mis en évidence.
+/// ligne reliant les valeurs dans l'ordre chronologique (abscisse
+/// proportionnelle au temps), bande de seuil min/max en arrière-plan, points
+/// hors seuil mis en évidence, interventions en lignes verticales.
 class TrendChart extends StatelessWidget {
   final List<AnalysisRecord> records;
   final double min;
   final double max;
   final Color lineColor;
+  final List<(DateTime, String)> markers;
 
   const TrendChart({
     super.key,
@@ -17,6 +20,7 @@ class TrendChart extends StatelessWidget {
     required this.min,
     required this.max,
     required this.lineColor,
+    this.markers = const [],
   });
 
   @override
@@ -28,6 +32,7 @@ class TrendChart extends StatelessWidget {
       child: CustomPaint(
         painter: _TrendPainter(
           records: records,
+          markers: markers,
           min: min,
           max: max,
           lineColor: lineColor,
@@ -42,6 +47,7 @@ class TrendChart extends StatelessWidget {
 
 class _TrendPainter extends CustomPainter {
   final List<AnalysisRecord> records;
+  final List<(DateTime, String)> markers;
   final double min;
   final double max;
   final Color lineColor;
@@ -51,6 +57,7 @@ class _TrendPainter extends CustomPainter {
 
   _TrendPainter({
     required this.records,
+    required this.markers,
     required this.min,
     required this.max,
     required this.lineColor,
@@ -63,8 +70,9 @@ class _TrendPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     const leftPadding = 8.0;
     const bottomPadding = 4.0;
+    final topPadding = markers.isEmpty ? 0.0 : 14.0;
     final chartWidth = size.width - leftPadding * 2;
-    final chartHeight = size.height - bottomPadding;
+    final chartHeight = size.height - bottomPadding - topPadding;
 
     final values = records.map((r) => r.value).toList();
     final dataMin = values.isEmpty ? min : values.reduce((a, b) => a < b ? a : b);
@@ -73,14 +81,20 @@ class _TrendPainter extends CustomPainter {
     final hi = [max, dataMax].reduce((a, b) => a > b ? a : b);
     final span = (hi - lo) == 0 ? 1 : (hi - lo);
 
-    double yFor(double value) => chartHeight - ((value - lo) / span) * chartHeight;
-    double xFor(int index) =>
-        leftPadding + (records.length <= 1 ? chartWidth / 2 : chartWidth * index / (records.length - 1));
+    double yFor(double value) => topPadding + chartHeight - ((value - lo) / span) * chartHeight;
+
+    final dates = [for (final r in records) r.dateTime, for (final m in markers) m.$1];
+    final minDate = dates.isEmpty ? DateTime.now() : dates.reduce((a, b) => a.isBefore(b) ? a : b);
+    final maxDate = dates.isEmpty ? DateTime.now() : dates.reduce((a, b) => a.isAfter(b) ? a : b);
+    final totalSpan = maxDate.difference(minDate).inMinutes;
+    double xForDate(DateTime d) =>
+        leftPadding + (totalSpan <= 0 ? chartWidth / 2 : chartWidth * d.difference(minDate).inMinutes / totalSpan);
+    double xFor(int index) => xForDate(records[index].dateTime);
 
     // Bande de seuil min/max.
     final bandPaint = Paint()..color = bandColor;
-    final bandTop = yFor(max).clamp(0.0, chartHeight);
-    final bandBottom = yFor(min).clamp(0.0, chartHeight);
+    final bandTop = yFor(max).clamp(topPadding, topPadding + chartHeight);
+    final bandBottom = yFor(min).clamp(topPadding, topPadding + chartHeight);
     canvas.drawRect(Rect.fromLTRB(leftPadding, bandTop, size.width - leftPadding, bandBottom), bandPaint);
 
     // Lignes de seuil.
@@ -89,6 +103,33 @@ class _TrendPainter extends CustomPainter {
       ..strokeWidth = 1;
     canvas.drawLine(Offset(leftPadding, yFor(max)), Offset(size.width - leftPadding, yFor(max)), dashPaint);
     canvas.drawLine(Offset(leftPadding, yFor(min)), Offset(size.width - leftPadding, yFor(min)), dashPaint);
+
+    // Interventions : lignes verticales pointillées + libellé court.
+    var lastLabelEnd = double.negativeInfinity;
+    for (final (date, label) in [...markers]..sort((a, b) => a.$1.compareTo(b.$1))) {
+      final x = xForDate(date);
+      final markerPaint = Paint()
+        ..color = interventionMarkerColor.withValues(alpha: 0.8)
+        ..strokeWidth = 1.4;
+      for (var y = topPadding; y < topPadding + chartHeight; y += 9) {
+        canvas.drawLine(Offset(x, y), Offset(x, (y + 5).clamp(0, topPadding + chartHeight)), markerPaint);
+      }
+      canvas.drawCircle(Offset(x, topPadding), 3.5, Paint()..color = interventionMarkerColor);
+      if (x + 5 > lastLabelEnd + 4) {
+        final painter = TextPainter(
+          text: TextSpan(
+            text: label,
+            style: const TextStyle(fontFamily: 'Manrope', fontSize: 9.5, color: interventionMarkerColor, fontWeight: FontWeight.w600),
+          ),
+          textDirection: TextDirection.ltr,
+          maxLines: 1,
+          ellipsis: '…',
+        )..layout(maxWidth: 90);
+        final labelX = (x + 5).clamp(0.0, size.width - painter.width);
+        painter.paint(canvas, Offset(labelX, 0));
+        lastLabelEnd = labelX + painter.width;
+      }
+    }
 
     if (records.isEmpty) return;
 
@@ -126,5 +167,8 @@ class _TrendPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _TrendPainter oldDelegate) =>
-      oldDelegate.records != records || oldDelegate.min != min || oldDelegate.max != max;
+      oldDelegate.records != records ||
+      oldDelegate.markers != markers ||
+      oldDelegate.min != min ||
+      oldDelegate.max != max;
 }

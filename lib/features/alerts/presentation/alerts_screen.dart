@@ -4,11 +4,76 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/auth/auth_providers.dart';
 import '../../../core/data/wells_repository.dart';
+import '../../../core/export/export_service.dart';
+import '../../../core/export/export_table.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/analysis_type.dart';
 import '../../../core/models/user_role.dart';
 import '../../../core/models/well.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/responsive.dart';
+
+/// Exporte les analyses en retard et les dernières valeurs hors seuil, tous
+/// puits actifs confondus (utile pour un rapport HSE).
+Future<void> exportAlerts(WidgetRef ref, BuildContext context) async {
+  final locale = ref.read(localeProvider);
+  String s(String key) => tr(locale, key);
+
+  final data = ref.read(wellsControllerProvider);
+  final controller = ref.read(wellsControllerProvider.notifier);
+  final today = DateTime.now();
+  final activeWells = data.wells.where((w) => w.active).toList();
+
+  final rows = <List<Object?>>[];
+  for (final well in activeWells) {
+    for (final type in data.analysisTypes) {
+      final last = controller.lastRecord(well.id, type.id);
+      if (type.isDueOn(today) && controller.statusFor(well.id, type.id, now: today) == DailyStatus.overdue) {
+        rows.add([
+          s('alertsOverdueSection'),
+          '${well.name} (${well.code})',
+          type.label,
+          last?.dateTime,
+          last?.value,
+          type.unit,
+          '${type.min} – ${type.max}',
+        ]);
+      }
+      if (last != null && type.isOutOfRange(last.value) && last.isSameDay(today)) {
+        rows.add([
+          s('alertsOutOfRangeSection'),
+          '${well.name} (${well.code})',
+          type.label,
+          last.dateTime,
+          last.value,
+          type.unit,
+          '${type.min} – ${type.max}',
+        ]);
+      }
+    }
+  }
+
+  await runExport(
+    context: context,
+    locale: locale,
+    baseName: 'alertes',
+    tables: [
+      ExportTable(
+        name: s('navAlerts'),
+        headers: [
+          s('colStatus'),
+          s('colWell'),
+          s('colType'),
+          s('colLastEntry'),
+          s('colValue'),
+          s('colUnit'),
+          s('trendThreshold'),
+        ],
+        rows: rows,
+      ),
+    ],
+  );
+}
 
 class _OverdueItem {
   final Well well;
@@ -55,7 +120,7 @@ class AlertsScreen extends ConsumerWidget {
     final hasAlerts = overdue.isNotEmpty || outOfRange.isNotEmpty;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      padding: pagePadding(context, top: 8, bottom: 24),
       children: [
         if (!hasAlerts)
           Padding(
@@ -78,7 +143,7 @@ class AlertsScreen extends ConsumerWidget {
                       child: Icon(Icons.warning_amber_rounded, color: scheme.error),
                     ),
                     title: Text(
-                      '${outOfRange[i].well.name} · ${s(outOfRange[i].type.labelKey)}',
+                      '${outOfRange[i].well.name} · ${outOfRange[i].type.label}',
                       style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
                     subtitle: Text(
@@ -109,14 +174,22 @@ class AlertsScreen extends ConsumerWidget {
                       child: const Icon(Icons.hourglass_empty_rounded, color: accentColor),
                     ),
                     title: Text(
-                      '${overdue[i].well.name} · ${s(overdue[i].type.labelKey)}',
+                      '${overdue[i].well.name} · ${overdue[i].type.label}',
                       style: const TextStyle(fontWeight: FontWeight.w700),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     subtitle: Text(s('alertsOverdueSince'), style: TextStyle(color: scheme.onSurfaceVariant)),
                     trailing: role.canEnterData
                         ? FilledButton(
                             onPressed: () =>
                                 context.push('/entry?wellId=${overdue[i].well.id}&typeId=${overdue[i].type.id}'),
+                            style: FilledButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                            ),
                             child: Text(s('wellDetailAddAnalysis')),
                           )
                         : null,

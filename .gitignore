@@ -42,7 +42,13 @@ app.*.map.json
 /android/app/release
 
 # Web related
-lib/generated_plugin_registrant.dart
 
 # Exceptions to above rules.
 !/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
+
+# Installateur Windows généré (installer/build_setup.ps1)
+/installer/Output/
+
+# Configuration Firebase propre à votre projet (à récupérer dans la console
+# Firebase > Paramètres du projet), gardée hors du dépôt.
+/android/app/google-services.json

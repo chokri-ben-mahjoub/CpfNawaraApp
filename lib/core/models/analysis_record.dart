@@ -7,6 +7,7 @@ class AnalysisRecord {
   /// Clé de service (ex: `serviceLaboratoire`), voir `app_strings.dart`.
   final String serviceKey;
   final String operatorName;
+  final String? operatorId;
   final DateTime dateTime;
   final String? comment;
 
@@ -17,6 +18,7 @@ class AnalysisRecord {
     required this.value,
     required this.serviceKey,
     required this.operatorName,
+    this.operatorId,
     required this.dateTime,
     this.comment,
   });

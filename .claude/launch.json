@@ -1,0 +1,13 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "puitstrack-web",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "tool/serve_web.py"
+      ],
+      "port": 8765
+    }
+  ]
+}

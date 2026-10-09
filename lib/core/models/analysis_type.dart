@@ -1,4 +1,7 @@
-enum AnalysisFrequency { daily, weekly, monthly }
+/// `onDemand` : analyse ponctuelle (ex: pression de fond mesurée lors d'un
+/// test de puits), jamais attendue un jour donné — n'apparaît donc ni dans
+/// le "à faire" du tableau de bord ni dans les alertes de retard.
+enum AnalysisFrequency { daily, weekly, monthly, onDemand }
 
 extension AnalysisFrequencyX on AnalysisFrequency {
   /// Clé de traduction associée (voir `app_strings.dart`).
@@ -10,6 +13,37 @@ extension AnalysisFrequencyX on AnalysisFrequency {
         return 'frequencyWeekly';
       case AnalysisFrequency.monthly:
         return 'frequencyMonthly';
+      case AnalysisFrequency.onDemand:
+        return 'frequencyOnDemand';
+    }
+  }
+
+  /// Valeur stockée en base (locale et Firestore), stable indépendamment de la
+  /// langue ou de l'ordre de l'enum.
+  String get storageKey {
+    switch (this) {
+      case AnalysisFrequency.daily:
+        return 'daily';
+      case AnalysisFrequency.weekly:
+        return 'weekly';
+      case AnalysisFrequency.monthly:
+        return 'monthly';
+      case AnalysisFrequency.onDemand:
+        return 'on_demand';
+    }
+  }
+
+  static AnalysisFrequency fromStorageKey(String key) {
+    switch (key) {
+      case 'weekly':
+        return AnalysisFrequency.weekly;
+      case 'monthly':
+        return AnalysisFrequency.monthly;
+      case 'on_demand':
+        return AnalysisFrequency.onDemand;
+      case 'daily':
+      default:
+        return AnalysisFrequency.daily;
     }
   }
 }
@@ -17,8 +51,9 @@ extension AnalysisFrequencyX on AnalysisFrequency {
 class AnalysisType {
   final String id;
 
-  /// Clé de traduction (voir `app_strings.dart`), ex: `analysisBsw`.
-  final String labelKey;
+  /// Nom affiché (ex: "BSW", "Salinité") : donnée venant de la base, pas une
+  /// clé de traduction — les types d'analyse sont paramétrables par l'Admin.
+  final String label;
   final String unit;
   final double min;
   final double max;
@@ -26,7 +61,7 @@ class AnalysisType {
 
   const AnalysisType({
     required this.id,
-    required this.labelKey,
+    required this.label,
     required this.unit,
     required this.min,
     required this.max,
@@ -45,6 +80,8 @@ class AnalysisType {
         return 7;
       case AnalysisFrequency.monthly:
         return 30;
+      case AnalysisFrequency.onDemand:
+        return 100000;
     }
   }
 
@@ -57,6 +94,8 @@ class AnalysisType {
         return day.weekday == DateTime.monday;
       case AnalysisFrequency.monthly:
         return day.day == 1;
+      case AnalysisFrequency.onDemand:
+        return false;
     }
   }
 }
