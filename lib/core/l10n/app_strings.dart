@@ -131,6 +131,14 @@ final _strings = <String, Map<String, String>>{
   'wellDetailAddAnalysis': {'fr': 'Nouvelle analyse', 'en': 'New analysis'},
   'wellDetailNoValue': {'fr': 'Aucune valeur', 'en': 'No value yet'},
   'outOfRangeBadge': {'fr': 'Hors seuil', 'en': 'Out of range'},
+  'productionTitle': {'fr': 'Production', 'en': 'Production'},
+  'productionSubtitle': {
+    'fr': 'Débits huile / gaz / eau — 30 derniers jours',
+    'en': 'Oil / gas / water flow rates — last 30 days',
+  },
+  'productionOil': {'fr': 'Huile', 'en': 'Oil'},
+  'productionGas': {'fr': 'Gaz', 'en': 'Gas'},
+  'productionWater': {'fr': 'Eau', 'en': 'Water'},
 
   // Tableau de bord du jour
   'dashboardTitle': {'fr': "Aujourd'hui", 'en': 'Today'},

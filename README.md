@@ -95,8 +95,10 @@ flutter build apk --release
 - **Statistiques** (onglet dédié, `stats_screen.dart`) : par zone puis par
   puits, sur 7 jours / 30 jours / tout l'historique — nombre d'analyses
   saisies, taux de conformité aux seuils, analyses hors seuil
-- **Fiche puits** (`well_detail_screen.dart`) : dernières valeurs par type
-  d'analyse (avec alerte visuelle hors seuil) + historique récent
+- **Fiche puits** (`well_detail_screen.dart`) : carte **Production** (débits
+  huile/gaz/eau, dernières valeurs + courbes superposées sur 30 jours),
+  dernières valeurs par type d'analyse (avec alerte visuelle hors seuil) +
+  historique récent
 - **Saisie rapide** (`quick_entry_screen.dart`) : puits → type → valeur →
   service → commentaire, avec détection de doublon (analyse déjà saisie
   aujourd'hui) et confirmation si la valeur sort du seuil attendu
@@ -106,9 +108,10 @@ flutter build apk --release
   valeurs hors seuil, tous puits confondus
 - **Types d'analyses paramétrables** (`analysis_types_screen.dart`) :
   ajout/modification (nom, unité, seuils, fréquence)
-- 5 puits et 7 types d'analyse pré-remplis au premier lancement (voir
-  `local_database.dart`) pour ne pas démarrer sur un écran vide ; aucun
-  historique de démonstration n'est inventé.
+- 5 puits et 10 types d'analyse pré-remplis au premier lancement, dont les 3
+  débits de production huile/gaz/eau (voir `local_database.dart`) pour ne
+  pas démarrer sur un écran vide ; aucun historique de démonstration n'est
+  inventé.
 
 ### Design
 - Thème clair/sombre Material 3 (`lib/core/theme/app_theme.dart`)

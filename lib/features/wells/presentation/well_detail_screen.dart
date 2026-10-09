@@ -12,6 +12,14 @@ import '../../../core/models/analysis_type.dart';
 import '../../../core/models/user_role.dart';
 import '../../../core/models/well.dart';
 import '../../../core/theme/app_theme.dart';
+import 'widgets/production_chart.dart';
+
+/// Identifiants fixes des 3 débits de production (voir `local_database.dart`).
+/// Si un de ces types a été supprimé depuis l'écran Admin, la carte
+/// "Production" s'adapte en n'affichant que ceux qui existent encore.
+const _oilFlowTypeId = 't_oil_flow';
+const _gasFlowTypeId = 't_gas_flow';
+const _waterFlowTypeId = 't_water_flow';
 
 /// Exporte en Excel tout l'historique d'analyses d'un puits.
 Future<void> _exportWellHistory(WidgetRef ref, BuildContext context, Well well) async {
@@ -137,6 +145,8 @@ class WellDetailScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 20),
+          _ProductionCard(wellId: wellId),
+          const SizedBox(height: 20),
           Text(
             s('wellDetailLastValues'),
             style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
@@ -181,6 +191,131 @@ class WellDetailScreen extends ConsumerWidget {
                 ],
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Suivi du débit huile / gaz / eau pour ce puits : dernières valeurs +
+/// courbes des 30 derniers jours superposées. S'efface proprement si aucun
+/// de ces 3 types d'analyse n'existe (ex: catalogue personnalisé).
+class _ProductionCard extends ConsumerWidget {
+  final String wellId;
+  const _ProductionCard({required this.wellId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final locale = ref.watch(localeProvider);
+    final controller = ref.read(wellsControllerProvider.notifier);
+    final data = ref.watch(wellsControllerProvider);
+    String s(String key) => tr(locale, key);
+
+    AnalysisType? typeOf(String id) {
+      for (final t in data.analysisTypes) {
+        if (t.id == id) return t;
+      }
+      return null;
+    }
+
+    final fluids = [
+      (typeOf(_oilFlowTypeId), s('productionOil'), const Color(0xFF2E7D32)),
+      (typeOf(_gasFlowTypeId), s('productionGas'), const Color(0xFFE53935)),
+      (typeOf(_waterFlowTypeId), s('productionWater'), const Color(0xFF1E88E5)),
+    ].where((f) => f.$1 != null).toList();
+
+    if (fluids.isEmpty) return const SizedBox.shrink();
+
+    final since = DateTime.now().subtract(const Duration(days: 30));
+    final series = [
+      for (final (type, label, color) in fluids)
+        ProductionSeries(
+          label: label,
+          unit: type!.unit,
+          color: color,
+          records: controller
+              .recordsForWell(wellId)
+              .where((r) => r.typeId == type.id && r.dateTime.isAfter(since))
+              .toList()
+            ..sort((a, b) => a.dateTime.compareTo(b.dateTime)),
+        ),
+    ];
+    final hasData = series.any((s) => s.records.isNotEmpty);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(s('productionTitle'), style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 4),
+            Text(s('productionSubtitle'), style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                for (final ser in series) ...[
+                  Expanded(child: _FlowStatTile(series: ser)),
+                  if (ser != series.last) const SizedBox(width: 10),
+                ],
+              ],
+            ),
+            if (hasData) ...[
+              const SizedBox(height: 16),
+              ProductionChart(series: series),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 14,
+                runSpacing: 6,
+                children: [
+                  for (final ser in series)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(width: 10, height: 10, decoration: BoxDecoration(color: ser.color, shape: BoxShape.circle)),
+                        const SizedBox(width: 6),
+                        Text('${ser.label} (${ser.unit})', style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
+                      ],
+                    ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FlowStatTile extends StatelessWidget {
+  final ProductionSeries series;
+  const _FlowStatTile({required this.series});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final last = series.records.isEmpty ? null : series.records.last;
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(color: scheme.surfaceContainerLow, borderRadius: BorderRadius.circular(14)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(width: 8, height: 8, decoration: BoxDecoration(color: series.color, shape: BoxShape.circle)),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(series.label, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12), overflow: TextOverflow.ellipsis),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            last == null ? '—' : '${last.value} ${series.unit}',
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+          ),
         ],
       ),
     );

@@ -17,7 +17,7 @@ class LocalDatabase {
     final path = p.join(dir.path, 'suivi_puits.db');
     return openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: (db, version) async {
         await db.execute('''
           create table wells (
@@ -57,6 +57,11 @@ class LocalDatabase {
         if (oldVersion < 2) {
           await db.execute("alter table wells add column group_name text not null default ''");
         }
+        if (oldVersion < 3) {
+          for (final type in _productionFlowTypes) {
+            await db.insert('analysis_types', type, conflictAlgorithm: ConflictAlgorithm.ignore);
+          }
+        }
       },
     );
   }
@@ -83,10 +88,21 @@ class LocalDatabase {
       {'id': 't_h2s', 'label': 'H2S', 'unit': 'ppm', 'min_value': 0.0, 'max_value': 10.0, 'frequency': 'daily'},
       {'id': 't_pressure', 'label': 'Pression', 'unit': 'bar', 'min_value': 20.0, 'max_value': 120.0, 'frequency': 'daily'},
       {'id': 't_temperature', 'label': 'Température', 'unit': '°C', 'min_value': 15.0, 'max_value': 90.0, 'frequency': 'daily'},
-      {'id': 't_flow', 'label': 'Débit', 'unit': 'm³/h', 'min_value': 0.0, 'max_value': 500.0, 'frequency': 'monthly'},
+      ..._productionFlowTypes,
     ];
     for (final type in types) {
       await db.insert('analysis_types', type);
     }
   }
 }
+
+/// Débits de production (huile/gaz/eau), suivis quotidiennement puits par
+/// puits — voir la carte "Production" sur la fiche puits. Pas de vrai seuil
+/// de non-conformité pour ces valeurs (production normale très variable
+/// selon le puits) : la plage est volontairement large pour ne jamais
+/// déclencher d'alerte "hors seuil".
+const _productionFlowTypes = [
+  {'id': 't_oil_flow', 'label': 'Débit huile', 'unit': 'm³/j', 'min_value': 0.0, 'max_value': 100000.0, 'frequency': 'daily'},
+  {'id': 't_gas_flow', 'label': 'Débit gaz', 'unit': 'Sm³/j', 'min_value': 0.0, 'max_value': 1000000.0, 'frequency': 'daily'},
+  {'id': 't_water_flow', 'label': 'Débit eau', 'unit': 'm³/j', 'min_value': 0.0, 'max_value': 100000.0, 'frequency': 'daily'},
+];
