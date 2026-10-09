@@ -9,14 +9,6 @@ import '../../../core/models/analysis_type.dart';
 import '../../../core/models/well.dart';
 import '../../../core/theme/app_theme.dart';
 
-const _serviceKeys = [
-  'serviceLaboratoire',
-  'serviceProduction',
-  'serviceExploitation',
-  'serviceReservoir',
-  'serviceHse',
-];
-
 /// Saisie rapide : puits → type d'analyse → valeur → service → enregistrer.
 /// Si [initialWellId] / [initialTypeId] sont fournis (venant d'une fiche
 /// puits ou du tableau de bord), les champs correspondants sont pré-remplis
@@ -223,7 +215,7 @@ class _QuickEntryScreenState extends ConsumerState<QuickEntryScreen> {
                           prefixIcon: const Icon(Icons.groups_outlined),
                         ),
                         items: [
-                          for (final key in _serviceKeys)
+                          for (final key in serviceKeys)
                             DropdownMenuItem(value: key, child: Text(s(key))),
                         ],
                         onChanged: (value) => setState(() => _service = value),

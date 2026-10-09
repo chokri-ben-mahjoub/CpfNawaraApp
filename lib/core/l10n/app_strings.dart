@@ -8,6 +8,17 @@ const _localeKey = 'app_locale';
 /// pour supporter une langue supplémentaire.
 const supportedLocales = [Locale('fr'), Locale('en')];
 
+/// Clés de service stables (indépendantes de la langue), utilisées partout
+/// où un service doit être choisi (inscription, saisie rapide, correction
+/// d'une analyse). La traduction affichée vient de [tr].
+const serviceKeys = [
+  'serviceLaboratoire',
+  'serviceProduction',
+  'serviceExploitation',
+  'serviceReservoir',
+  'serviceHse',
+];
+
 final _strings = <String, Map<String, String>>{
   'appName': {'fr': 'PuitsTrack', 'en': 'PuitsTrack'},
   'appTagline': {
@@ -94,6 +105,11 @@ final _strings = <String, Map<String, String>>{
   },
   'unlockWrongPin': {'fr': 'Code incorrect, réessayez.', 'en': 'Incorrect code, try again.'},
   'unlockForgotPin': {'fr': 'Code oublié ? En créer un nouveau', 'en': 'Forgot your code? Create a new one'},
+  'unlockForgotPinConfirmTitle': {'fr': 'Créer un nouveau code ?', 'en': 'Create a new code?'},
+  'unlockForgotPinConfirmBody': {
+    'fr': 'L\'ancien code ne fonctionnera plus. Vos puits et votre historique restent intacts.',
+    'en': 'The old code will stop working. Your wells and history stay intact.',
+  },
   'accountChangePin': {'fr': 'Modifier mon code', 'en': 'Change my code'},
   'logout': {'fr': 'Réinitialiser mon profil', 'en': 'Reset my profile'},
 
@@ -216,6 +232,12 @@ final _strings = <String, Map<String, String>>{
   },
   'entryCommentLabel': {'fr': 'Commentaire (optionnel)', 'en': 'Comment (optional)'},
   'entrySave': {'fr': 'Enregistrer', 'en': 'Save'},
+  'recordDelete': {'fr': 'Supprimer cette analyse', 'en': 'Delete this analysis'},
+  'recordDeleteConfirmTitle': {'fr': 'Supprimer cette analyse ?', 'en': 'Delete this analysis?'},
+  'recordDeleteConfirmBody': {
+    'fr': 'Cette valeur sera définitivement supprimée de l\'historique.',
+    'en': 'This value will be permanently removed from the history.',
+  },
   'entryDuplicateTitle': {'fr': 'Déjà saisi aujourd\'hui', 'en': 'Already recorded today'},
   'entryDuplicateBody': {
     'fr': 'Une valeur a déjà été enregistrée aujourd\'hui pour ce puits et ce paramètre.',
@@ -304,6 +326,13 @@ final _strings = <String, Map<String, String>>{
   'adminSave': {'fr': 'Enregistrer', 'en': 'Save'},
   'adminTypeUpdated': {'fr': 'Type d\'analyse mis à jour.', 'en': 'Analysis type updated.'},
   'adminTypeAdded': {'fr': 'Type d\'analyse ajouté.', 'en': 'Analysis type added.'},
+  'adminDeleteType': {'fr': 'Supprimer ce type', 'en': 'Delete this type'},
+  'adminDeleteTypeConfirmTitle': {'fr': 'Supprimer ce type d\'analyse ?', 'en': 'Delete this analysis type?'},
+  'adminDeleteTypeConfirmBody': {
+    'fr': 'Tout l\'historique saisi pour ce type, sur tous les puits, sera perdu définitivement.',
+    'en': 'All history recorded for this type, across every well, will be permanently lost.',
+  },
+  'adminTypeDeleted': {'fr': 'Type d\'analyse supprimé.', 'en': 'Analysis type deleted.'},
 
   // Gestion des puits
   'wellsManageTitle': {'fr': 'Gestion des puits', 'en': 'Manage wells'},

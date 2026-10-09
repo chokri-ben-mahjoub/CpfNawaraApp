@@ -5,16 +5,6 @@ import '../../../core/auth/auth_providers.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/theme/app_theme.dart';
 
-/// Clés de service stables (indépendantes de la langue) utilisées comme
-/// valeur du menu déroulant ; la traduction affichée vient de [tr].
-const _serviceKeys = [
-  'serviceLaboratoire',
-  'serviceProduction',
-  'serviceExploitation',
-  'serviceReservoir',
-  'serviceHse',
-];
-
 /// Configuration du profil local de cet appareil (nom, service, téléphone) :
 /// une seule fois, juste après l'onboarding (mode 100% local, pas de compte
 /// cloud pour l'instant — voir README). Enchaîne ensuite sur la création du
@@ -149,7 +139,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                             prefixIcon: const Icon(Icons.groups_outlined),
                           ),
                           items: [
-                            for (final key in _serviceKeys)
+                            for (final key in serviceKeys)
                               DropdownMenuItem(value: key, child: Text(s(key))),
                           ],
                           onChanged: (value) =>

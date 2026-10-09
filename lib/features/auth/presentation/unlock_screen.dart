@@ -46,6 +46,27 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> with SingleTickerPr
     super.dispose();
   }
 
+  Future<void> _forgotCode() async {
+    final locale = ref.read(localeProvider);
+    String s(String key) => tr(locale, key);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(s('unlockForgotPinConfirmTitle')),
+        content: Text(s('unlockForgotPinConfirmBody')),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: Text(s('cancel'))),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(s('unlockForgotPin')),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) ref.read(appLockProvider.notifier).clearPin();
+  }
+
   Future<void> _tryBiometric() async {
     final locale = ref.read(localeProvider);
     final ok = await BiometricAuth.authenticate(tr(locale, 'unlockBiometricReason'));
@@ -153,7 +174,7 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> with SingleTickerPr
               ),
               const SizedBox(height: 16),
               TextButton(
-                onPressed: () => ref.read(appLockProvider.notifier).clearPin(),
+                onPressed: _forgotCode,
                 child: Text(s('unlockForgotPin'), style: TextStyle(color: scheme.onSurfaceVariant)),
               ),
             ],

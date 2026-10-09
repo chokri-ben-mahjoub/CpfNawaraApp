@@ -97,6 +97,33 @@ class _AnalysisTypeFormState extends ConsumerState<_AnalysisTypeForm> {
     super.dispose();
   }
 
+  Future<void> _delete() async {
+    final locale = ref.read(localeProvider);
+    String s(String key) => tr(locale, key);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(s('adminDeleteTypeConfirmTitle')),
+        content: Text(s('adminDeleteTypeConfirmBody')),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: Text(s('cancel'))),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Theme.of(dialogContext).colorScheme.error),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(s('adminDeleteType')),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await ref.read(wellsControllerProvider.notifier).deleteAnalysisType(widget.existing!.id);
+    if (mounted) {
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s('adminTypeDeleted'))));
+    }
+  }
+
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
     final min = double.parse(_minController.text.replaceAll(',', '.'));
@@ -147,9 +174,21 @@ class _AnalysisTypeFormState extends ConsumerState<_AnalysisTypeForm> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              _isNew ? s('adminNewType') : s('adminEditType'),
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _isNew ? s('adminNewType') : s('adminEditType'),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                if (!_isNew)
+                  IconButton(
+                    onPressed: _delete,
+                    icon: Icon(Icons.delete_outline, color: scheme.error),
+                    tooltip: s('adminDeleteType'),
+                  ),
+              ],
             ),
             const SizedBox(height: 16),
             if (_isNew) ...[

@@ -240,6 +240,42 @@ class WellsController extends StateNotifier<WellsState> {
   /// Met à jour un type d'analyse existant (unité, seuils, fréquence).
   Future<void> updateAnalysisType(AnalysisType updated) => addAnalysisType(updated);
 
+  /// Supprime un type d'analyse et tout l'historique associé (sur tous les
+  /// puits) : sans ça, les analyses déjà saisies pour ce type deviendraient
+  /// orphelines et feraient planter les écrans qui résolvent un type par id.
+  Future<void> deleteAnalysisType(String typeId) async {
+    final db = await LocalDatabase.instance.database;
+    await db.delete('analysis_records', where: 'type_id = ?', whereArgs: [typeId]);
+    await db.delete('analysis_types', where: 'id = ?', whereArgs: [typeId]);
+    await _load();
+  }
+
+  /// Met à jour une analyse déjà enregistrée (valeur, service, commentaire),
+  /// y compris pour corriger une saisie d'un jour précédent — la date et
+  /// l'opérateur d'origine sont conservés.
+  Future<void> updateRecord({
+    required String recordId,
+    required double value,
+    required String serviceKey,
+    String? comment,
+  }) async {
+    final db = await LocalDatabase.instance.database;
+    await db.update(
+      'analysis_records',
+      {'value': value, 'service_key': serviceKey, 'comment': comment},
+      where: 'id = ?',
+      whereArgs: [recordId],
+    );
+    await _load();
+  }
+
+  /// Supprime une analyse enregistrée (ex: saisie en double ou erronée).
+  Future<void> deleteRecord(String recordId) async {
+    final db = await LocalDatabase.instance.database;
+    await db.delete('analysis_records', where: 'id = ?', whereArgs: [recordId]);
+    await _load();
+  }
+
   /// Noms de groupes déjà utilisés (triés, sans doublons), pour proposer un
   /// menu déroulant tout en permettant d'en saisir un nouveau.
   List<String> get groups {
