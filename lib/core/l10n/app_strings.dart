@@ -141,6 +141,14 @@ final _strings = <String, Map<String, String>>{
   'wellsTodaySuffix': {'fr': 'analyses aujourd\'hui', 'en': 'analyses today'},
   'wellDetailLastValues': {'fr': 'Dernières valeurs', 'en': 'Latest values'},
   'wellDetailHistory': {'fr': 'Historique récent', 'en': 'Recent history'},
+  'wellDetailViewAllHistory': {'fr': 'Voir tout l\'historique', 'en': 'View full history'},
+  'wellHistoryTitle': {'fr': 'Historique', 'en': 'History'},
+  'wellHistoryYesterday': {'fr': 'Hier', 'en': 'Yesterday'},
+  'wellHistoryAllTypes': {'fr': 'Tous', 'en': 'All'},
+  'wellHistoryEmpty': {
+    'fr': 'Aucune analyse enregistrée pour ce filtre.',
+    'en': 'No analysis recorded for this filter.',
+  },
   'wellDetailNoHistory': {
     'fr': 'Aucune analyse enregistrée pour ce puits.',
     'en': 'No analysis recorded yet for this well.',

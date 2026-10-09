@@ -105,9 +105,14 @@ flutter build apk --release
 - **Fiche puits** (`well_detail_screen.dart`) : carte **Production** (débits
   huile/gaz/eau, dernières valeurs + courbes superposées sur 30 jours),
   dernières valeurs par type d'analyse (avec alerte visuelle hors seuil) +
-  historique récent — **chaque ligne d'historique est modifiable ou
+  aperçu des 20 dernières analyses — **chaque ligne est modifiable ou
   supprimable** (correction d'une saisie d'un jour précédent, pas seulement
   celle du jour même)
+- **Historique complet** (`well_history_screen.dart`, "Voir tout
+  l'historique" depuis la fiche puits) : toutes les analyses d'un puits,
+  groupées par jour (Aujourd'hui / Hier / date), avec filtre par type
+  d'analyse, statut vert/rouge selon le seuil, service/opérateur/heure et
+  commentaire affichés pour chaque ligne, et export Excel/CSV dédié
 - **Saisie rapide** (`quick_entry_screen.dart`) : puits → type → valeur →
   service → commentaire, avec détection de doublon (analyse déjà saisie
   aujourd'hui) et confirmation si la valeur sort du seuil attendu

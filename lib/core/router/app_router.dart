@@ -11,6 +11,7 @@ import '../../features/entry/presentation/quick_entry_screen.dart';
 import '../../features/home/presentation/home_shell.dart';
 import '../../features/wells/presentation/trend_screen.dart';
 import '../../features/wells/presentation/well_detail_screen.dart';
+import '../../features/wells/presentation/well_history_screen.dart';
 import '../auth/app_lock.dart';
 import '../auth/auth_providers.dart';
 import '../models/user_role.dart';
@@ -89,6 +90,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/wells/:id',
         builder: (context, state) => WellDetailScreen(wellId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/wells/:id/history',
+        builder: (context, state) => WellHistoryScreen(wellId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/wells/:id/trend/:typeId',
