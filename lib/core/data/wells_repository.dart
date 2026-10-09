@@ -276,6 +276,26 @@ class WellsController extends StateNotifier<WellsState> {
     await _load();
   }
 
+  /// Total journalier (somme sur tous les puits actifs) d'un type d'analyse
+  /// sur les [days] derniers jours (aujourd'hui inclus) — base de la courbe
+  /// de tendance globale du tableau de bord.
+  List<(DateTime day, double total)> aggregateDailyTotals(String typeId, {int days = 7}) {
+    final today = DateTime.now();
+    final activeWellIds = state.wells.where((w) => w.active).map((w) => w.id).toSet();
+    final result = <(DateTime, double)>[];
+    for (var i = days - 1; i >= 0; i--) {
+      final day = DateTime(today.year, today.month, today.day).subtract(Duration(days: i));
+      var total = 0.0;
+      for (final record in state.records) {
+        if (record.typeId == typeId && activeWellIds.contains(record.wellId) && record.isSameDay(day)) {
+          total += record.value;
+        }
+      }
+      result.add((day, total));
+    }
+    return result;
+  }
+
   /// Noms de groupes déjà utilisés (triés, sans doublons), pour proposer un
   /// menu déroulant tout en permettant d'en saisir un nouveau.
   List<String> get groups {

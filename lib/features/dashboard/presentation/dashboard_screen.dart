@@ -10,13 +10,19 @@ import '../../../core/export/excel_exporter.dart';
 import '../../../core/export/export_format_sheet.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/analysis_type.dart';
+import '../../../core/models/production_types.dart';
 import '../../../core/models/user_role.dart';
 import '../../../core/models/well.dart';
 import '../../../core/theme/app_theme.dart';
+import 'widgets/aggregate_trend_chart.dart';
 
 enum DashboardPeriod { day, week, month }
 
+enum ProductionMetric { oil, gas, water }
+
 final dashboardPeriodProvider = StateProvider<DashboardPeriod>((ref) => DashboardPeriod.day);
+
+final dashboardTrendMetricProvider = StateProvider<ProductionMetric>((ref) => ProductionMetric.oil);
 
 /// Début de la période (inclus) pour une vue jour/semaine/mois, la fin étant
 /// toujours "aujourd'hui" (on ne calcule que ce qui est déjà passé).
@@ -132,6 +138,8 @@ class DashboardScreen extends ConsumerWidget {
               ref.read(dashboardPeriodProvider.notifier).state = selection.first,
         ),
         const SizedBox(height: 16),
+        const _ProductionTrendCard(),
+        const SizedBox(height: 16),
         if (period == DashboardPeriod.day)
           _DayView(wells: activeWells, data: data, controller: controller, today: today)
         else
@@ -142,6 +150,91 @@ class DashboardScreen extends ConsumerWidget {
             end: today,
           ),
       ],
+    );
+  }
+}
+
+/// Vue d'ensemble ("vue haute") : tendance de la production totale (tous
+/// puits actifs confondus) sur les 7 derniers jours, pour le paramètre
+/// choisi (huile/gaz/eau) — un coup d'œil sur l'évolution générale, sans
+/// entrer dans le détail puits par puits.
+class _ProductionTrendCard extends ConsumerWidget {
+  const _ProductionTrendCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final locale = ref.watch(localeProvider);
+    final data = ref.watch(wellsControllerProvider);
+    final controller = ref.read(wellsControllerProvider.notifier);
+    final metric = ref.watch(dashboardTrendMetricProvider);
+    String s(String key) => tr(locale, key);
+
+    AnalysisType? typeOf(String id) {
+      for (final t in data.analysisTypes) {
+        if (t.id == id) return t;
+      }
+      return null;
+    }
+
+    final metrics = [
+      (ProductionMetric.oil, oilFlowTypeId, s('productionOil'), const Color(0xFF2E7D32)),
+      (ProductionMetric.gas, gasFlowTypeId, s('productionGas'), const Color(0xFFE53935)),
+      (ProductionMetric.water, waterFlowTypeId, s('productionWater'), const Color(0xFF1E88E5)),
+    ].where((m) => typeOf(m.$2) != null).toList();
+
+    if (metrics.isEmpty || data.wells.every((w) => !w.active)) return const SizedBox.shrink();
+
+    final selected = metrics.firstWhere((m) => m.$1 == metric, orElse: () => metrics.first);
+    final type = typeOf(selected.$2)!;
+    final points = controller.aggregateDailyTotals(selected.$2, days: 7);
+    final hasData = points.any((p) => p.$2 > 0);
+    final latest = points.isEmpty ? 0.0 : points.last.$2;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(s('dashboardTrendTitle'), style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              children: [
+                for (final m in metrics)
+                  ChoiceChip(
+                    label: Text(m.$3),
+                    selected: m.$1 == metric,
+                    onSelected: (_) => ref.read(dashboardTrendMetricProvider.notifier).state = m.$1,
+                    selectedColor: m.$4.withValues(alpha: 0.18),
+                    labelStyle: TextStyle(
+                      color: m.$1 == metric ? m.$4 : scheme.onSurfaceVariant,
+                      fontWeight: m.$1 == metric ? FontWeight.w700 : FontWeight.w500,
+                    ),
+                    side: BorderSide(color: m.$1 == metric ? m.$4 : scheme.outlineVariant),
+                    backgroundColor: scheme.surface,
+                  ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            if (!hasData)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Text(s('dashboardTrendNoData'), style: TextStyle(color: scheme.onSurfaceVariant)),
+              )
+            else ...[
+              Text(
+                '${latest.toStringAsFixed(1)} ${type.unit}',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: selected.$4),
+              ),
+              Text(s('dashboardTrendSubtitle'), style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
+              const SizedBox(height: 6),
+              AggregateTrendChart(points: points, color: selected.$4),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

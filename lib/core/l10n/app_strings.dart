@@ -184,6 +184,12 @@ final _strings = <String, Map<String, String>>{
     'fr': 'Toutes les analyses du jour sont faites 🎉',
     'en': 'All of today\'s analyses are done 🎉',
   },
+  'dashboardTrendTitle': {'fr': 'Tendance de production', 'en': 'Production trend'},
+  'dashboardTrendSubtitle': {'fr': 'Total, 7 derniers jours', 'en': 'Total, last 7 days'},
+  'dashboardTrendNoData': {
+    'fr': 'Pas encore de données sur les 7 derniers jours.',
+    'en': 'No data yet for the last 7 days.',
+  },
   'dashboardPeriodDay': {'fr': 'Jour', 'en': 'Day'},
   'dashboardPeriodWeek': {'fr': 'Semaine', 'en': 'Week'},
   'dashboardPeriodMonth': {'fr': 'Mois', 'en': 'Month'},
@@ -282,6 +288,8 @@ final _strings = <String, Map<String, String>>{
   // Tendances
   'trendTitle': {'fr': 'Tendance', 'en': 'Trend'},
   'trendThreshold': {'fr': 'Seuil attendu', 'en': 'Expected range'},
+  'trendCompareWith': {'fr': 'Comparer avec', 'en': 'Compare with'},
+  'trendCompareNone': {'fr': 'Aucune comparaison', 'en': 'No comparison'},
   'trendNoData': {
     'fr': 'Pas encore assez de valeurs pour une courbe.',
     'en': 'Not enough values yet for a chart.',

@@ -5,25 +5,35 @@ import 'package:intl/intl.dart';
 import '../../../core/data/wells_repository.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/theme/app_theme.dart';
+import 'widgets/production_chart.dart';
 import 'widgets/trend_chart.dart';
 
-class TrendScreen extends ConsumerWidget {
+const _compareColor = Color(0xFF1E88E5);
+
+class TrendScreen extends ConsumerStatefulWidget {
   final String wellId;
   final String typeId;
 
   const TrendScreen({super.key, required this.wellId, required this.typeId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TrendScreen> createState() => _TrendScreenState();
+}
+
+class _TrendScreenState extends ConsumerState<TrendScreen> {
+  String? _compareTypeId;
+
+  @override
+  Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final locale = ref.watch(localeProvider);
-    ref.watch(wellsControllerProvider);
+    final data = ref.watch(wellsControllerProvider);
     final controller = ref.read(wellsControllerProvider.notifier);
     String s(String key) => tr(locale, key);
 
-    final well = controller.wellById(wellId);
-    final type = controller.typeById(typeId);
-    final records = controller.recordsForWell(wellId).where((r) => r.typeId == typeId).toList()
+    final well = controller.wellById(widget.wellId);
+    final type = controller.typeById(widget.typeId);
+    final records = controller.recordsForWell(widget.wellId).where((r) => r.typeId == widget.typeId).toList()
       ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
     final dateFormat = DateFormat('d MMM', locale.languageCode);
     final dateTimeFormat = DateFormat('d MMM, HH:mm', locale.languageCode);
@@ -34,6 +44,32 @@ class TrendScreen extends ConsumerWidget {
     if (latest != null && previous != null && previous.value != 0) {
       deltaPct = (latest.value - previous.value) / previous.value * 100;
     }
+
+    final otherTypes = data.analysisTypes.where((t) => t.id != widget.typeId).toList()
+      ..sort((a, b) => a.label.compareTo(b.label));
+    final compareType = _compareTypeId == null ? null : controller.typeById(_compareTypeId!);
+
+    final since = DateTime.now().subtract(const Duration(days: 30));
+    final combinedSeries = compareType == null
+        ? null
+        : [
+            ProductionSeries(
+              label: type.label,
+              unit: type.unit,
+              color: accentColor,
+              records: records.where((r) => r.dateTime.isAfter(since)).toList(),
+            ),
+            ProductionSeries(
+              label: compareType.label,
+              unit: compareType.unit,
+              color: _compareColor,
+              records: controller
+                  .recordsForWell(widget.wellId)
+                  .where((r) => r.typeId == compareType.id && r.dateTime.isAfter(since))
+                  .toList()
+                ..sort((a, b) => a.dateTime.compareTo(b.dateTime)),
+            ),
+          ];
 
     return Scaffold(
       appBar: AppBar(title: Text('${type.label} · ${well.name}')),
@@ -79,17 +115,64 @@ class TrendScreen extends ConsumerWidget {
             style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 10),
+          if (otherTypes.isNotEmpty)
+            DropdownButtonFormField<String?>(
+              initialValue: _compareTypeId,
+              decoration: InputDecoration(
+                labelText: s('trendCompareWith'),
+                prefixIcon: const Icon(Icons.compare_arrows_outlined),
+              ),
+              items: [
+                DropdownMenuItem<String?>(value: null, child: Text(s('trendCompareNone'))),
+                for (final t in otherTypes) DropdownMenuItem<String?>(value: t.id, child: Text(t.label)),
+              ],
+              onChanged: (value) => setState(() => _compareTypeId = value),
+            ),
+          const SizedBox(height: 10),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child: records.length < 2
-                  ? SizedBox(
-                      height: 120,
-                      child: Center(
-                        child: Text(s('trendNoData'), style: TextStyle(color: scheme.onSurfaceVariant)),
-                      ),
-                    )
-                  : TrendChart(records: records, min: type.min, max: type.max, lineColor: accentColor),
+              child: combinedSeries != null
+                  ? (combinedSeries.every((series) => series.records.length < 2)
+                      ? SizedBox(
+                          height: 120,
+                          child: Center(child: Text(s('trendNoData'), style: TextStyle(color: scheme.onSurfaceVariant))),
+                        )
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ProductionChart(series: combinedSeries),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 14,
+                              runSpacing: 6,
+                              children: [
+                                for (final series in combinedSeries)
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 10,
+                                        height: 10,
+                                        decoration: BoxDecoration(color: series.color, shape: BoxShape.circle),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        '${series.label} (${series.unit})',
+                                        style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
+                                      ),
+                                    ],
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ))
+                  : (records.length < 2
+                      ? SizedBox(
+                          height: 120,
+                          child: Center(child: Text(s('trendNoData'), style: TextStyle(color: scheme.onSurfaceVariant))),
+                        )
+                      : TrendChart(records: records, min: type.min, max: type.max, lineColor: accentColor)),
             ),
           ),
           const SizedBox(height: 20),

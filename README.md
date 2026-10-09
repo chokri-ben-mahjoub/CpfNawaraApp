@@ -102,6 +102,10 @@ flutter build apk --release
     où se situe la dernière valeur par rapport à son seuil attendu (jauge
     horizontale, vert = dans la plage, rouge = hors seuil) — vue d'ensemble
     sans historique, juste l'état actuel
+- **Tendance de production** (sur le tableau de bord, vue d'ensemble) :
+  mini-courbe de la production totale (tous puits actifs) des 7 derniers
+  jours, au choix huile/gaz/eau — un coup d'œil sur l'évolution générale
+  sans entrer dans le détail puits par puits
 - **Fiche puits** (`well_detail_screen.dart`) : carte **Production** (débits
   huile/gaz/eau, dernières valeurs + courbes superposées sur 30 jours),
   dernières valeurs par type d'analyse (avec alerte visuelle hors seuil) +
@@ -117,7 +121,9 @@ flutter build apk --release
   service → commentaire, avec détection de doublon (analyse déjà saisie
   aujourd'hui) et confirmation si la valeur sort du seuil attendu
 - **Courbes de tendance** (`trend_screen.dart`) : évolution d'un paramètre
-  pour un puits, variation vs valeur précédente
+  pour un puits, variation vs valeur précédente — menu **"Comparer avec"**
+  pour superposer un second paramètre (ex: Huile + BSW) sur le même
+  graphique, légendé, chaque courbe à sa propre échelle
 - **Alertes** (`alerts_screen.dart`) : analyses en retard et dernières
   valeurs hors seuil, tous puits confondus
 - **Types d'analyses paramétrables** (`analysis_types_screen.dart`) :

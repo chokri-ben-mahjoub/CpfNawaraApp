@@ -11,18 +11,12 @@ import '../../../core/export/export_format_sheet.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/analysis_record.dart';
 import '../../../core/models/analysis_type.dart';
+import '../../../core/models/production_types.dart';
 import '../../../core/models/user_role.dart';
 import '../../../core/models/well.dart';
 import '../../../core/theme/app_theme.dart';
 import 'widgets/production_chart.dart';
 import 'widgets/record_edit_sheet.dart';
-
-/// Identifiants fixes des 3 débits de production (voir `local_database.dart`).
-/// Si un de ces types a été supprimé depuis l'écran Admin, la carte
-/// "Production" s'adapte en n'affichant que ceux qui existent encore.
-const _oilFlowTypeId = 't_oil_flow';
-const _gasFlowTypeId = 't_gas_flow';
-const _waterFlowTypeId = 't_water_flow';
 
 /// Exporte en Excel tout l'historique d'analyses d'un puits.
 Future<void> _exportWellHistory(WidgetRef ref, BuildContext context, Well well) async {
@@ -102,7 +96,7 @@ class WellDetailScreen extends ConsumerWidget {
     final well = controller.wellById(wellId);
     // Les 3 débits de production ont déjà leur propre carte dédiée
     // ("Production", avec courbe) : pas besoin de les répéter ici.
-    const productionTypeIds = {_oilFlowTypeId, _gasFlowTypeId, _waterFlowTypeId};
+    const productionTypeIds = {oilFlowTypeId, gasFlowTypeId, waterFlowTypeId};
     final types = ref
         .watch(wellsControllerProvider)
         .analysisTypes
@@ -254,9 +248,9 @@ class _ProductionCard extends ConsumerWidget {
     }
 
     final fluids = [
-      (typeOf(_oilFlowTypeId), s('productionOil'), const Color(0xFF2E7D32)),
-      (typeOf(_gasFlowTypeId), s('productionGas'), const Color(0xFFE53935)),
-      (typeOf(_waterFlowTypeId), s('productionWater'), const Color(0xFF1E88E5)),
+      (typeOf(oilFlowTypeId), s('productionOil'), const Color(0xFF2E7D32)),
+      (typeOf(gasFlowTypeId), s('productionGas'), const Color(0xFFE53935)),
+      (typeOf(waterFlowTypeId), s('productionWater'), const Color(0xFF1E88E5)),
     ].where((f) => f.$1 != null).toList();
 
     if (fluids.isEmpty) return const SizedBox.shrink();
