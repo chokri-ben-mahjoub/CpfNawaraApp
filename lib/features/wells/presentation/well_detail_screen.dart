@@ -5,7 +5,9 @@ import 'package:intl/intl.dart';
 
 import '../../../core/auth/auth_providers.dart';
 import '../../../core/data/wells_repository.dart';
+import '../../../core/export/csv_exporter.dart';
 import '../../../core/export/excel_exporter.dart';
+import '../../../core/export/export_format_sheet.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/analysis_record.dart';
 import '../../../core/models/analysis_type.dart';
@@ -34,36 +36,49 @@ Future<void> _exportWellHistory(WidgetRef ref, BuildContext context, Well well) 
     return;
   }
 
+  final format = await chooseExportFormat(context, locale);
+  if (format == null) return;
+
   messenger.showSnackBar(SnackBar(content: Text(s('exportStarted'))));
   final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
-  try {
-    final rows = [
-      for (final record in history)
-        [
-          dateFormat.format(record.dateTime),
-          controller.typeById(record.typeId).label,
-          record.value.toString(),
-          controller.typeById(record.typeId).unit,
-          s(record.serviceKey),
-          record.operatorName,
-          record.comment ?? '',
-        ],
-    ];
-    final suffix = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
-    await ExcelExporter.exportAndShare(
-      fileName: '${well.code}_$suffix.xlsx',
-      headers: [
-        s('colDate'),
-        s('colType'),
-        s('colValue'),
-        s('colUnit'),
-        s('colService'),
-        s('colOperator'),
-        s('colComment'),
+  final headers = [
+    s('colDate'),
+    s('colType'),
+    s('colValue'),
+    s('colUnit'),
+    s('colService'),
+    s('colOperator'),
+    s('colComment'),
+  ];
+  final rows = [
+    for (final record in history)
+      [
+        dateFormat.format(record.dateTime),
+        controller.typeById(record.typeId).label,
+        record.value.toString(),
+        controller.typeById(record.typeId).unit,
+        s(record.serviceKey),
+        record.operatorName,
+        record.comment ?? '',
       ],
-      rows: rows,
-      shareSubject: '${well.name} (${well.code})',
-    );
+  ];
+  final suffix = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
+  try {
+    if (format == ExportFormat.excel) {
+      await ExcelExporter.exportAndShare(
+        fileName: '${well.code}_$suffix.xlsx',
+        headers: headers,
+        rows: rows,
+        shareSubject: '${well.name} (${well.code})',
+      );
+    } else {
+      await CsvExporter.exportAndShare(
+        fileName: '${well.code}_$suffix.csv',
+        headers: headers,
+        rows: rows,
+        shareSubject: '${well.name} (${well.code})',
+      );
+    }
   } catch (_) {
     messenger.showSnackBar(SnackBar(content: Text(s('exportError'))));
   }

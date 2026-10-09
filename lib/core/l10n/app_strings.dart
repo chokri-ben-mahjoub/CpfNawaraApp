@@ -190,8 +190,8 @@ final _strings = <String, Map<String, String>>{
     'en': 'No missing analysis for this period.',
   },
   'dashboardMissingExpectedOn': {'fr': 'attendue le', 'en': 'expected on'},
-  'exportTooltip': {'fr': 'Exporter en Excel', 'en': 'Export to Excel'},
-  'exportStarted': {'fr': 'Préparation du fichier Excel...', 'en': 'Preparing the Excel file...'},
+  'exportTooltip': {'fr': 'Exporter', 'en': 'Export'},
+  'exportStarted': {'fr': 'Préparation du fichier...', 'en': 'Preparing the file...'},
   'exportEmpty': {
     'fr': 'Rien à exporter pour le moment.',
     'en': 'Nothing to export right now.',
@@ -200,6 +200,18 @@ final _strings = <String, Map<String, String>>{
     'fr': 'L\'export a échoué. Réessayez.',
     'en': 'Export failed. Please try again.',
   },
+  'exportChooseFormatTitle': {'fr': 'Exporter en...', 'en': 'Export as...'},
+  'exportFormatExcel': {'fr': 'Excel (.xlsx)', 'en': 'Excel (.xlsx)'},
+  'exportFormatExcelHint': {
+    'fr': 'Mise en forme tableau, s\'ouvre dans Excel ou Google Sheets.',
+    'en': 'Table formatting, opens in Excel or Google Sheets.',
+  },
+  'exportFormatCsv': {'fr': 'CSV (.csv)', 'en': 'CSV (.csv)'},
+  'exportFormatCsvHint': {
+    'fr': 'Fichier texte simple, compatible avec tous les tableurs.',
+    'en': 'Plain text file, compatible with any spreadsheet app.',
+  },
+  'wellsExportZoneTooltip': {'fr': 'Exporter cette zone', 'en': 'Export this zone'},
   'colDate': {'fr': 'Date', 'en': 'Date'},
   'colWell': {'fr': 'Puits', 'en': 'Well'},
   'colType': {'fr': 'Type d\'analyse', 'en': 'Analysis type'},
@@ -363,6 +375,8 @@ final _strings = <String, Map<String, String>>{
 
   // Statistiques
   'statsTitle': {'fr': 'Statistiques', 'en': 'Statistics'},
+  'statsModeCompliance': {'fr': 'Conformité', 'en': 'Compliance'},
+  'statsModeThresholds': {'fr': 'Seuils', 'en': 'Thresholds'},
   'navStats': {'fr': 'Stats', 'en': 'Stats'},
   'statsPeriod7': {'fr': '7 jours', 'en': '7 days'},
   'statsPeriod30': {'fr': '30 jours', 'en': '30 days'},

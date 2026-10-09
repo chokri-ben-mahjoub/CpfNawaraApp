@@ -1,11 +1,72 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/data/wells_repository.dart';
+import '../../../core/export/csv_exporter.dart';
+import '../../../core/export/excel_exporter.dart';
+import '../../../core/export/export_format_sheet.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/well.dart';
 import '../../../core/theme/app_theme.dart';
+
+/// Exporte tout l'historique d'analyses des puits d'une zone (toutes dates).
+Future<void> _exportZone(WidgetRef ref, BuildContext context, String zoneLabel, List<Well> wells) async {
+  final locale = ref.read(localeProvider);
+  String s(String key) => tr(locale, key);
+  final messenger = ScaffoldMessenger.of(context);
+  final controller = ref.read(wellsControllerProvider.notifier);
+
+  final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
+  final rows = <List<String>>[];
+  for (final well in wells) {
+    for (final record in controller.recordsForWell(well.id)) {
+      final type = controller.typeById(record.typeId);
+      rows.add([
+        dateFormat.format(record.dateTime),
+        '${well.name} (${well.code})',
+        type.label,
+        record.value.toString(),
+        type.unit,
+        s(record.serviceKey),
+        record.operatorName,
+        record.comment ?? '',
+      ]);
+    }
+  }
+
+  if (rows.isEmpty) {
+    messenger.showSnackBar(SnackBar(content: Text(s('exportEmpty'))));
+    return;
+  }
+
+  final format = await chooseExportFormat(context, locale);
+  if (format == null) return;
+
+  messenger.showSnackBar(SnackBar(content: Text(s('exportStarted'))));
+  final headers = [
+    s('colDate'),
+    s('colWell'),
+    s('colType'),
+    s('colValue'),
+    s('colUnit'),
+    s('colService'),
+    s('colOperator'),
+    s('colComment'),
+  ];
+  final safeName = zoneLabel.replaceAll(RegExp(r'[^A-Za-z0-9_-]+'), '_');
+  final suffix = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
+  try {
+    if (format == ExportFormat.excel) {
+      await ExcelExporter.exportAndShare(fileName: '${safeName}_$suffix.xlsx', headers: headers, rows: rows, shareSubject: zoneLabel);
+    } else {
+      await CsvExporter.exportAndShare(fileName: '${safeName}_$suffix.csv', headers: headers, rows: rows, shareSubject: zoneLabel);
+    }
+  } catch (_) {
+    messenger.showSnackBar(SnackBar(content: Text(s('exportError'))));
+  }
+}
 
 class WellsListScreen extends ConsumerStatefulWidget {
   const WellsListScreen({super.key});
@@ -75,12 +136,24 @@ class _WellsListScreenState extends ConsumerState<WellsListScreen> {
                       for (final groupName in groupNames) ...[
                         Padding(
                           padding: const EdgeInsets.fromLTRB(4, 12, 4, 8),
-                          child: Text(
-                            groupName,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleSmall
-                                ?.copyWith(fontWeight: FontWeight.w800, color: scheme.onSurfaceVariant),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  groupName,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleSmall
+                                      ?.copyWith(fontWeight: FontWeight.w800, color: scheme.onSurfaceVariant),
+                                ),
+                              ),
+                              IconButton(
+                                tooltip: s('wellsExportZoneTooltip'),
+                                icon: Icon(Icons.ios_share_outlined, size: 18, color: scheme.onSurfaceVariant),
+                                onPressed: () => _exportZone(ref, context, groupName, byGroup[groupName]!),
+                                visualDensity: VisualDensity.compact,
+                              ),
+                            ],
                           ),
                         ),
                         for (final well in byGroup[groupName]!) ...[

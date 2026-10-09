@@ -5,7 +5,9 @@ import 'package:intl/intl.dart';
 
 import '../../../core/auth/auth_providers.dart';
 import '../../../core/data/wells_repository.dart';
+import '../../../core/export/csv_exporter.dart';
 import '../../../core/export/excel_exporter.dart';
+import '../../../core/export/export_format_sheet.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/analysis_type.dart';
 import '../../../core/models/user_role.dart';
@@ -49,14 +51,18 @@ Future<void> exportAlerts(WidgetRef ref, BuildContext context) async {
     return;
   }
 
+  final format = await chooseExportFormat(context, locale);
+  if (format == null) return;
+
   messenger.showSnackBar(SnackBar(content: Text(s('exportStarted'))));
+  final headers = [s('colStatus'), s('colWell'), s('colType'), s('colDate')];
+  final suffix = DateFormat('yyyyMMdd_HHmm').format(today);
   try {
-    final suffix = DateFormat('yyyyMMdd_HHmm').format(today);
-    await ExcelExporter.exportAndShare(
-      fileName: 'alertes_$suffix.xlsx',
-      headers: [s('colStatus'), s('colWell'), s('colType'), s('colDate')],
-      rows: rows,
-    );
+    if (format == ExportFormat.excel) {
+      await ExcelExporter.exportAndShare(fileName: 'alertes_$suffix.xlsx', headers: headers, rows: rows);
+    } else {
+      await CsvExporter.exportAndShare(fileName: 'alertes_$suffix.csv', headers: headers, rows: rows);
+    }
   } catch (_) {
     messenger.showSnackBar(SnackBar(content: Text(s('exportError'))));
   }

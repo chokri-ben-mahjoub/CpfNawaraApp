@@ -79,22 +79,29 @@ flutter build apk --release
     analyses faites) + liste des occurrences manquantes (type + date
     attendue) — une occurrence compte comme faite si une valeur a été saisie
     le jour même où elle était due
-- **Export Excel** (icône en haut à droite) :
+- **Export Excel ou CSV** (icône en haut à droite — un choix de format est
+  proposé à chaque export) :
   - Tableau de bord → toutes les analyses de la période affichée (jour/
     semaine/mois), tous puits
   - Alertes → les analyses en retard et les dernières valeurs hors seuil
   - Fiche puits → tout l'historique de ce puits
-  - Dans les trois cas, le fichier `.xlsx` généré s'ouvre dans le volet de
-    partage natif (enregistrer, envoyer par mail/WhatsApp...)
+  - Liste des puits → icône par zone, exporte tout l'historique des puits de
+    cette zone
+  - Dans tous les cas, le fichier généré s'ouvre dans le volet de partage
+    natif (enregistrer, envoyer par mail/WhatsApp...)
 - **Liste des puits** (`wells_list_screen.dart`) : recherche, regroupement par
   zone/champ, statut actif/arrêté, progression du jour
 - **Gestion des puits** (Admin, `wells_manage_screen.dart`, Compte → Gestion
   des puits) : ajout/modification/suppression d'un puits (nom, code, zone,
   actif/arrêté) — les zones sont libres, suggérées depuis celles déjà
   utilisées
-- **Statistiques** (onglet dédié, `stats_screen.dart`) : par zone puis par
-  puits, sur 7 jours / 30 jours / tout l'historique — nombre d'analyses
-  saisies, taux de conformité aux seuils, analyses hors seuil
+- **Statistiques** (onglet dédié, `stats_screen.dart`), deux vues :
+  - **Conformité** : par zone puis par puits, sur 7 jours / 30 jours / tout
+    l'historique — nombre d'analyses saisies, taux de conformité aux seuils
+  - **Seuils** : diagramme par puits actif montrant, pour chaque analyse,
+    où se situe la dernière valeur par rapport à son seuil attendu (jauge
+    horizontale, vert = dans la plage, rouge = hors seuil) — vue d'ensemble
+    sans historique, juste l'état actuel
 - **Fiche puits** (`well_detail_screen.dart`) : carte **Production** (débits
   huile/gaz/eau, dernières valeurs + courbes superposées sur 30 jours),
   dernières valeurs par type d'analyse (avec alerte visuelle hors seuil) +
