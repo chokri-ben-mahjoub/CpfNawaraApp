@@ -20,11 +20,14 @@ import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/intervention.dart';
 import '../../../core/models/user_role.dart';
 import '../../../core/notifications/reminder_service.dart';
+import '../../../core/plant/plant_repository.dart';
 import '../../../core/platform/app_platform.dart';
 import '../../../core/settings/app_settings.dart';
 import '../../../core/settings/startup_tasks.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/units/unit_system.dart';
 import '../../../core/widgets/filter_pills.dart';
+import 'sync_section.dart';
 import '../../../core/widgets/responsive.dart';
 
 /// Réglages de l'app : profil, apparence, sécurité, sauvegarde, rappels,
@@ -45,6 +48,12 @@ class SettingsScreen extends ConsumerWidget {
         children: [
           const _ProfileSection(),
           const SizedBox(height: 16),
+          SectionCard(
+            title: s('settingsTeam'),
+            icon: Icons.cloud_sync_outlined,
+            children: const [SyncSettingsContent()],
+          ),
+          const SizedBox(height: 16),
           const _AppearanceSection(),
           const SizedBox(height: 16),
           const _SecuritySection(),
@@ -57,18 +66,14 @@ class SettingsScreen extends ConsumerWidget {
           if (role.canConfigure) ...[
             const SizedBox(height: 16),
             SectionCard(
-              title: s('settingsConfiguration'),
-              icon: Icons.tune,
+              title: s('adminTitle'),
+              icon: Icons.admin_panel_settings_outlined,
               children: [
                 _NavTile(
-                  icon: Icons.water_drop_outlined,
-                  title: s('wellsManageTitle'),
-                  onTap: () => context.push('/admin/wells'),
-                ),
-                _NavTile(
-                  icon: Icons.rule,
-                  title: s('accountAdminSettings'),
-                  onTap: () => context.push('/admin/analysis-types'),
+                  icon: Icons.dashboard_customize_outlined,
+                  title: s('adminOpen'),
+                  subtitle: s('adminOpenHint'),
+                  onTap: () => context.push('/admin'),
                 ),
               ],
             ),
@@ -139,8 +144,40 @@ class _ProfileSection extends ConsumerWidget {
             TextButton(onPressed: profile == null ? null : () => _editProfile(context, ref), child: Text(s('edit'))),
           ],
         ),
+        const SizedBox(height: 4),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            style: TextButton.styleFrom(foregroundColor: scheme.error, padding: EdgeInsets.zero),
+            onPressed: () => _resetProfile(context, ref),
+            icon: const Icon(Icons.logout, size: 18),
+            label: Text(s('logout')),
+          ),
+        ),
       ],
     );
+  }
+
+  Future<void> _resetProfile(BuildContext context, WidgetRef ref) async {
+    final locale = ref.read(localeProvider);
+    String s(String key) => tr(locale, key);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(s('logout')),
+        content: Text(s('settingsResetProfileBody')),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: Text(s('cancel'))),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Theme.of(dialogContext).colorScheme.error),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(s('logout')),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) await ref.read(authServiceProvider).signOut();
   }
 
   Future<void> _editProfile(BuildContext context, WidgetRef ref) async {
@@ -263,6 +300,24 @@ class _AppearanceSection extends ConsumerWidget {
         ),
         const SizedBox(height: 6),
         _Hint(s('themeAutoHint')),
+        const SizedBox(height: 16),
+        _Label(s('unitsTitle')),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          child: SegmentedButton<UnitSystem>(
+            showSelectedIcon: false,
+            segments: [for (final u in UnitSystem.values) ButtonSegment(value: u, label: Text(s(u.labelKey)))],
+            selected: {ref.watch(appSettingsProvider.select((st) => st.unitSystem))},
+            onSelectionChanged: (set) async {
+              await ref.read(appSettingsProvider.notifier).setUnitSystem(set.first);
+              await ref.read(wellsControllerProvider.notifier).reload();
+              await ref.read(plantControllerProvider.notifier).reload();
+            },
+          ),
+        ),
+        const SizedBox(height: 6),
+        _Hint(s('unitsHint')),
         const SizedBox(height: 16),
         _Label(s('languageLabel')),
         const SizedBox(height: 8),
@@ -473,7 +528,10 @@ class _BackupSectionState extends ConsumerState<_BackupSection> {
       );
       await ref.read(appSettingsProvider.notifier).markBackupDone(automatic: false);
       messenger.showSnackBar(
-        SnackBar(duration: const Duration(seconds: 6), content: Text('${s(isWeb ? 'backupDownloaded' : 'backupSaved')}\n${file.fileName}')),
+        SnackBar(
+          duration: const Duration(seconds: 6),
+          content: Text('${s(isWeb ? 'backupDownloaded' : 'backupSaved')}\n${file.fileName}'),
+        ),
       );
     } catch (_) {
       messenger.showSnackBar(SnackBar(content: Text(s('backupFailed'))));
@@ -483,10 +541,9 @@ class _BackupSectionState extends ConsumerState<_BackupSection> {
   Future<void> _share() => _run(() async {
     final messenger = ScaffoldMessenger.of(context);
     try {
-      final result = await shareFiles(
-        [ShareableFile(BackupService.fileName(DateTime.now()), backupMimeType, await BackupService.encode())],
-        subject: s('backupShareSubject'),
-      );
+      final result = await shareFiles([
+        ShareableFile(BackupService.fileName(DateTime.now()), backupMimeType, await BackupService.encode()),
+      ], subject: s('backupShareSubject'));
       if (result.status != ShareResultStatus.dismissed) {
         await ref.read(appSettingsProvider.notifier).markBackupDone(automatic: false);
       }
@@ -562,6 +619,7 @@ class _BackupSectionState extends ConsumerState<_BackupSection> {
         }
         await BackupService.restore(payload);
         await ref.read(wellsControllerProvider.notifier).reload();
+        await ref.read(plantControllerProvider.notifier).reload();
         await refreshReminders(ref);
         messenger.showSnackBar(SnackBar(content: Text(s('backupRestored'))));
       } catch (_) {
@@ -731,23 +789,23 @@ class _DataSection extends ConsumerWidget {
           ],
         ),
         if (!isWeb) ...[
-        const SizedBox(height: 10),
-        FutureBuilder<int>(
-          future: () async {
-            final path = await LocalDatabase.instance.path;
-            final file = File(path);
-            return await file.exists() ? await file.length() : 0;
-          }(),
-          builder: (context, snapshot) {
-            final bytes = snapshot.data;
-            final size = bytes == null
-                ? '…'
-                : bytes < 1024 * 1024
-                ? '${(bytes / 1024).toStringAsFixed(0)} Ko'
-                : '${(bytes / 1024 / 1024).toStringAsFixed(1)} Mo';
-            return _Hint('${s('settingsDbSize')} : $size');
-          },
-        ),
+          const SizedBox(height: 10),
+          FutureBuilder<int>(
+            future: () async {
+              final path = await LocalDatabase.instance.path;
+              final file = File(path);
+              return await file.exists() ? await file.length() : 0;
+            }(),
+            builder: (context, snapshot) {
+              final bytes = snapshot.data;
+              final size = bytes == null
+                  ? '…'
+                  : bytes < 1024 * 1024
+                  ? '${(bytes / 1024).toStringAsFixed(0)} Ko'
+                  : '${(bytes / 1024 / 1024).toStringAsFixed(1)} Mo';
+              return _Hint('${s('settingsDbSize')} : $size');
+            },
+          ),
         ],
       ],
     );

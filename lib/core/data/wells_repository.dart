@@ -9,6 +9,7 @@ import '../models/analysis_record.dart';
 import '../models/analysis_type.dart';
 import '../models/intervention.dart';
 import '../models/well.dart';
+import '../units/unit_system.dart';
 import 'local_database.dart';
 
 /// État courant du périmètre "puits / types d'analyse / analyses", reflet de
@@ -19,27 +20,32 @@ class WellsState {
   final List<AnalysisRecord> records;
   final List<Intervention> interventions;
 
+  /// Faux tant que la base locale n'a pas encore été lue (écrans en
+  /// squelette pendant le chargement).
+  final bool ready;
+
   const WellsState({
     required this.wells,
     required this.analysisTypes,
     required this.records,
     this.interventions = const [],
+    this.ready = true,
   });
 
-  static const empty = WellsState(wells: [], analysisTypes: [], records: []);
+  static const empty = WellsState(wells: [], analysisTypes: [], records: [], ready: false);
 
   WellsState copyWith({
     List<Well>? wells,
     List<AnalysisType>? analysisTypes,
     List<AnalysisRecord>? records,
     List<Intervention>? interventions,
-  }) =>
-      WellsState(
-        wells: wells ?? this.wells,
-        analysisTypes: analysisTypes ?? this.analysisTypes,
-        records: records ?? this.records,
-        interventions: interventions ?? this.interventions,
-      );
+  }) => WellsState(
+    wells: wells ?? this.wells,
+    analysisTypes: analysisTypes ?? this.analysisTypes,
+    records: records ?? this.records,
+    interventions: interventions ?? this.interventions,
+    ready: ready,
+  );
 }
 
 enum DailyStatus { done, pending, overdue }
@@ -117,7 +123,11 @@ class WellsController extends StateNotifier<WellsState> {
     final db = await LocalDatabase.instance.database;
     final wells = (await db.query('wells')).map(_wellFromRow).toList();
     final types = (await db.query('analysis_types')).map(_typeFromRow).toList();
-    final records = (await db.query('analysis_records')).map(_recordFromRow).toList();
+    // Valeurs affichées dans le système d'unités choisi (base toujours en SI).
+    final storedUnits = {for (final t in types) t.id: t.storedUnit};
+    final records = (await db.query('analysis_records'))
+        .map((row) => _recordFromRow(row, storedUnits[row['type_id']]))
+        .toList();
     final interventions = (await db.query('interventions')).map(_interventionFromRow).toList();
     state = WellsState(wells: wells, analysisTypes: types, records: records, interventions: interventions);
     if (!_loaded.isCompleted) _loaded.complete();
@@ -171,8 +181,9 @@ class WellsController extends StateNotifier<WellsState> {
     if (last != null && last.isSameDay(today)) return DailyStatus.done;
 
     final type = typeById(typeId);
-    final daysSinceLast =
-        last == null ? 999 : today.difference(DateTime(last.dateTime.year, last.dateTime.month, last.dateTime.day)).inDays;
+    final daysSinceLast = last == null
+        ? 999
+        : today.difference(DateTime(last.dateTime.year, last.dateTime.month, last.dateTime.day)).inDays;
     return daysSinceLast > type.graceDays ? DailyStatus.overdue : DailyStatus.pending;
   }
 
@@ -230,6 +241,23 @@ class WellsController extends StateNotifier<WellsState> {
     return PeriodProgress(done: done, total: total, missing: missing);
   }
 
+  /// Après une écriture locale : relit la base et prévient la
+  /// synchronisation qu'il y a des changements à envoyer.
+  Future<void> _afterWrite() async {
+    await _load();
+    LocalDatabase.instance.notifyChange();
+  }
+
+  /// Supprime des lignes en notant chaque suppression (propagée ensuite aux
+  /// autres appareils par la synchronisation).
+  Future<void> _deleteTracked(DatabaseExecutor db, String table, String where, List<Object?> args) async {
+    final rows = await db.query(table, columns: ['id'], where: where, whereArgs: args);
+    for (final row in rows) {
+      await LocalDatabase.recordDeletion(db, table, row['id'] as String);
+    }
+    await db.delete(table, where: where, whereArgs: args);
+  }
+
   /// Ajoute (ou remplace, si [replaceId] est fourni) un enregistrement.
   Future<void> addRecord({
     required String wellId,
@@ -245,38 +273,51 @@ class WellsController extends StateNotifier<WellsState> {
     final db = await LocalDatabase.instance.database;
     await db.insert(
       'analysis_records',
-      {
+      LocalDatabase.stamp({
         'id': id,
         'well_id': wellId,
         'type_id': typeId,
-        'value': value,
+        'value': _toSi(typeId, value),
         'service_key': serviceKey,
         'operator_name': operatorName,
         'operator_id': operatorId,
         'comment': comment,
         'recorded_at': DateTime.now().toIso8601String(),
-      },
+      }),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
-    await _load();
+    await _afterWrite();
   }
 
-  /// Ajoute un nouveau type d'analyse au catalogue (paramétrage Admin).
+  /// Valeur saisie (unité affichée) ramenée en SI pour la base.
+  double _toSi(String typeId, double value) {
+    final type = findType(typeId);
+    return type == null ? value : Units.toSi(value, type.storedUnit);
+  }
+
+  /// Ajoute un nouveau type d'analyse au catalogue (paramétrage Admin). Les
+  /// seuils sont donnés dans l'unité affichée ; l'unité et les seuils sont
+  /// enregistrés en SI.
   Future<void> addAnalysisType(AnalysisType type) async {
     final db = await LocalDatabase.instance.database;
+    final existing = findType(type.id);
+    final storedUnit = existing != null && existing.unit == type.unit
+        ? existing.storedUnit
+        : Units.siUnitFor(type.unit);
+    final (min, max) = Units.rangeToSi(type.min, type.max, storedUnit);
     await db.insert(
       'analysis_types',
-      {
+      LocalDatabase.stamp({
         'id': type.id,
         'label': type.label,
-        'unit': type.unit,
-        'min_value': type.min,
-        'max_value': type.max,
+        'unit': storedUnit,
+        'min_value': min,
+        'max_value': max,
         'frequency': type.frequency.storageKey,
-      },
+      }),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
-    await _load();
+    await _afterWrite();
   }
 
   /// Met à jour un type d'analyse existant (unité, seuils, fréquence).
@@ -287,9 +328,9 @@ class WellsController extends StateNotifier<WellsState> {
   /// orphelines et feraient planter les écrans qui résolvent un type par id.
   Future<void> deleteAnalysisType(String typeId) async {
     final db = await LocalDatabase.instance.database;
-    await db.delete('analysis_records', where: 'type_id = ?', whereArgs: [typeId]);
-    await db.delete('analysis_types', where: 'id = ?', whereArgs: [typeId]);
-    await _load();
+    await _deleteTracked(db, 'analysis_records', 'type_id = ?', [typeId]);
+    await _deleteTracked(db, 'analysis_types', 'id = ?', [typeId]);
+    await _afterWrite();
   }
 
   /// Met à jour une analyse déjà enregistrée (valeur, service, commentaire),
@@ -302,20 +343,28 @@ class WellsController extends StateNotifier<WellsState> {
     String? comment,
   }) async {
     final db = await LocalDatabase.instance.database;
+    String? typeId;
+    for (final r in state.records) {
+      if (r.id == recordId) typeId = r.typeId;
+    }
     await db.update(
       'analysis_records',
-      {'value': value, 'service_key': serviceKey, 'comment': comment},
+      LocalDatabase.stamp({
+        'value': typeId == null ? value : _toSi(typeId, value),
+        'service_key': serviceKey,
+        'comment': comment,
+      }),
       where: 'id = ?',
       whereArgs: [recordId],
     );
-    await _load();
+    await _afterWrite();
   }
 
   /// Supprime une analyse enregistrée (ex: saisie en double ou erronée).
   Future<void> deleteRecord(String recordId) async {
     final db = await LocalDatabase.instance.database;
-    await db.delete('analysis_records', where: 'id = ?', whereArgs: [recordId]);
-    await _load();
+    await _deleteTracked(db, 'analysis_records', 'id = ?', [recordId]);
+    await _afterWrite();
   }
 
   /// Total journalier (somme sur tous les puits actifs) d'un type d'analyse
@@ -352,55 +401,74 @@ class WellsController extends StateNotifier<WellsState> {
     required bool active,
     required String group,
     double? reservoirPressure,
+    String type = '',
+    WellStatus? status,
+    double? latitude,
+    double? longitude,
   }) async {
     final db = await LocalDatabase.instance.database;
+    final st = status ?? (active ? WellStatus.producing : WellStatus.shutIn);
     await db.insert(
       'wells',
-      {
+      LocalDatabase.stamp({
         'id': _uuid.v4(),
         'code': code,
         'name': name,
-        'active': active ? 1 : 0,
+        'active': st.isActive ? 1 : 0,
         'group_name': group,
-        'reservoir_pressure': reservoirPressure,
-      },
+        'reservoir_pressure': Units.toSiOrNull(reservoirPressure, 'bar'),
+        'well_type': type,
+        'status': st.storageKey,
+        'latitude': latitude,
+        'longitude': longitude,
+      }),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
-    await _load();
+    await _afterWrite();
   }
 
-  /// Met à jour un puits existant (nom, code, groupe, statut actif/arrêté).
+  /// Met à jour un puits existant (nom, code, champ, type, statut,
+  /// coordonnées). Le statut décide de l'indicateur actif/arrêté.
   Future<void> updateWell(Well updated) async {
     final db = await LocalDatabase.instance.database;
     await db.update(
       'wells',
-      {
+      LocalDatabase.stamp({
         'code': updated.code,
         'name': updated.name,
-        'active': updated.active ? 1 : 0,
+        'active': updated.status.isActive ? 1 : 0,
         'group_name': updated.group,
-        'reservoir_pressure': updated.reservoirPressure,
-      },
+        'reservoir_pressure': Units.toSiOrNull(updated.reservoirPressure, 'bar'),
+        'well_type': updated.type,
+        'status': updated.status.storageKey,
+        'latitude': updated.latitude,
+        'longitude': updated.longitude,
+      }),
       where: 'id = ?',
       whereArgs: [updated.id],
     );
-    await _load();
+    await _afterWrite();
   }
 
   /// Supprime un puits, tout son historique d'analyses et ses interventions.
   Future<void> deleteWell(String wellId) async {
     final db = await LocalDatabase.instance.database;
-    await db.delete('analysis_records', where: 'well_id = ?', whereArgs: [wellId]);
-    await db.delete('interventions', where: 'well_id = ?', whereArgs: [wellId]);
-    await db.delete('wells', where: 'id = ?', whereArgs: [wellId]);
-    await _load();
+    await _deleteTracked(db, 'analysis_records', 'well_id = ?', [wellId]);
+    await _deleteTracked(db, 'interventions', 'well_id = ?', [wellId]);
+    await _deleteTracked(db, 'wells', 'id = ?', [wellId]);
+    await _afterWrite();
   }
 
   /// Met à jour uniquement la pression de gisement (Pr) d'un puits.
   Future<void> setReservoirPressure(String wellId, double? value) async {
     final db = await LocalDatabase.instance.database;
-    await db.update('wells', {'reservoir_pressure': value}, where: 'id = ?', whereArgs: [wellId]);
-    await _load();
+    await db.update(
+      'wells',
+      LocalDatabase.stamp({'reservoir_pressure': Units.toSiOrNull(value, 'bar')}),
+      where: 'id = ?',
+      whereArgs: [wellId],
+    );
+    await _afterWrite();
   }
 
   /// Interventions d'un puits, de la plus récente à la plus ancienne.
@@ -425,7 +493,7 @@ class WellsController extends StateNotifier<WellsState> {
     final day = DateTime(intervention.date.year, intervention.date.month, intervention.date.day);
     await db.insert(
       'interventions',
-      {
+      LocalDatabase.stamp({
         'id': id,
         'well_id': intervention.wellId,
         'intervention_date': day.toIso8601String(),
@@ -436,16 +504,16 @@ class WellsController extends StateNotifier<WellsState> {
         'description': intervention.description,
         'operator_name': intervention.operatorName,
         'created_at': DateTime.now().toIso8601String(),
-      },
+      }),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
-    await _load();
+    await _afterWrite();
   }
 
   Future<void> deleteIntervention(String id) async {
     final db = await LocalDatabase.instance.database;
-    await db.delete('interventions', where: 'id = ?', whereArgs: [id]);
-    await _load();
+    await _deleteTracked(db, 'interventions', 'id = ?', [id]);
+    await _afterWrite();
   }
 
   /// Statistiques par puits sur une période, regroupées par zone/champ —
@@ -456,8 +524,9 @@ class WellsController extends StateNotifier<WellsState> {
     final byGroup = <String, List<WellStats>>{};
 
     for (final well in state.wells) {
-      final recordsInRange = state.records.where((r) =>
-          r.wellId == well.id && !r.dateTime.isBefore(startDay) && !r.dateTime.isAfter(endDay));
+      final recordsInRange = state.records.where(
+        (r) => r.wellId == well.id && !r.dateTime.isBefore(startDay) && !r.dateTime.isAfter(endDay),
+      );
       var outOfRange = 0;
       var total = 0;
       for (final record in recordsInRange) {
@@ -481,46 +550,64 @@ class WellsController extends StateNotifier<WellsState> {
   }
 }
 
-Well _wellFromRow(Map<String, Object?> row) => Well(
-      id: row['id'] as String,
-      code: row['code'] as String,
-      name: row['name'] as String,
-      active: (row['active'] as int) == 1,
-      group: row['group_name'] as String? ?? '',
-      reservoirPressure: (row['reservoir_pressure'] as num?)?.toDouble(),
-    );
+Well _wellFromRow(Map<String, Object?> row) {
+  final active = (row['active'] as num?) != 0;
+  return Well(
+    id: row['id'] as String,
+    code: row['code'] as String,
+    name: row['name'] as String,
+    active: active,
+    group: row['group_name'] as String? ?? '',
+    reservoirPressure: Units.displayOrNull((row['reservoir_pressure'] as num?)?.toDouble(), 'bar'),
+    type: row['well_type'] as String? ?? '',
+    status: WellStatusX.fromStorage(row['status'] as String?, active: active),
+    latitude: (row['latitude'] as num?)?.toDouble(),
+    longitude: (row['longitude'] as num?)?.toDouble(),
+  );
+}
 
-AnalysisType _typeFromRow(Map<String, Object?> row) => AnalysisType(
-      id: row['id'] as String,
-      label: row['label'] as String,
-      unit: row['unit'] as String,
-      min: (row['min_value'] as num).toDouble(),
-      max: (row['max_value'] as num).toDouble(),
-      frequency: AnalysisFrequencyX.fromStorageKey(row['frequency'] as String),
-    );
+AnalysisType _typeFromRow(Map<String, Object?> row) {
+  final storedUnit = row['unit'] as String;
+  final (min, max) = Units.range(
+    (row['min_value'] as num).toDouble(),
+    (row['max_value'] as num).toDouble(),
+    storedUnit,
+  );
+  return AnalysisType(
+    id: row['id'] as String,
+    label: row['label'] as String,
+    unit: Units.unit(storedUnit),
+    min: min,
+    max: max,
+    frequency: AnalysisFrequencyX.fromStorageKey(row['frequency'] as String),
+    storedUnit: storedUnit,
+  );
+}
 
-AnalysisRecord _recordFromRow(Map<String, Object?> row) => AnalysisRecord(
-      id: row['id'] as String,
-      wellId: row['well_id'] as String,
-      typeId: row['type_id'] as String,
-      value: (row['value'] as num).toDouble(),
-      serviceKey: row['service_key'] as String,
-      operatorName: row['operator_name'] as String,
-      operatorId: row['operator_id'] as String?,
-      dateTime: DateTime.parse(row['recorded_at'] as String),
-      comment: row['comment'] as String?,
-    );
+AnalysisRecord _recordFromRow(Map<String, Object?> row, String? storedUnit) => AnalysisRecord(
+  id: row['id'] as String,
+  wellId: row['well_id'] as String,
+  typeId: row['type_id'] as String,
+  value: storedUnit == null
+      ? (row['value'] as num).toDouble()
+      : Units.display((row['value'] as num).toDouble(), storedUnit),
+  serviceKey: row['service_key'] as String,
+  operatorName: row['operator_name'] as String,
+  operatorId: row['operator_id'] as String?,
+  dateTime: DateTime.parse(row['recorded_at'] as String),
+  comment: row['comment'] as String?,
+);
 
 Intervention _interventionFromRow(Map<String, Object?> row) => Intervention(
-      id: row['id'] as String,
-      wellId: row['well_id'] as String,
-      date: DateTime.parse(row['intervention_date'] as String),
-      typeKey: row['type_key'] as String,
-      cost: (row['cost'] as num?)?.toDouble(),
-      currency: row['currency'] as String? ?? 'TND',
-      resultKey: row['result_key'] as String,
-      description: row['description'] as String?,
-      operatorName: row['operator_name'] as String,
-    );
+  id: row['id'] as String,
+  wellId: row['well_id'] as String,
+  date: DateTime.parse(row['intervention_date'] as String),
+  typeKey: row['type_key'] as String,
+  cost: (row['cost'] as num?)?.toDouble(),
+  currency: row['currency'] as String? ?? 'TND',
+  resultKey: row['result_key'] as String,
+  description: row['description'] as String?,
+  operatorName: row['operator_name'] as String,
+);
 
 final wellsControllerProvider = StateNotifierProvider<WellsController, WellsState>((ref) => WellsController());

@@ -11,6 +11,7 @@ import '../../../core/filters/well_filter.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/user_role.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/units/unit_system.dart';
 import '../../../core/widgets/filter_pills.dart';
 import '../../../core/widgets/series_chart.dart';
 import '../../../core/widgets/responsive.dart';
@@ -42,7 +43,7 @@ Future<void> editReservoirPressure(BuildContext context, WidgetRef ref, String w
               controller: textController,
               autofocus: true,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: InputDecoration(labelText: s('reservoirPressureLabel'), suffixText: 'bar'),
+              decoration: InputDecoration(labelText: s('reservoirPressureLabel'), suffixText: Units.unit('bar')),
               validator: (v) {
                 final text = (v ?? '').trim().replaceAll(',', '.');
                 if (text.isEmpty) return null;

@@ -1,0 +1,97 @@
+// Généré par tool/gen_rules_dart.py à partir de firestore.rules — ne pas
+// modifier à la main (test/admin_test.dart vérifie que les deux sont
+// identiques).
+
+/// Règles de sécurité Firestore à publier dans la console Firebase.
+const firestoreRules = r"""rules_version = '2';
+
+// PuitsTrack — accès selon le rôle de chaque compte (users/{uid}.role) :
+//   admin     : tout, y compris les utilisateurs et le paramétrage ;
+//   ingenieur : analyses (puits + usine) et interventions ;
+//   operateur : analyses (puits + usine) ;
+//   lecteur   : lecture seule.
+// Un compte inactif (actif == false) n'a accès à rien.
+// À publier une seule fois : console Firebase › Firestore › Règles (le texte
+// est copiable depuis l'app : Administration › Projet Firebase).
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+    function userPath(uid) {
+      return /databases/$(database)/documents/users/$(uid);
+    }
+    function setupPath() {
+      return /databases/$(database)/documents/config/setup;
+    }
+    function me() {
+      return get(userPath(request.auth.uid)).data;
+    }
+    function active() {
+      return signedIn() && exists(userPath(request.auth.uid)) && me().actif == true;
+    }
+    function hasRole(roles) {
+      return active() && me().role in roles;
+    }
+    function isAdmin() {
+      return hasRole(['admin']);
+    }
+    function dataTables() {
+      return ['wells', 'analysis_types', 'analysis_records', 'interventions',
+              'sample_points', 'plant_analyses', 'plant_thresholds', 'app_config'];
+    }
+
+    // Installation : le premier compte du projet devient administrateur.
+    match /config/setup {
+      allow get: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && getAfter(userPath(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Sonde de version des règles (document jamais créé) : l'app vérifie
+    // ainsi que ces règles sont bien publiées.
+    match /config/rules_v2 {
+      allow get: if signedIn();
+    }
+
+    // Membres de l'équipe : email, nom, role, actif.
+    match /users/{uid} {
+      allow get: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isAdmin()
+        || (signedIn() && request.auth.uid == uid && (
+              // premier administrateur (même écriture groupée que config/setup)
+              (!exists(setupPath())
+                && getAfter(setupPath()).data.ownerUid == uid
+                && request.resource.data.role == 'admin'
+                && request.resource.data.actif == true)
+              // demande d'accès, à valider par un administrateur
+              || (request.resource.data.role == 'lecteur'
+                && request.resource.data.actif == false
+                && request.resource.data.demande == true)));
+      allow update: if isAdmin()
+        || (active() && request.auth.uid == uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nom', 'updatedAt']));
+      allow delete: if isAdmin();
+    }
+
+    // Données (une collection par table de la base locale de l'app).
+    match /{table}/{id} {
+      allow read: if active() && table in dataTables();
+      allow write: if table in dataTables() && (
+        isAdmin()
+        || (hasRole(['ingenieur']) && table in ['analysis_records', 'plant_analyses', 'interventions'])
+        || (hasRole(['operateur']) && table in ['analysis_records', 'plant_analyses']));
+    }
+
+    // Journal d'audit : ajout seulement, lu par les administrateurs.
+    match /audit/{id} {
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && getAfter(userPath(request.auth.uid)).data.actif == true;
+      allow read: if isAdmin();
+    }
+  }
+}
+""";

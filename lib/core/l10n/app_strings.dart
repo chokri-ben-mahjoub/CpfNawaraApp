@@ -21,19 +21,15 @@ const serviceKeys = [
 
 final _strings = <String, Map<String, String>>{
   'appName': {'fr': 'PuitsTrack', 'en': 'PuitsTrack'},
-  'appTagline': {
-    'fr': 'Suivi quotidien des analyses de puits',
-    'en': 'Daily well analysis tracking',
-  },
-  'onboardingTitle': {
-    'fr': 'Bienvenue sur PuitsTrack',
-    'en': 'Welcome to PuitsTrack',
-  },
+  'appTagline': {'fr': 'Suivi quotidien des analyses de puits', 'en': 'Daily well analysis tracking'},
+  'onboardingTitle': {'fr': 'Bienvenue sur PuitsTrack', 'en': 'Welcome to PuitsTrack'},
   'onboardingBody': {
-    'fr': 'Suivez les analyses quotidiennes de chaque puits (BSW, salinité, '
+    'fr':
+        'Suivez les analyses quotidiennes de chaque puits (BSW, salinité, '
         'H2S, pression...), par service, avec alertes de seuil et rappels '
         'automatiques en cas de retard.',
-    'en': 'Track daily analyses for every well (BSW, salinity, H2S, '
+    'en':
+        'Track daily analyses for every well (BSW, salinity, H2S, '
         'pressure...), by service, with threshold alerts and automatic '
         'reminders when something is overdue.',
   },
@@ -61,16 +57,10 @@ final _strings = <String, Map<String, String>>{
   },
   'signupNameLabel': {'fr': 'Nom et prénom', 'en': 'Full name'},
   'signupNameHint': {'fr': 'Ex: Ahmed Ben Salah', 'en': 'e.g. John Smith'},
-  'signupInvalidName': {
-    'fr': 'Veuillez saisir votre nom complet.',
-    'en': 'Please enter your full name.',
-  },
+  'signupInvalidName': {'fr': 'Veuillez saisir votre nom complet.', 'en': 'Please enter your full name.'},
   'signupServiceLabel': {'fr': 'Service', 'en': 'Department'},
   'signupServiceHint': {'fr': 'Sélectionner un service', 'en': 'Select a department'},
-  'signupInvalidService': {
-    'fr': 'Veuillez sélectionner votre service.',
-    'en': 'Please select your department.',
-  },
+  'signupInvalidService': {'fr': 'Veuillez sélectionner votre service.', 'en': 'Please select your department.'},
   'serviceLaboratoire': {'fr': 'Laboratoire', 'en': 'Laboratory'},
   'serviceProduction': {'fr': 'Production', 'en': 'Production'},
   'serviceExploitation': {'fr': 'Exploitation', 'en': 'Operations'},
@@ -79,10 +69,7 @@ final _strings = <String, Map<String, String>>{
   'signupPhoneLabel': {'fr': 'Téléphone (optionnel)', 'en': 'Phone (optional)'},
   'phoneHint': {'fr': '00 000 000', 'en': '00 000 000'},
   'signupPasswordLabel': {'fr': 'Mot de passe', 'en': 'Password'},
-  'signupInvalidPassword': {
-    'fr': '8 caractères minimum.',
-    'en': 'At least 8 characters.',
-  },
+  'signupInvalidPassword': {'fr': '8 caractères minimum.', 'en': 'At least 8 characters.'},
   'signupSubmit': {'fr': 'Continuer', 'en': 'Continue'},
   'pinSetupTitle': {'fr': 'Créez votre code', 'en': 'Create your code'},
   'pinSetupSubtitle': {
@@ -90,20 +77,14 @@ final _strings = <String, Map<String, String>>{
     'en': 'This 4-digit code will let you quickly unlock the app every time you open it.',
   },
   'pinSetupConfirmTitle': {'fr': 'Confirmez votre code', 'en': 'Confirm your code'},
-  'pinSetupConfirmSubtitle': {
-    'fr': 'Saisissez à nouveau le même code.',
-    'en': 'Enter the same code again.',
-  },
+  'pinSetupConfirmSubtitle': {'fr': 'Saisissez à nouveau le même code.', 'en': 'Enter the same code again.'},
   'pinMismatch': {
     'fr': 'Les deux codes ne correspondent pas, réessayez.',
     'en': 'The two codes do not match, try again.',
   },
   'unlockTitle': {'fr': 'Bon retour', 'en': 'Welcome back'},
   'unlockSubtitle': {'fr': 'Entrez votre code pour continuer', 'en': 'Enter your code to continue'},
-  'unlockBiometricReason': {
-    'fr': 'Déverrouillez PuitsTrack',
-    'en': 'Unlock PuitsTrack',
-  },
+  'unlockBiometricReason': {'fr': 'Déverrouillez PuitsTrack', 'en': 'Unlock PuitsTrack'},
   'unlockWrongPin': {'fr': 'Code incorrect, réessayez.', 'en': 'Incorrect code, try again.'},
   'unlockForgotPin': {'fr': 'Code oublié ? En créer un nouveau', 'en': 'Forgot your code? Create a new one'},
   'unlockForgotPinConfirmTitle': {'fr': 'Créer un nouveau code ?', 'en': 'Create a new code?'},
@@ -168,17 +149,11 @@ final _strings = <String, Map<String, String>>{
   // Tableau de bord du jour
   'dashboardTitle': {'fr': "Aujourd'hui", 'en': 'Today'},
   'dashboardGreeting': {'fr': 'Bonjour', 'en': 'Hello'},
-  'dashboardSummary': {
-    'fr': 'Suivi des analyses du jour, par puits.',
-    'en': 'Today\'s analysis tracking, by well.',
-  },
+  'dashboardSummary': {'fr': 'Suivi des analyses du jour, par puits.', 'en': 'Today\'s analysis tracking, by well.'},
   'dashboardDone': {'fr': 'Fait', 'en': 'Done'},
   'dashboardPending': {'fr': 'À faire', 'en': 'Pending'},
   'dashboardOverdue': {'fr': 'En retard', 'en': 'Overdue'},
-  'dashboardEmpty': {
-    'fr': 'Aucune analyse prévue aujourd\'hui.',
-    'en': 'No analysis scheduled today.',
-  },
+  'dashboardEmpty': {'fr': 'Aucune analyse prévue aujourd\'hui.', 'en': 'No analysis scheduled today.'},
   'dashboardDoneBy': {'fr': 'par', 'en': 'by'},
   'dashboardAllDone': {
     'fr': 'Toutes les analyses du jour sont faites 🎉',
@@ -206,24 +181,15 @@ final _strings = <String, Map<String, String>>{
   'dashboardMissingExpectedOn': {'fr': 'attendue le', 'en': 'expected on'},
   'exportTooltip': {'fr': 'Exporter', 'en': 'Export'},
   'exportStarted': {'fr': 'Préparation du fichier...', 'en': 'Preparing the file...'},
-  'exportEmpty': {
-    'fr': 'Rien à exporter pour le moment.',
-    'en': 'Nothing to export right now.',
-  },
-  'exportError': {
-    'fr': 'L\'export a échoué. Réessayez.',
-    'en': 'Export failed. Please try again.',
-  },
+  'exportEmpty': {'fr': 'Rien à exporter pour le moment.', 'en': 'Nothing to export right now.'},
+  'exportError': {'fr': 'L\'export a échoué. Réessayez.', 'en': 'Export failed. Please try again.'},
   'exportFormatExcel': {'fr': 'Excel (.xlsx)', 'en': 'Excel (.xlsx)'},
   'exportFormatExcelHint': {
     'fr': 'Une feuille par thème, s\'ouvre dans Excel ou Sheets.',
     'en': 'One sheet per topic, opens in Excel or Sheets.',
   },
   'exportFormatCsv': {'fr': 'CSV (.csv)', 'en': 'CSV (.csv)'},
-  'exportFormatCsvHint': {
-    'fr': 'Texte simple, un fichier par thème.',
-    'en': 'Plain text, one file per topic.',
-  },
+  'exportFormatCsvHint': {'fr': 'Texte simple, un fichier par thème.', 'en': 'Plain text, one file per topic.'},
   'wellsExportZoneTooltip': {'fr': 'Exporter cette zone', 'en': 'Export this zone'},
   'colDate': {'fr': 'Date', 'en': 'Date'},
   'colWell': {'fr': 'Puits', 'en': 'Well'},
@@ -247,15 +213,9 @@ final _strings = <String, Map<String, String>>{
   'entryInvalidType': {'fr': 'Veuillez choisir un type.', 'en': 'Please choose a type.'},
   'entryValueLabel': {'fr': 'Valeur', 'en': 'Value'},
   'entryValueHint': {'fr': 'Ex: 12.5', 'en': 'e.g. 12.5'},
-  'entryInvalidValue': {
-    'fr': 'Veuillez saisir une valeur numérique.',
-    'en': 'Please enter a numeric value.',
-  },
+  'entryInvalidValue': {'fr': 'Veuillez saisir une valeur numérique.', 'en': 'Please enter a numeric value.'},
   'entryServiceLabel': {'fr': 'Service', 'en': 'Department'},
-  'entryInvalidService': {
-    'fr': 'Veuillez choisir un service.',
-    'en': 'Please choose a department.',
-  },
+  'entryInvalidService': {'fr': 'Veuillez choisir un service.', 'en': 'Please choose a department.'},
   'entryCommentLabel': {'fr': 'Commentaire (optionnel)', 'en': 'Comment (optional)'},
   'entrySave': {'fr': 'Enregistrer', 'en': 'Save'},
   'recordDelete': {'fr': 'Supprimer cette analyse', 'en': 'Delete this analysis'},
@@ -276,10 +236,7 @@ final _strings = <String, Map<String, String>>{
     'en': 'The entered value is outside the expected range for this parameter. Confirm?',
   },
   'entrySuccessTitle': {'fr': 'Analyse enregistrée', 'en': 'Analysis saved'},
-  'entrySuccessBody': {
-    'fr': 'La valeur a bien été enregistrée.',
-    'en': 'The value has been saved.',
-  },
+  'entrySuccessBody': {'fr': 'La valeur a bien été enregistrée.', 'en': 'The value has been saved.'},
   'close': {'fr': 'Fermer', 'en': 'Close'},
   'cancel': {'fr': 'Annuler', 'en': 'Cancel'},
   'confirm': {'fr': 'Confirmer', 'en': 'Confirm'},
@@ -289,10 +246,7 @@ final _strings = <String, Map<String, String>>{
   'trendThreshold': {'fr': 'Seuil attendu', 'en': 'Expected range'},
   'trendCompareWith': {'fr': 'Comparer avec', 'en': 'Compare with'},
   'trendCompareNone': {'fr': 'Aucune comparaison', 'en': 'No comparison'},
-  'trendNoData': {
-    'fr': 'Pas encore assez de valeurs pour une courbe.',
-    'en': 'Not enough values yet for a chart.',
-  },
+  'trendNoData': {'fr': 'Pas encore assez de valeurs pour une courbe.', 'en': 'Not enough values yet for a chart.'},
   'trendLatest': {'fr': 'Dernière valeur', 'en': 'Latest value'},
   'trendVsPrevious': {'fr': 'vs précédente', 'en': 'vs previous'},
   'trendUp': {'fr': 'en hausse', 'en': 'rising'},
@@ -373,7 +327,7 @@ final _strings = <String, Map<String, String>>{
   'wellsManageCodeLabel': {'fr': 'Code', 'en': 'Code'},
   'wellsManageCodeHint': {'fr': 'Ex: PN-03', 'en': 'e.g. PN-03'},
   'wellsManageInvalidCode': {'fr': 'Veuillez saisir un code.', 'en': 'Please enter a code.'},
-  'wellsManageGroupLabel': {'fr': 'Groupe / Zone', 'en': 'Group / Zone'},
+  'wellsManageGroupLabel': {'fr': 'Champ / zone', 'en': 'Field / zone'},
   'wellsManageGroupHint': {'fr': 'Ex: Zone Nord', 'en': 'e.g. North Zone'},
   'wellsManageActiveLabel': {'fr': 'Puits actif', 'en': 'Active well'},
   'wellsManageSave': {'fr': 'Enregistrer', 'en': 'Save'},
@@ -423,10 +377,7 @@ final _strings = <String, Map<String, String>>{
     'en': 'Saved to Downloads › PuitsTrack',
   },
   'exportActionShare': {'fr': 'Partager', 'en': 'Share'},
-  'exportActionShareHint': {
-    'fr': 'WhatsApp, e-mail, Drive...',
-    'en': 'WhatsApp, email, Drive...',
-  },
+  'exportActionShareHint': {'fr': 'WhatsApp, e-mail, Drive...', 'en': 'WhatsApp, email, Drive...'},
   'exportSavedOne': {
     'fr': 'Fichier enregistré dans Téléchargements › PuitsTrack :',
     'en': 'File saved to Downloads › PuitsTrack:',
@@ -443,9 +394,11 @@ final _strings = <String, Map<String, String>>{
     'en': 'To the browser\'s Downloads folder',
   },
   'exportNoAppToOpen': {
-    'fr': 'Aucune application installée pour ouvrir ce fichier (Excel, Google Sheets, WPS...). '
+    'fr':
+        'Aucune application installée pour ouvrir ce fichier (Excel, Google Sheets, WPS...). '
         'Il reste disponible dans Téléchargements.',
-    'en': 'No installed app can open this file (Excel, Google Sheets, WPS...). '
+    'en':
+        'No installed app can open this file (Excel, Google Sheets, WPS...). '
         'It is still available in Downloads.',
   },
   'exportPermissionDenied': {
@@ -505,9 +458,11 @@ final _strings = <String, Map<String, String>>{
     'en': 'GLR (Gas-Liquid Ratio) = gas rate ÷ (oil rate + water rate), same day.',
   },
   'ratioPiDesc': {
-    'fr': 'PI (indice de productivité) = débit liquide ÷ (Pr − Pwf). Calculé à chaque mesure de la '
+    'fr':
+        'PI (indice de productivité) = débit liquide ÷ (Pr − Pwf). Calculé à chaque mesure de la '
         'pression de fond (Pwf), avec la pression de gisement (Pr) du puits.',
-    'en': 'PI (productivity index) = liquid rate ÷ (Pr − Pwf). Calculated for every bottom-hole '
+    'en':
+        'PI (productivity index) = liquid rate ÷ (Pr − Pwf). Calculated for every bottom-hole '
         'pressure (Pwf) measurement, using the well\'s reservoir pressure (Pr).',
   },
   'ratioMissingInputs': {
@@ -515,18 +470,22 @@ final _strings = <String, Map<String, String>>{
     'en': 'No data yet: this ratio needs rates entered on the same day.',
   },
   'piMissingInputs': {
-    'fr': 'Le PI nécessite la pression de gisement (Pr) du puits et au moins une mesure de '
+    'fr':
+        'Le PI nécessite la pression de gisement (Pr) du puits et au moins une mesure de '
         '"Pression de fond (Pwf)" avec un débit huile saisi à moins de 3 jours.',
-    'en': 'PI needs the well\'s reservoir pressure (Pr) and at least one "Bottom-hole pressure (Pwf)" '
+    'en':
+        'PI needs the well\'s reservoir pressure (Pr) and at least one "Bottom-hole pressure (Pwf)" '
         'measurement with an oil rate entered within 3 days.',
   },
   'piNeedsPr': {'fr': 'Renseigner Pr', 'en': 'Set Pr first'},
   'reservoirPressureTitle': {'fr': 'Pression de gisement', 'en': 'Reservoir pressure'},
   'reservoirPressureLabel': {'fr': 'Pression de gisement (Pr)', 'en': 'Reservoir pressure (Pr)'},
   'reservoirPressureHint': {
-    'fr': 'Valeur issue du dernier test de remontée de pression. Elle sert au calcul de l\'indice de '
+    'fr':
+        'Valeur issue du dernier test de remontée de pression. Elle sert au calcul de l\'indice de '
         'productivité (PI). Laisser vide si inconnue.',
-    'en': 'Value from the latest pressure build-up test. Used to compute the productivity index (PI). '
+    'en':
+        'Value from the latest pressure build-up test. Used to compute the productivity index (PI). '
         'Leave empty if unknown.',
   },
   'reservoirPressureHelper': {
@@ -554,9 +513,11 @@ final _strings = <String, Map<String, String>>{
     'en': 'Not enough rates entered yet to draw a curve.',
   },
   'declineNotEnoughPoints': {
-    'fr': 'Le calcul du déclin nécessite au moins 3 débits positifs, sur au moins 2 jours différents, '
+    'fr':
+        'Le calcul du déclin nécessite au moins 3 débits positifs, sur au moins 2 jours différents, '
         'dans la fenêtre choisie.',
-    'en': 'The decline calculation needs at least 3 positive rates, on at least 2 different days, '
+    'en':
+        'The decline calculation needs at least 3 positive rates, on at least 2 different days, '
         'within the selected window.',
   },
   'declineNotEnoughShort': {'fr': 'Données insuffisantes', 'en': 'Not enough data'},
@@ -568,12 +529,18 @@ final _strings = <String, Map<String, String>>{
   'declinePoints': {'fr': 'Mesures utilisées', 'en': 'Measurements used'},
   'declineFitGood': {'fr': 'bon ajustement', 'en': 'good fit'},
   'declineFitMedium': {'fr': 'ajustement moyen', 'en': 'moderate fit'},
-  'declineFitPoor': {'fr': 'données dispersées, à interpréter avec prudence', 'en': 'scattered data, interpret with care'},
+  'declineFitPoor': {
+    'fr': 'données dispersées, à interpréter avec prudence',
+    'en': 'scattered data, interpret with care',
+  },
   'declineSinceIntervention': {
     'fr': 'Calculé depuis la dernière intervention.',
     'en': 'Calculated since the last intervention.',
   },
-  'declineOnWindow': {'fr': 'Calculé sur la fenêtre de données choisie.', 'en': 'Calculated on the selected data window.'},
+  'declineOnWindow': {
+    'fr': 'Calculé sur la fenêtre de données choisie.',
+    'en': 'Calculated on the selected data window.',
+  },
   'declineForecastTitle': {'fr': 'Prévision (modèle exponentiel)', 'en': 'Forecast (exponential model)'},
   'declineRateIn': {'fr': 'Débit prévu dans', 'en': 'Forecast rate in'},
   'declineCumulative': {'fr': 'Production cumulée prévue sur', 'en': 'Forecast cumulative production over'},
@@ -587,10 +554,12 @@ final _strings = <String, Map<String, String>>{
     'en': 'The limit rate is not reached with the current trend (or is already passed).',
   },
   'declineMethodNote': {
-    'fr': 'Méthode : déclin exponentiel d\'Arps (b = 0), q(t) = qi·e^(−D·t), ajusté par régression '
+    'fr':
+        'Méthode : déclin exponentiel d\'Arps (b = 0), q(t) = qi·e^(−D·t), ajusté par régression '
         'linéaire de ln(q) sur le temps. Déclin effectif = 1 − e^(−D·durée). En mode Auto, le calcul '
         'repart du lendemain de la dernière intervention, qui modifie généralement le comportement du puits.',
-    'en': 'Method: Arps exponential decline (b = 0), q(t) = qi·e^(−D·t), fitted by linear regression of '
+    'en':
+        'Method: Arps exponential decline (b = 0), q(t) = qi·e^(−D·t), fitted by linear regression of '
         'ln(q) over time. Effective decline = 1 − e^(−D·duration). In Auto mode, the fit restarts the day '
         'after the last intervention, which usually changes the well\'s behaviour.',
   },
@@ -617,11 +586,16 @@ final _strings = <String, Map<String, String>>{
   'comparePeriodB': {'fr': 'Période B', 'en': 'Period B'},
   'compareBefore': {'fr': 'Avant', 'en': 'Before'},
   'compareAfter': {'fr': 'Après', 'en': 'After'},
-  'compareNoData': {'fr': 'Pas de données sur ces périodes pour ce paramètre.', 'en': 'No data for this parameter over these periods.'},
+  'compareNoData': {
+    'fr': 'Pas de données sur ces périodes pour ce paramètre.',
+    'en': 'No data for this parameter over these periods.',
+  },
   'compareNoInterventionHint': {
-    'fr': 'Astuce : enregistrez une intervention sur ce puits (fiche puits › Interventions) pour comparer '
+    'fr':
+        'Astuce : enregistrez une intervention sur ce puits (fiche puits › Interventions) pour comparer '
         'automatiquement avant / après.',
-    'en': 'Tip: record an intervention on this well (well page › Interventions) to compare before / after '
+    'en':
+        'Tip: record an intervention on this well (well page › Interventions) to compare before / after '
         'automatically.',
   },
   'compareStatPeriod': {'fr': 'Période', 'en': 'Period'},
@@ -652,9 +626,11 @@ final _strings = <String, Map<String, String>>{
   'interventionsTitle': {'fr': 'Interventions', 'en': 'Interventions'},
   'interventionsShort': {'fr': 'intervention(s)', 'en': 'intervention(s)'},
   'interventionsEmpty': {
-    'fr': 'Aucune intervention enregistrée sur ce puits.\nAjoutez workovers, stimulations, changements de '
+    'fr':
+        'Aucune intervention enregistrée sur ce puits.\nAjoutez workovers, stimulations, changements de '
         'duse... : ils apparaîtront en marqueurs sur les courbes.',
-    'en': 'No intervention recorded on this well.\nAdd workovers, stimulations, choke changes...: they will '
+    'en':
+        'No intervention recorded on this well.\nAdd workovers, stimulations, choke changes...: they will '
         'show up as markers on the charts.',
   },
   'interventionsEmptyShort': {
@@ -664,9 +640,11 @@ final _strings = <String, Map<String, String>>{
   'interventionsCount': {'fr': 'Interventions', 'en': 'Interventions'},
   'interventionsTotalCost': {'fr': 'Coût total', 'en': 'Total cost'},
   'interventionsMarkersHint': {
-    'fr': 'Chaque intervention apparaît en ligne verticale violette sur les courbes du puits. '
+    'fr':
+        'Chaque intervention apparaît en ligne verticale violette sur les courbes du puits. '
         'Le bouton à flèches violettes compare le paramètre choisi avant / après.',
-    'en': 'Each intervention appears as a purple vertical line on the well\'s charts. '
+    'en':
+        'Each intervention appears as a purple vertical line on the well\'s charts. '
         'The purple arrows button compares the chosen parameter before / after.',
   },
   'interventionAdd': {'fr': 'Ajouter une intervention', 'en': 'Add an intervention'},
@@ -748,10 +726,12 @@ final _strings = <String, Map<String, String>>{
   },
   'settingsBackup': {'fr': 'Sauvegarde', 'en': 'Backup'},
   'backupIntro': {
-    'fr': 'Les données (puits, seuils, analyses, interventions) sont stockées uniquement sur cet appareil. '
+    'fr':
+        'Les données (puits, seuils, analyses, interventions) sont stockées uniquement sur cet appareil. '
         'Envoyez régulièrement une sauvegarde sur Drive ou par e-mail pour ne rien perdre en cas de perte '
         'ou de changement de téléphone.',
-    'en': 'Data (wells, thresholds, analyses, interventions) is stored on this device only. '
+    'en':
+        'Data (wells, thresholds, analyses, interventions) is stored on this device only. '
         'Regularly send a backup to Drive or by email so nothing is lost if the phone is lost or replaced.',
   },
   'backupLast': {'fr': 'Dernière sauvegarde', 'en': 'Last backup'},
@@ -771,10 +751,12 @@ final _strings = <String, Map<String, String>>{
   'backupFailed': {'fr': 'La sauvegarde a échoué. Réessayez.', 'en': 'The backup failed. Try again.'},
   'backupRestoreConfirmTitle': {'fr': 'Restaurer cette sauvegarde ?', 'en': 'Restore this backup?'},
   'backupRestoreConfirmBody': {
-    'fr': 'Sauvegarde du {date} : {wells} puits, {records} analyses, {interventions} interventions.\n\n'
+    'fr':
+        'Sauvegarde du {date} : {wells} puits, {records} analyses, {interventions} interventions.\n\n'
         'Toutes les données actuelles seront remplacées. Une copie de sécurité des données actuelles est '
         'd\'abord enregistrée dans Téléchargements › PuitsTrack › Sauvegardes.',
-    'en': 'Backup from {date}: {wells} wells, {records} analyses, {interventions} interventions.\n\n'
+    'en':
+        'Backup from {date}: {wells} wells, {records} analyses, {interventions} interventions.\n\n'
         'All current data will be replaced. A safety copy of the current data is saved first in '
         'Downloads › PuitsTrack › Sauvegardes.',
   },
@@ -784,7 +766,10 @@ final _strings = <String, Map<String, String>>{
     'fr': 'La restauration a échoué : les données actuelles n\'ont pas été modifiées.',
     'en': 'The restore failed: current data was not changed.',
   },
-  'backupErrorNotJson': {'fr': 'Ce fichier n\'est pas une sauvegarde valide.', 'en': 'This file is not a valid backup.'},
+  'backupErrorNotJson': {
+    'fr': 'Ce fichier n\'est pas une sauvegarde valide.',
+    'en': 'This file is not a valid backup.',
+  },
   'backupErrorNotPuitsTrack': {
     'fr': 'Ce fichier n\'est pas une sauvegarde PuitsTrack.',
     'en': 'This file is not a PuitsTrack backup.',
@@ -800,7 +785,8 @@ final _strings = <String, Map<String, String>>{
   'backupErrorEmpty': {'fr': 'Cette sauvegarde ne contient aucune donnée.', 'en': 'This backup contains no data.'},
   'autoBackupTitle': {'fr': 'Sauvegarde automatique', 'en': 'Automatic backup'},
   'autoBackupHint': {
-    'fr': 'À l\'ouverture de l\'app, dans Téléchargements › PuitsTrack › Sauvegardes '
+    'fr':
+        'À l\'ouverture de l\'app, dans Téléchargements › PuitsTrack › Sauvegardes '
         '(2 fichiers utilisés à tour de rôle).',
     'en': 'When the app opens, in Downloads › PuitsTrack › Sauvegardes (2 files used in turn).',
   },
@@ -856,19 +842,723 @@ final _strings = <String, Map<String, String>>{
   },
   'settingsDbSize': {'fr': 'Taille de la base', 'en': 'Database size'},
   'settingsDataHintWeb': {
-    'fr': 'Stockées dans ce navigateur, sur ce PC (effacer les données du site les supprime : '
-        'gardez des sauvegardes).',
-    'en': 'Stored in this browser, on this PC (clearing site data deletes them: keep backups).',
+    'fr':
+        'Stockées dans ce navigateur, sur ce PC : l\'app s\'ouvre et fonctionne aussi sans réseau. '
+        'Effacer les données du site les supprime : gardez des sauvegardes.',
+    'en': 'Stored in this browser, on this PC: the app also opens and works offline. Clearing site data '
+        'deletes them: keep backups.',
   },
   'settingsDataHintDesktop': {
     'fr': 'Stockées localement sur ce PC (mode hors-ligne, sans compte).',
     'en': 'Stored locally on this PC (offline mode, no account).',
+  },
+  // Module Usine CPF
+  'navPlant': {'fr': 'Usine', 'en': 'Plant'},
+  'plantTitle': {'fr': 'Usine CPF', 'en': 'CPF plant'},
+  'plantCircuitCondensate': {'fr': 'Condensat', 'en': 'Condensate'},
+  'plantCircuitWater': {'fr': 'Eau produite', 'en': 'Produced water'},
+  'plantCircuitGas': {'fr': 'Gaz', 'en': 'Gas'},
+  'plantCircuitAmine': {'fr': 'Amine', 'en': 'Amine'},
+  'plantStatusOk': {'fr': 'Conforme', 'en': 'Within limits'},
+  'plantStatusOut': {'fr': 'Hors seuil', 'en': 'Out of range'},
+  'plantStatusMissing': {'fr': 'Non analysé', 'en': 'Not analysed'},
+  'plantSummaryAnalysed': {'fr': 'Points analysés', 'en': 'Points analysed'},
+  'plantSummaryOut': {'fr': 'Hors seuil', 'en': 'Out of range'},
+  'plantSummaryMissing': {'fr': 'Non analysés', 'en': 'Not analysed'},
+  'plantViewDiagram': {'fr': 'Schéma', 'en': 'Diagram'},
+  'plantViewList': {'fr': 'Liste', 'en': 'List'},
+  'plantDiagramHint': {
+    'fr':
+        'Touchez un point de prélèvement pour voir ses dernières analyses. Faites glisser (ou pincez) '
+        'pour parcourir le schéma.',
+    'en': 'Tap a sample point to see its latest analyses. Drag (or pinch) to explore the diagram.',
+  },
+  'plantPreviousDay': {'fr': 'Jour précédent', 'en': 'Previous day'},
+  'plantNextDay': {'fr': 'Jour suivant', 'en': 'Next day'},
+  'plantReport': {'fr': 'Rapport PDF', 'en': 'PDF report'},
+  'plantReportChoose': {'fr': 'Rapport journalier PDF', 'en': 'Daily PDF report'},
+  'plantReportAllCircuits': {'fr': 'Tous les circuits', 'en': 'All circuits'},
+  'plantReportAllShort': {'fr': 'complet', 'en': 'full'},
+  'plantReportTitle': {'fr': 'Rapport journalier — Usine CPF', 'en': 'Daily report — CPF plant'},
+  'plantReportGenerated': {'fr': 'Généré le', 'en': 'Generated on'},
+  'plantNoAnalysisThatDay': {'fr': 'Pas d\'analyse ce jour.', 'en': 'No analysis that day.'},
+  'plantNeverAnalysed': {'fr': 'Aucune analyse enregistrée.', 'en': 'No analysis recorded.'},
+  'plantLastAnalysis': {'fr': 'Dernière analyse', 'en': 'Last analysis'},
+  'plantAnalysisOf': {'fr': 'Analyse du', 'en': 'Analysis of'},
+  'plantLatestAvailable': {'fr': '(plus récente disponible)', 'en': '(latest available)'},
+  'plantEnter': {'fr': 'Saisir l\'analyse', 'en': 'Enter analysis'},
+  'plantDetailsTrends': {'fr': 'Détails et tendances', 'en': 'Details and trends'},
+  'plantHistory': {'fr': 'Historique', 'en': 'History'},
+  'plantValuesCount': {'fr': 'valeurs', 'en': 'values'},
+  'plantTapForTrend': {
+    'fr': 'Touchez un paramètre pour sa courbe de tendance.',
+    'en': 'Tap a parameter for its trend chart.',
+  },
+  'plantPointNotFound': {'fr': 'Point de prélèvement introuvable.', 'en': 'Sample point not found.'},
+  'plantThresholds': {'fr': 'Seuils', 'en': 'Limits'},
+  'plantThresholdsHint': {
+    'fr': 'Min et/ou max par paramètre. Laissez vide pour ne pas surveiller un paramètre.',
+    'en': 'Min and/or max per parameter. Leave empty not to monitor a parameter.',
+  },
+  'plantThresholdsSaved': {'fr': 'Seuils enregistrés.', 'en': 'Limits saved.'},
+  'plantNoThreshold': {
+    'fr': 'Pas de seuil défini (Seuils, en haut de la fiche du point).',
+    'en': 'No limit set (Limits, at the top of the point page).',
+  },
+  'plantSampleDate': {'fr': 'Date du prélèvement', 'en': 'Sampling date'},
+  'plantEntryExisting': {
+    'fr': 'Une analyse existe déjà ce jour : elle sera remplacée.',
+    'en': 'An analysis already exists that day: it will be replaced.',
+  },
+  'plantEntryEmpty': {'fr': 'Saisissez au moins une valeur.', 'en': 'Enter at least one value.'},
+  'plantEntrySaved': {'fr': 'Analyse enregistrée.', 'en': 'Analysis saved.'},
+  'plantValueOut': {'fr': 'Hors seuil', 'en': 'Out of range'},
+  'plantDeleteConfirmTitle': {'fr': 'Supprimer cette analyse ?', 'en': 'Delete this analysis?'},
+  'plantComposition': {'fr': 'Composition (mol %)', 'en': 'Composition (mol %)'},
+  'plantCompositionSum': {'fr': 'Total', 'en': 'Total'},
+  'plantColPoint': {'fr': 'Point', 'en': 'Point'},
+  'plantColName': {'fr': 'Désignation', 'en': 'Name'},
+  'plantColParam': {'fr': 'Paramètre', 'en': 'Parameter'},
+  'plantColThreshold': {'fr': 'Seuil', 'en': 'Limit'},
+  'plantColSource': {'fr': 'Source', 'en': 'Source'},
+  'plantSourceLab': {'fr': 'Laboratoire', 'en': 'Laboratory'},
+  'plantSourceField': {'fr': 'Terrain', 'en': 'Field'},
+  'plantSourceImport': {'fr': 'Import', 'en': 'Import'},
+  'plantParamDensity': {'fr': 'Densité', 'en': 'Density'},
+  'plantParamBsw': {'fr': 'BSW', 'en': 'BSW'},
+  'plantParamWaterCut': {'fr': 'Water cut', 'en': 'Water cut'},
+  'plantParamSalinity': {'fr': 'Salinité', 'en': 'Salinity'},
+  'plantParamChlorides': {'fr': 'Chlorures', 'en': 'Chlorides'},
+  'plantParamPh': {'fr': 'pH', 'en': 'pH'},
+  'plantParamTds': {'fr': 'TDS', 'en': 'TDS'},
+  'plantParamTss': {'fr': 'TSS', 'en': 'TSS'},
+  'plantParamAppearance': {'fr': 'Aspect', 'en': 'Appearance'},
+  'plantAppearanceClear': {'fr': 'Limpide', 'en': 'Clear'},
+  'plantAppearanceSlightlyTurbid': {'fr': 'Légèrement trouble', 'en': 'Slightly turbid'},
+  'plantAppearanceTurbid': {'fr': 'Trouble', 'en': 'Turbid'},
+  'plantAppearanceOily': {'fr': 'Huileux', 'en': 'Oily'},
+  'plantParamIron': {'fr': 'Fer', 'en': 'Iron'},
+  'plantParamTph': {'fr': 'TPH (hydrocarbures)', 'en': 'TPH (hydrocarbons)'},
+  'plantParamCh4': {'fr': 'Méthane C1', 'en': 'Methane C1'},
+  'plantParamC2h6': {'fr': 'Éthane C2', 'en': 'Ethane C2'},
+  'plantParamC3h8': {'fr': 'Propane C3', 'en': 'Propane C3'},
+  'plantParamC4plus': {'fr': 'Butanes et + (C4+)', 'en': 'Butanes and heavier (C4+)'},
+  'plantParamCo2': {'fr': 'CO2', 'en': 'CO2'},
+  'plantParamN2': {'fr': 'Azote N2', 'en': 'Nitrogen N2'},
+  'plantParamH2s': {'fr': 'H2S', 'en': 'H2S'},
+  'plantParamHcDewPoint': {'fr': 'Point de rosée HC', 'en': 'HC dew point'},
+  'plantParamWaterDewPoint': {'fr': 'Point de rosée eau', 'en': 'Water dew point'},
+  'plantParamConcentration': {'fr': 'Concentration amine', 'en': 'Amine concentration'},
+  'plantParamFoam': {'fr': 'Tendance au moussage', 'en': 'Foaming tendency'},
+  'plantParamPz': {'fr': '% PZ (pipérazine)', 'en': '% PZ (piperazine)'},
+  'plantParamConductivity': {'fr': 'Conductivité', 'en': 'Conductivity'},
+  'plantParamCo2Loading': {'fr': 'CO2 loading', 'en': 'CO2 loading'},
+  'plantEqWells': {'fr': 'Puits', 'en': 'Wells'},
+  'plantEqWellStream': {'fr': 'Effluent', 'en': 'Well stream'},
+  'plantEqInletSeparator': {'fr': 'Séparateur\nd\'entrée', 'en': 'Inlet\nseparator'},
+  'plantEqTestSeparator': {'fr': 'Séparateur\nde test', 'en': 'Test\nseparator'},
+  'plantEqAmineContactor': {'fr': 'Contacteur\namine', 'en': 'Amine\ncontactor'},
+  'plantEqFlashDrum': {'fr': 'Flash drum', 'en': 'Flash drum'},
+  'plantEqHpPump': {'fr': 'Pompe HP', 'en': 'HP pump'},
+  'plantEqTegContactor': {'fr': 'Contacteur\nTEG', 'en': 'TEG\ncontactor'},
+  'plantEqReboiler': {'fr': 'Rebouilleur\ncondensat', 'en': 'Condensate\nreboiler'},
+  'plantEqStorageTank': {'fr': 'Bac de\nstockage', 'en': 'Storage\ntank'},
+  'plantEqWcSeparator': {'fr': 'Séparateur\nW/C', 'en': 'W/C\nseparator'},
+  'plantEqCpiSeparator': {'fr': 'Séparateur\nCPI', 'en': 'CPI\nseparator'},
+  'plantEqExportGas': {'fr': 'Gaz export', 'en': 'Export gas'},
+  'plantEqToStorage': {'fr': 'Vers stockage', 'en': 'To storage'},
+  'plantEqWaterDisposal': {'fr': 'Traitement / rejet', 'en': 'Treatment / disposal'},
+  'plantEqLeanAmine': {'fr': 'Amine pauvre', 'en': 'Lean amine'},
+  'plantEqRichAmine': {'fr': 'Amine riche', 'en': 'Rich amine'},
+  'plantEqRegeneration': {'fr': 'Régénération', 'en': 'Regeneration'},
+  'alertsPlantOutSection': {'fr': 'Usine — hors seuil aujourd\'hui', 'en': 'Plant — out of range today'},
+  'alertsPlantMissingSection': {'fr': 'Usine — non analysés aujourd\'hui', 'en': 'Plant — not analysed today'},
+  'settingsResetProfileBody': {
+    'fr':
+        'Le profil (nom, service, code) est effacé de cet appareil. Les données (puits, analyses, usine) '
+        'sont conservées.',
+    'en':
+        'The profile (name, department, code) is removed from this device. Data (wells, analyses, plant) '
+        'is kept.',
+  },
+
+  // Synchronisation (compte)
+  'settingsSync': {'fr': 'Synchronisation', 'en': 'Sync'},
+  'syncIntro': {
+    'fr':
+        'Mode équipe : connectez un projet Firebase puis un compte (e-mail + mot de passe). Puits, analyses '
+        'et réglages sont partagés entre téléphones, PC et web, selon le rôle de chacun. Sans réseau, l\'app '
+        'continue et envoie tout au retour du réseau.',
+    'en':
+        'Team mode: connect a Firebase project, then an account (email + password). Wells, analyses and '
+        'settings are shared across phones, PC and web, according to each person\'s role. Without network the '
+        'app keeps working and sends everything once back online.',
+  },
+  'syncCreateAccount': {'fr': 'Créer un compte', 'en': 'Create an account'},
+  'syncSignIn': {'fr': 'Se connecter', 'en': 'Sign in'},
+  'syncCreateHint': {
+    'fr': 'À faire une seule fois. Les données déjà présentes sur cet appareil seront envoyées dans le compte.',
+    'en': 'Only once. Data already on this device will be sent to the account.',
+  },
+  'syncSignInHint': {
+    'fr': 'Les données du compte arrivent sur cet appareil, et celles saisies ici sont ajoutées au compte.',
+    'en': 'The account data comes to this device, and data entered here is added to the account.',
+  },
+  'syncEmail': {'fr': 'E-mail', 'en': 'Email'},
+  'syncPassword': {'fr': 'Mot de passe (6 caractères min.)', 'en': 'Password (6+ characters)'},
+  'syncPasswordConfirm': {'fr': 'Confirmer le mot de passe', 'en': 'Confirm password'},
+  'syncPasswordMismatch': {'fr': 'Les mots de passe sont différents.', 'en': 'Passwords do not match.'},
+  'syncInvalidEmail': {'fr': 'Adresse e-mail invalide.', 'en': 'Invalid email address.'},
+  'syncHaveAccount': {'fr': 'J\'ai déjà un compte', 'en': 'I already have an account'},
+  'syncNoAccount': {'fr': 'Créer un compte', 'en': 'Create an account'},
+  'syncForgotPassword': {'fr': 'Mot de passe oublié ?', 'en': 'Forgot password?'},
+  'syncResetSent': {
+    'fr': 'E-mail de réinitialisation envoyé (vérifiez aussi les spams).',
+    'en': 'Reset email sent (check your spam folder too).',
+  },
+  'syncConnected': {'fr': 'Compte connecté : synchronisation en cours.', 'en': 'Account connected: syncing.'},
+  'syncErrorEmailExists': {
+    'fr': 'Un compte existe déjà avec cet e-mail : utilisez « J\'ai déjà un compte ».',
+    'en': 'An account already exists with this email: use "I already have an account".',
+  },
+  'syncErrorCredentials': {'fr': 'E-mail ou mot de passe incorrect.', 'en': 'Wrong email or password.'},
+  'syncErrorWeakPassword': {
+    'fr': 'Mot de passe trop court (6 caractères minimum).',
+    'en': 'Password too short (6 characters minimum).',
+  },
+  'syncErrorTooMany': {
+    'fr': 'Trop de tentatives : réessayez dans quelques minutes.',
+    'en': 'Too many attempts: try again in a few minutes.',
+  },
+  'syncErrorProviderDisabled': {
+    'fr':
+        'Connexion par e-mail désactivée : activez « E-mail/Mot de passe » dans la console Firebase '
+        '(Authentication › Mode de connexion).',
+    'en':
+        'Email sign-in is disabled: enable "Email/Password" in the Firebase console '
+        '(Authentication › Sign-in method).',
+  },
+  'syncErrorUserDisabled': {'fr': 'Ce compte a été désactivé.', 'en': 'This account has been disabled.'},
+  'syncErrorSession': {
+    'fr': 'Session expirée : déconnectez-vous puis reconnectez-vous.',
+    'en': 'Session expired: sign out and sign in again.',
+  },
+  'syncErrorRules': {
+    'fr': 'Accès refusé par Firestore : publiez les règles de sécurité (Administration › Projet Firebase).',
+    'en': 'Access denied by Firestore: publish the security rules (Administration › Firebase project).',
+  },
+  'syncErrorServer': {
+    'fr': 'Le serveur n\'a pas répondu correctement, nouvel essai automatique.',
+    'en': 'The server did not respond correctly, retrying automatically.',
+  },
+  'syncOffline': {
+    'fr': 'Pas de connexion : les saisies seront envoyées au retour du réseau.',
+    'en': 'No connection: entries will be sent once back online.',
+  },
+  'syncStateIdle': {'fr': 'Synchronisé', 'en': 'Synced'},
+  'syncStateSyncing': {'fr': 'Synchronisation…', 'en': 'Syncing…'},
+  'syncStateOffline': {'fr': 'Hors ligne', 'en': 'Offline'},
+  'syncStateError': {'fr': 'Erreur de synchronisation', 'en': 'Sync error'},
+  'syncStateSignedOut': {'fr': 'Non connecté', 'en': 'Signed out'},
+  'syncLast': {'fr': 'Dernière synchronisation', 'en': 'Last sync'},
+  'syncNever': {'fr': 'jamais', 'en': 'never'},
+  'syncAutoHint': {
+    'fr': 'Automatique : après chaque saisie, toutes les minutes quand l\'app est ouverte, et à son ouverture.',
+    'en': 'Automatic: after each entry, every minute while the app is open, and when it opens.',
+  },
+  'syncNow': {'fr': 'Synchroniser maintenant', 'en': 'Sync now'},
+  'syncSignOut': {'fr': 'Se déconnecter', 'en': 'Sign out'},
+  'syncSignOutTitle': {'fr': 'Se déconnecter du compte ?', 'en': 'Sign out of the account?'},
+  'syncSignOutBody': {
+    'fr': 'Les données restent sur cet appareil mais ne seront plus synchronisées avec vos autres appareils.',
+    'en': 'Data stays on this device but will no longer be synced with your other devices.',
   },
   'settingsAbout': {'fr': 'À propos', 'en': 'About'},
   'settingsAboutBody': {
     'fr': 'Application personnelle de suivi des analyses de puits. Fonctionne hors-ligne.',
     'en': 'Personal well analysis tracking app. Works offline.',
   },
+
+  // Administration (rôles, installation, import, audit...)
+  'back': {'fr': 'Retour', 'en': 'Back'},
+  'refresh': {'fr': 'Actualiser', 'en': 'Refresh'},
+  'ok': {'fr': 'OK', 'en': 'OK'},
+  'roleEngineer': {'fr': 'Ingénieur', 'en': 'Engineer'},
+  'roleOperator': {'fr': 'Opérateur', 'en': 'Operator'},
+  'roleAdminHint': {
+    'fr': 'Tout : utilisateurs, puits, points, seuils, import, projet.',
+    'en': 'Everything: users, wells, points, thresholds, import, project.',
+  },
+  'roleEngineerHint': {'fr': 'Saisie des analyses et des interventions.', 'en': 'Enters analyses and interventions.'},
+  'roleOperatorHint': {'fr': 'Saisie des analyses (puits et usine).', 'en': 'Enters analyses (wells and plant).'},
+  'roleReaderHint': {'fr': 'Consultation uniquement.', 'en': 'Read only.'},
+  'settingsTeam': {'fr': 'Équipe et synchronisation', 'en': 'Team & sync'},
+  'syncConnectProject': {'fr': 'Connecter un projet Firebase', 'en': 'Connect a Firebase project'},
+  'unitsTitle': {'fr': 'Unités', 'en': 'Units'},
+  'unitsSi': {'fr': 'SI (bar, °C, m³)', 'en': 'SI (bar, °C, m³)'},
+  'unitsApi': {'fr': 'API (psi, °F, bbl)', 'en': 'API (psi, °F, bbl)'},
+  'unitsHint': {
+    'fr': 'Affichage, saisie et exports ; les données restent enregistrées en SI.',
+    'en': 'Display, entry and exports; data is always stored in SI.',
+  },
+  'adminOpen': {'fr': 'Ouvrir l\'administration', 'en': 'Open administration'},
+  'adminOpenHint': {
+    'fr': 'Utilisateurs, puits, points, seuils, import, projet Firebase, journal.',
+    'en': 'Users, wells, points, thresholds, import, Firebase project, log.',
+  },
+  'syncErrorDatabase': {
+    'fr': 'Base Firestore introuvable : créez-la dans la console Firebase.',
+    'en': 'Firestore database not found: create it in the Firebase console.',
+  },
+  'syncErrorInactive': {'fr': 'Compte désactivé par un administrateur.', 'en': 'Account disabled by an administrator.'},
+  'syncErrorPending': {'fr': 'Demande d\'accès en attente de validation.', 'en': 'Access request awaiting approval.'},
+  'syncErrorNoMember': {
+    'fr': 'Ce compte n\'a pas encore accès à l\'équipe.',
+    'en': 'This account has no team access yet.',
+  },
+  'setupTitle': {'fr': 'Installation', 'en': 'Setup'},
+  'setupSubtitle': {
+    'fr': 'Choisissez comment utiliser PuitsTrack. Vous pourrez changer plus tard dans les Réglages.',
+    'en': 'Choose how to use PuitsTrack. You can change it later in Settings.',
+  },
+  'setupModeTeam': {'fr': 'Équipe (synchronisé)', 'en': 'Team (synced)'},
+  'setupModeTeamBody': {
+    'fr': 'Données partagées entre téléphones, PC et web, avec des rôles (admin, ingénieur, opérateur, lecteur). Le premier compte devient administrateur.',
+    'en': 'Data shared across phones, PC and web, with roles (admin, engineer, operator, reader). The first account becomes administrator.',
+  },
+  'setupModeLocal': {'fr': 'Personnel (sur cet appareil)', 'en': 'Personal (this device)'},
+  'setupModeLocalBody': {
+    'fr': 'Sans compte ni réseau : les données restent sur cet appareil.',
+    'en': 'No account, no network: data stays on this device.',
+  },
+  'setupProjectTitle': {'fr': 'Projet Firebase', 'en': 'Firebase project'},
+  'setupProjectSubtitle': {
+    'fr': 'Où les données de l\'équipe sont enregistrées : un clic pour le projet intégré, ou la configuration de votre propre projet.',
+    'en': 'Where team data is stored: one tap for the built-in project, or your own project\'s configuration.',
+  },
+  'setupProject': {'fr': 'Projet', 'en': 'Project'},
+  'setupChangeProject': {'fr': 'Changer', 'en': 'Change'},
+  'setupBuiltInTitle': {'fr': 'Projet PuitsTrack (recommandé)', 'en': 'PuitsTrack project (recommended)'},
+  'setupBuiltInBody': {
+    'fr': 'Déjà prêt : « {project} ». Rien à configurer.',
+    'en': 'Ready to use: "{project}". Nothing to configure.',
+  },
+  'setupScanTitle': {'fr': 'Scanner le QR code', 'en': 'Scan the QR code'},
+  'setupScanBody': {
+    'fr': 'Affiché par l\'administrateur : Administration › Projet Firebase.',
+    'en': 'Shown by the administrator: Administration › Firebase project.',
+  },
+  'setupScanHint': {
+    'fr': 'Visez le QR code affiché sur l\'appareil de l\'administrateur.',
+    'en': 'Point at the QR code shown on the administrator\'s device.',
+  },
+  'setupScanError': {
+    'fr': 'Caméra indisponible : autorisez l\'accès à la caméra, ou collez la configuration.',
+    'en': 'Camera unavailable: allow camera access, or paste the configuration.',
+  },
+  'setupScanTorch': {'fr': 'Lampe', 'en': 'Torch'},
+  'setupPasteTitle': {'fr': 'Coller la configuration', 'en': 'Paste the configuration'},
+  'setupPasteBody': {
+    'fr': 'JSON de la console Firebase ou fichier google-services.json.',
+    'en': 'JSON from the Firebase console or a google-services.json file.',
+  },
+  'setupPasteHint': {
+    'fr': 'const firebaseConfig = {\n  apiKey: "AIza...",\n  projectId: "mon-projet",\n  ...\n};',
+    'en': 'const firebaseConfig = {\n  apiKey: "AIza...",\n  projectId: "my-project",\n  ...\n};',
+  },
+  'setupPasteClipboard': {'fr': 'Coller', 'en': 'Paste'},
+  'setupPasteApply': {'fr': 'Valider', 'en': 'Apply'},
+  'setupPasteWhere': {
+    'fr': 'Console Firebase › ⚙ Paramètres du projet › Vos applications › Configuration du SDK (« Config »).',
+    'en': 'Firebase console › ⚙ Project settings › Your apps › SDK setup and configuration ("Config").',
+  },
+  'setupConfigInvalid': {
+    'fr': 'Configuration non reconnue : il faut au moins apiKey et projectId.',
+    'en': 'Configuration not recognized: apiKey and projectId are required.',
+  },
+  'setupAccountTitle': {'fr': 'Votre compte', 'en': 'Your account'},
+  'setupAccountSubtitle': {
+    'fr': 'Le premier compte créé dans le projet devient administrateur. Les suivants sont validés par l\'administrateur.',
+    'en':
+        'The first account created in the project becomes administrator. Later ones are approved by the administrator.',
+  },
+  'setupAdminCreated': {'fr': 'Compte administrateur créé.', 'en': 'Administrator account created.'},
+  'setupWaitingTitle': {'fr': 'En attente', 'en': 'Waiting'},
+  'setupWaitingSubtitle': {
+    'fr': 'Votre compte est créé. Un administrateur doit vous donner accès.',
+    'en': 'Your account is created. An administrator must grant you access.',
+  },
+  'setupCheckingTitle': {'fr': 'Vérification du compte', 'en': 'Checking your account'},
+  'setupCheckingSubtitle': {
+    'fr': 'Lecture de votre accès à l\'équipe… Vérifiez la connexion, ou utilisez un autre compte.',
+    'en': 'Reading your team access… Check the connection, or use another account.',
+  },
+  'setupUseAnotherAccount': {'fr': 'Utiliser un autre compte', 'en': 'Use another account'},
+  'teamCreateHint': {
+    'fr': 'Premier compte du projet : administrateur. Sinon, une demande d\'accès est envoyée à l\'administrateur.',
+    'en': 'First account in the project: administrator. Otherwise an access request is sent to the administrator.',
+  },
+  'teamSignInHint': {
+    'fr': 'Compte créé par l\'administrateur, ou déjà utilisé sur un autre appareil.',
+    'en': 'Account created by the administrator, or already used on another device.',
+  },
+  'memberPendingTitle': {'fr': 'Demande d\'accès envoyée', 'en': 'Access request sent'},
+  'memberPendingBody': {
+    'fr': 'Un administrateur doit valider votre compte (Administration › Utilisateurs). Touchez ensuite « Vérifier à nouveau ».',
+    'en': 'An administrator must approve your account (Administration › Users). Then tap "Check again".',
+  },
+  'memberInactiveTitle': {'fr': 'Compte désactivé', 'en': 'Account disabled'},
+  'memberInactiveBody': {
+    'fr': 'Votre compte a été désactivé par un administrateur. Les données déjà présentes restent consultables sur cet appareil.',
+    'en': 'Your account was disabled by an administrator. Data already on this device can still be viewed.',
+  },
+  'memberMissingTitle': {'fr': 'Pas encore dans l\'équipe', 'en': 'Not in the team yet'},
+  'memberMissingBody': {
+    'fr': 'Ce compte existe mais n\'a pas accès aux données de l\'équipe : demandez l\'accès à l\'administrateur.',
+    'en': 'This account exists but has no access to team data: ask the administrator for access.',
+  },
+  'memberRequestAccess': {'fr': 'Demander l\'accès', 'en': 'Request access'},
+  'memberCheckAgain': {'fr': 'Vérifier à nouveau', 'en': 'Check again'},
+  'problemProviderTitle': {'fr': 'Activer la connexion par e-mail', 'en': 'Enable email sign-in'},
+  'problemProviderBody': {
+    'fr': 'Une seule fois, dans la console Firebase : Authentication › Mode de connexion › E-mail/Mot de passe › Activer.',
+    'en': 'Once, in the Firebase console: Authentication › Sign-in method › Email/Password › Enable.',
+  },
+  'problemRulesTitle': {'fr': 'Publier les règles de sécurité', 'en': 'Publish the security rules'},
+  'problemRulesBody': {
+    'fr': 'Une seule fois : copiez les règles, ouvrez la console (Firestore › Règles), remplacez tout le texte puis « Publier ». Revenez ensuite et touchez « Se connecter ».',
+    'en': 'Once: copy the rules, open the console (Firestore › Rules), replace all the text, then "Publish". Then come back and tap "Sign in".',
+  },
+  'problemDatabaseTitle': {'fr': 'Créer la base Firestore', 'en': 'Create the Firestore database'},
+  'problemDatabaseBody': {
+    'fr': 'Une seule fois : console Firebase › Firestore Database › Créer une base de données (mode production, région europe-west1).',
+    'en': 'Once: Firebase console › Firestore Database › Create database (production mode, europe-west1 region).',
+  },
+  'problemOpenConsole': {'fr': 'Ouvrir la console', 'en': 'Open the console'},
+  'rulesCopy': {'fr': 'Copier les règles', 'en': 'Copy the rules'},
+  'rulesCopied': {'fr': 'Règles copiées dans le presse-papiers.', 'en': 'Rules copied to the clipboard.'},
+  'adminTitle': {'fr': 'Administration', 'en': 'Administration'},
+  'adminUsers': {'fr': 'Utilisateurs et rôles', 'en': 'Users & roles'},
+  'adminUsersHint': {
+    'fr': 'Ajouter, modifier, désactiver, réinitialiser le mot de passe.',
+    'en': 'Add, edit, disable, reset password.',
+  },
+  'adminUsersLocal': {
+    'fr': 'Disponible en mode équipe (projet Firebase connecté).',
+    'en': 'Available in team mode (Firebase project connected).',
+  },
+  'adminWellsCount': {'fr': '{n} puits', 'en': '{n} wells'},
+  'adminPoints': {'fr': 'Points de prélèvement', 'en': 'Sample points'},
+  'adminPointsCount': {
+    'fr': '{n} points (condensat, eau, gaz, amine)',
+    'en': '{n} points (condensate, water, gas, amine)',
+  },
+  'adminThresholds': {'fr': 'Seuils et alertes', 'en': 'Thresholds & alerts'},
+  'adminThresholdsCount': {
+    'fr': '{n} seuils · non reçues après {time}',
+    'en': '{n} thresholds · not received after {time}',
+  },
+  'adminTypesCount': {'fr': '{n} types d\'analyse des puits', 'en': '{n} well analysis types'},
+  'adminData': {'fr': 'Données', 'en': 'Data'},
+  'adminDataHint': {
+    'fr': 'Import CSV/Excel, export complet, sauvegarde.',
+    'en': 'CSV/Excel import, full export, backup.',
+  },
+  'adminFirebase': {'fr': 'Projet Firebase', 'en': 'Firebase project'},
+  'adminFirebaseNone': {'fr': 'Non connecté (mode personnel).', 'en': 'Not connected (personal mode).'},
+  'adminAudit': {'fr': 'Journal d\'audit', 'en': 'Audit log'},
+  'adminAuditHint': {'fr': 'Qui a modifié quoi et quand.', 'en': 'Who changed what and when.'},
+  'adminAuditLocal': {
+    'fr': 'Le journal d\'audit est tenu en mode équipe (projet Firebase connecté).',
+    'en': 'The audit log is kept in team mode (Firebase project connected).',
+  },
+  'adminDevicePrefs': {'fr': 'Préférences de cet appareil', 'en': 'This device\'s preferences'},
+  'adminDevicePrefsHint': {
+    'fr': 'Unités SI/API, langue, thème, sécurité, rappels.',
+    'en': 'SI/API units, language, theme, security, reminders.',
+  },
+  'adminLocalMode': {'fr': 'Mode personnel', 'en': 'Personal mode'},
+  'adminLocalModeHint': {
+    'fr': 'Les données sont sur cet appareil. Connectez un projet Firebase pour travailler en équipe.',
+    'en': 'Data is on this device. Connect a Firebase project to work as a team.',
+  },
+  'adminTeamModeHint': {
+    'fr': 'Administrateur de l\'équipe : vos réglages s\'appliquent à tous les appareils.',
+    'en': 'Team administrator: your settings apply to all devices.',
+  },
+  'adminMinAboveMax': {'fr': 'Le minimum dépasse le maximum.', 'en': 'Minimum is above maximum.'},
+  'usersLocalTitle': {'fr': 'Mode personnel', 'en': 'Personal mode'},
+  'usersLocalBody': {
+    'fr': 'Pour gérer des utilisateurs et des rôles, connectez un projet Firebase et votre compte administrateur (Réglages › Équipe et synchronisation).',
+    'en': 'To manage users and roles, connect a Firebase project and your administrator account (Settings › Team & sync).',
+  },
+  'usersLocalAction': {'fr': 'Ouvrir les Réglages', 'en': 'Open Settings'},
+  'usersAdd': {'fr': 'Ajouter un utilisateur', 'en': 'Add a user'},
+  'usersEdit': {'fr': 'Modifier l\'utilisateur', 'en': 'Edit user'},
+  'usersCreate': {'fr': 'Créer le compte', 'en': 'Create the account'},
+  'usersPending': {'fr': 'Demandes d\'accès', 'en': 'Access requests'},
+  'usersMembers': {'fr': 'Membres', 'en': 'Members'},
+  'usersApprove': {'fr': 'Valider', 'en': 'Approve'},
+  'usersApproveTitle': {'fr': 'Valider la demande', 'en': 'Approve the request'},
+  'usersRefuse': {'fr': 'Refuser', 'en': 'Decline'},
+  'usersRole': {'fr': 'Rôle', 'en': 'Role'},
+  'usersActive': {'fr': 'Actif', 'en': 'Active'},
+  'usersInactive': {'fr': 'Inactif', 'en': 'Inactive'},
+  'usersActiveHint': {'fr': 'Accès aux données de l\'équipe.', 'en': 'Access to team data.'},
+  'usersInactiveHint': {
+    'fr': 'Plus aucun accès (le compte est conservé).',
+    'en': 'No access anymore (the account is kept).',
+  },
+  'usersSelfHint': {
+    'fr': 'Vous ne pouvez pas changer votre propre rôle ni vous désactiver.',
+    'en': 'You can\'t change your own role or disable yourself.',
+  },
+  'usersTempPassword': {'fr': 'Mot de passe provisoire', 'en': 'Temporary password'},
+  'usersTempPasswordHint': {
+    'fr': 'À transmettre à l\'utilisateur ; il pourra le changer (« Mot de passe oublié »).',
+    'en': 'Give it to the user; they can change it ("Forgot password").',
+  },
+  'usersGenerate': {'fr': 'Générer', 'en': 'Generate'},
+  'usersCreatedTitle': {'fr': 'Compte créé', 'en': 'Account created'},
+  'usersCredentialsText': {
+    'fr': 'PuitsTrack — vos identifiants\nE-mail : {email}\nMot de passe provisoire : {password}\nInstallez l\'app, choisissez « Équipe », puis « Se connecter ».',
+    'en': 'PuitsTrack — your credentials\nEmail: {email}\nTemporary password: {password}\nInstall the app, choose "Team", then "Sign in".',
+  },
+  'usersCopyCredentials': {'fr': 'Copier', 'en': 'Copy'},
+  'usersResetPassword': {
+    'fr': 'Envoyer un e-mail de réinitialisation du mot de passe',
+    'en': 'Send a password reset email',
+  },
+  'usersResetSent': {'fr': 'E-mail de réinitialisation envoyé à {email}.', 'en': 'Reset email sent to {email}.'},
+  'wellTypeLabel': {'fr': 'Type', 'en': 'Type'},
+  'wellTypeNone': {'fr': 'Non précisé', 'en': 'Not specified'},
+  'wellTypeOilProducer': {'fr': 'Producteur huile', 'en': 'Oil producer'},
+  'wellTypeGasProducer': {'fr': 'Producteur gaz', 'en': 'Gas producer'},
+  'wellTypeWaterInjector': {'fr': 'Injecteur eau', 'en': 'Water injector'},
+  'wellTypeGasInjector': {'fr': 'Injecteur gaz', 'en': 'Gas injector'},
+  'wellTypeObservation': {'fr': 'Observation', 'en': 'Observation'},
+  'wellStatusLabel': {'fr': 'Statut', 'en': 'Status'},
+  'wellStatusProducing': {'fr': 'En production', 'en': 'Producing'},
+  'wellStatusTesting': {'fr': 'En test', 'en': 'Testing'},
+  'wellStatusInjecting': {'fr': 'En injection', 'en': 'Injecting'},
+  'wellStatusShutIn': {'fr': 'Arrêté', 'en': 'Shut in'},
+  'wellStatusAbandoned': {'fr': 'Abandonné', 'en': 'Abandoned'},
+  'wellStatusActiveHint': {
+    'fr': 'Puits suivi chaque jour (analyses attendues, alertes).',
+    'en': 'Well tracked daily (expected analyses, alerts).',
+  },
+  'wellStatusInactiveHint': {
+    'fr': 'Puits hors suivi quotidien (historique conservé).',
+    'en': 'Well out of daily tracking (history kept).',
+  },
+  'wellCoordinates': {'fr': 'Coordonnées', 'en': 'Coordinates'},
+  'wellLatitude': {'fr': 'Latitude', 'en': 'Latitude'},
+  'wellLongitude': {'fr': 'Longitude', 'en': 'Longitude'},
+  'wellInvalidCoordinate': {'fr': 'Coordonnée invalide.', 'en': 'Invalid coordinate.'},
+  'wellOpenMap': {'fr': 'Voir sur la carte', 'en': 'Show on the map'},
+  'pointsIntro': {
+    'fr': 'Points de prélèvement du circuit CPF. Les 13 points standards (C1 à RA) figurent sur le schéma ; les points ajoutés apparaissent dans les listes, alertes et rapports.',
+    'en': 'CPF sample points. The 13 standard points (C1 to RA) are on the diagram; added points appear in lists, alerts and reports.',
+  },
+  'pointsAdd': {'fr': 'Ajouter un point', 'en': 'Add a point'},
+  'pointsNew': {'fr': 'Nouveau point', 'en': 'New point'},
+  'pointsEdit': {'fr': 'Modifier le point', 'en': 'Edit point'},
+  'pointsCode': {'fr': 'Code', 'en': 'Code'},
+  'pointsName': {'fr': 'Nom', 'en': 'Name'},
+  'pointsEquipment': {'fr': 'Équipement', 'en': 'Equipment'},
+  'pointsEquipmentHint': {'fr': 'Ex : Séparateur d\'entrée', 'en': 'e.g. Inlet separator'},
+  'pointsCircuit': {'fr': 'Circuit', 'en': 'Circuit'},
+  'pointsProfile': {'fr': 'Modèle de paramètres', 'en': 'Parameter template'},
+  'pointsProfileHint': {
+    'fr': 'Pré-coche les paramètres habituels du circuit.',
+    'en': 'Pre-selects the usual parameters of the circuit.',
+  },
+  'pointsParams': {'fr': 'Paramètres analysés', 'en': 'Analysed parameters'},
+  'pointsParamsHint': {
+    'fr': 'Touchez pour ajouter ou retirer un paramètre.',
+    'en': 'Tap to add or remove a parameter.',
+  },
+  'pointsParamCount': {'fr': '{n} paramètres', 'en': '{n} parameters'},
+  'pointsActive': {'fr': 'Point actif', 'en': 'Active point'},
+  'pointsActiveHint': {
+    'fr': 'Attendu chaque jour (alertes « non reçu »).',
+    'en': 'Expected every day ("not received" alerts).',
+  },
+  'pointsNoParam': {'fr': 'Choisissez au moins un paramètre.', 'en': 'Choose at least one parameter.'},
+  'pointsDuplicateCode': {
+    'fr': 'Ce code est déjà utilisé par un autre point.',
+    'en': 'This code is already used by another point.',
+  },
+  'pointsSaved': {'fr': 'Point enregistré.', 'en': 'Point saved.'},
+  'pointsDeleteTitle': {'fr': 'Supprimer ce point ?', 'en': 'Delete this point?'},
+  'pointsDeleteBody': {
+    'fr': 'Ses analyses et ses seuils seront aussi supprimés, sur tous les appareils.',
+    'en': 'Its analyses and thresholds will also be deleted, on all devices.',
+  },
+  'plantProfileCondensate': {'fr': 'Condensat', 'en': 'Condensate'},
+  'plantProfileWater': {'fr': 'Eau produite', 'en': 'Produced water'},
+  'plantProfileGas': {'fr': 'Gaz (composition + H2S)', 'en': 'Gas (composition + H2S)'},
+  'plantProfileGasExport': {'fr': 'Gaz export (+ points de rosée)', 'en': 'Export gas (+ dew points)'},
+  'plantProfileAmine': {'fr': 'Amine', 'en': 'Amine'},
+  'deadlineTitle': {'fr': 'Heure limite des analyses', 'en': 'Analysis deadline'},
+  'deadlineHint': {
+    'fr': 'Après cette heure, une analyse attendue et non saisie est signalée « non reçue ».',
+    'en': 'After this time, an expected analysis not yet entered is flagged "not received".',
+  },
+  'thresholdsByPoint': {'fr': 'Seuils par point', 'en': 'Thresholds by point'},
+  'thresholdsIntro': {
+    'fr': 'Choisissez un point, puis réglez le min et le max de chaque paramètre. Alerte désactivée : le seuil reste affiché, sans signal rouge.',
+    'en': 'Choose a point, then set the min and max of each parameter. Alert off: the threshold is still shown, without a red flag.',
+  },
+  'thresholdsMin': {'fr': 'Min', 'en': 'Min'},
+  'thresholdsMax': {'fr': 'Max', 'en': 'Max'},
+  'thresholdsAlert': {'fr': 'Alerte', 'en': 'Alert'},
+  'thresholdsChoiceOk': {'fr': 'Conforme', 'en': 'Compliant'},
+  'thresholdsSaved': {'fr': 'Seuils enregistrés.', 'en': 'Thresholds saved.'},
+  'alertsNotReceived': {'fr': 'Non reçue après {time}', 'en': 'Not received after {time}'},
+  'importTitle': {'fr': 'Importer des analyses', 'en': 'Import analyses'},
+  'importIntro': {
+    'fr': 'Fichier CSV ou Excel (.xlsx), depuis le téléphone ou le PC. Formats reconnus : Date | Puits | Type | Valeur, ou Date | Puits | une colonne par type d\'analyse, ou Date | Point | une colonne par paramètre (usine). Les exports de l\'app se réimportent tels quels.',
+    'en': 'CSV or Excel (.xlsx) file, from the phone or the PC. Recognized formats: Date | Well | Type | Value, or Date | Well | one column per analysis type, or Date | Point | one column per parameter (plant). The app\'s exports can be re-imported as is.',
+  },
+  'importPick': {'fr': 'Choisir un fichier', 'en': 'Choose a file'},
+  'importTemplateWells': {'fr': 'Modèle puits', 'en': 'Wells template'},
+  'importTemplatePlant': {'fr': 'Modèle usine', 'en': 'Plant template'},
+  'importTemplateLong': {'fr': 'Format long', 'en': 'Long format'},
+  'importTemplateWide': {'fr': 'Format large', 'en': 'Wide format'},
+  'importReady': {'fr': '{n} analyses à importer', 'en': '{n} analyses to import'},
+  'importDuplicates': {'fr': '{n} déjà présentes', 'en': '{n} already present'},
+  'importIssues': {'fr': '{n} lignes refusées', 'en': '{n} rejected lines'},
+  'importPreview': {'fr': 'Aperçu', 'en': 'Preview'},
+  'importIssuesTitle': {'fr': 'Lignes refusées', 'en': 'Rejected lines'},
+  'importLine': {'fr': 'ligne', 'en': 'line'},
+  'importConfirm': {'fr': 'Importer {n} analyses', 'en': 'Import {n} analyses'},
+  'importDone': {'fr': '{n} analyses importées.', 'en': '{n} analyses imported.'},
+  'importFailed': {'fr': 'Import impossible.', 'en': 'Import failed.'},
+  'importReadError': {
+    'fr': 'Fichier illisible (CSV ou .xlsx attendu).',
+    'en': 'Unreadable file (CSV or .xlsx expected).',
+  },
+  'importNoDateColumn': {'fr': 'colonne « Date » introuvable', 'en': '"Date" column not found'},
+  'importNoWellColumn': {
+    'fr': 'colonne « Puits » ou « Point » introuvable',
+    'en': '"Well" or "Point" column not found',
+  },
+  'importNoTypeColumn': {
+    'fr': 'aucune colonne ne correspond à un type d\'analyse',
+    'en': 'no column matches an analysis type',
+  },
+  'importBadDate': {'fr': 'date illisible', 'en': 'unreadable date'},
+  'importBadValue': {'fr': 'valeur illisible', 'en': 'unreadable value'},
+  'importUnknownWell': {'fr': 'puits inconnu', 'en': 'unknown well'},
+  'importUnknownType': {'fr': 'type d\'analyse inconnu', 'en': 'unknown analysis type'},
+  'importUnknownPoint': {'fr': 'point inconnu', 'en': 'unknown point'},
+  'importNoValue': {'fr': 'aucune valeur', 'en': 'no value'},
+  'exportAllTitle': {'fr': 'Export complet', 'en': 'Full export'},
+  'exportAllHint': {
+    'fr': 'Puits, analyses, interventions, points, analyses de l\'usine et seuils, en Excel (une feuille par collection) ou en CSV.',
+    'en': 'Wells, analyses, interventions, points, plant analyses and thresholds, as Excel (one sheet per collection) or CSV.',
+  },
+  'exportAllAction': {'fr': 'Exporter toutes les données', 'en': 'Export all data'},
+  'backupAllHint': {
+    'fr': 'Toutes les collections dans un seul fichier JSON, restaurable depuis les Réglages.',
+    'en': 'All collections in a single JSON file, restorable from Settings.',
+  },
+  'backupAllAction': {'fr': 'Sauvegarder (JSON)', 'en': 'Back up (JSON)'},
+  'projectId': {'fr': 'Identifiant', 'en': 'Project ID'},
+  'projectApiKey': {'fr': 'Clé d\'API', 'en': 'API key'},
+  'projectOpenConsole': {'fr': 'Console Firebase', 'en': 'Firebase console'},
+  'projectForget': {'fr': 'Oublier ce projet', 'en': 'Forget this project'},
+  'projectForgetTitle': {'fr': 'Revenir au mode personnel ?', 'en': 'Back to personal mode?'},
+  'projectForgetBody': {
+    'fr': 'Cet appareil se déconnecte du projet. Les données restent sur l\'appareil.',
+    'en': 'This device disconnects from the project. Data stays on the device.',
+  },
+  'projectChangeTitle': {'fr': 'Changer de projet ?', 'en': 'Change project?'},
+  'projectChangeBody': {
+    'fr': 'Le compte sera déconnecté de cet appareil ; reconnectez-vous ensuite dans le nouveau projet. Les données locales sont conservées.',
+    'en': 'The account will be signed out on this device; then sign in to the new project. Local data is kept.',
+  },
+  'projectNoneBody': {
+    'fr': 'Aucun projet connecté : choisissez le projet intégré, collez une configuration ou scannez un QR code.',
+    'en': 'No project connected: choose the built-in project, paste a configuration or scan a QR code.',
+  },
+  'projectQrTitle': {'fr': 'Ajouter un appareil', 'en': 'Add a device'},
+  'projectQrBody': {
+    'fr': 'Sur un autre téléphone, à l\'installation : « Équipe » puis « Scanner le QR code ». Sur PC ou web : coller la configuration copiée.',
+    'en': 'On another phone, at setup: "Team" then "Scan the QR code". On PC or web: paste the copied configuration.',
+  },
+  'projectCopyConfig': {'fr': 'Copier la configuration', 'en': 'Copy the configuration'},
+  'projectConfigCopied': {'fr': 'Configuration copiée.', 'en': 'Configuration copied.'},
+  'projectTestTitle': {'fr': 'Test de la connexion', 'en': 'Connection test'},
+  'projectTestBody': {
+    'fr': 'Vérifie le réseau, le compte, la base Firestore et les règles de sécurité.',
+    'en': 'Checks the network, the account, the Firestore database and the security rules.',
+  },
+  'projectTestSignIn': {
+    'fr': 'Connectez-vous (Réglages › Équipe et synchronisation) pour tester le projet.',
+    'en': 'Sign in (Settings › Team & sync) to test the project.',
+  },
+  'projectTestRun': {'fr': 'Lancer le test', 'en': 'Run the test'},
+  'projectCheckNetwork': {'fr': 'Réseau', 'en': 'Network'},
+  'projectCheckAccount': {'fr': 'Compte', 'en': 'Account'},
+  'projectCheckDatabase': {'fr': 'Base Firestore', 'en': 'Firestore database'},
+  'projectCheckRules': {'fr': 'Règles de sécurité publiées', 'en': 'Security rules published'},
+  'rulesTitle': {'fr': 'Règles de sécurité', 'en': 'Security rules'},
+  'rulesBody': {
+    'fr': 'Accès selon le rôle (admin, ingénieur, opérateur, lecteur), comptes inactifs bloqués, journal d\'audit en ajout seul. À publier une seule fois dans la console.',
+    'en': 'Access by role (admin, engineer, operator, reader), inactive accounts blocked, append-only audit log. Publish once in the console.',
+  },
+  'rulesOpenConsole': {'fr': 'Ouvrir Firestore › Règles', 'en': 'Open Firestore › Rules'},
+  'rulesShow': {'fr': 'Afficher', 'en': 'Show'},
+  'rulesHide': {'fr': 'Masquer', 'en': 'Hide'},
+  'consoleChecklistTitle': {'fr': 'Une seule fois dans la console Firebase', 'en': 'Once in the Firebase console'},
+  'consoleStepAuth': {
+    'fr': 'Authentication › E-mail/Mot de passe › Activer',
+    'en': 'Authentication › Email/Password › Enable',
+  },
+  'consoleStepFirestore': {
+    'fr': 'Firestore Database › Créer (mode production)',
+    'en': 'Firestore Database › Create (production mode)',
+  },
+  'consoleStepRules': {
+    'fr': 'Firestore › Règles › coller puis Publier',
+    'en': 'Firestore › Rules › paste then Publish',
+  },
+  'auditIntro': {
+    'fr': 'Chaque modification envoyée à l\'équipe est enregistrée avec son auteur et l\'heure du serveur.',
+    'en': 'Every change sent to the team is recorded with its author and the server time.',
+  },
+  'auditSearch': {'fr': 'Rechercher', 'en': 'Search'},
+  'auditAllUsers': {'fr': 'Tous les utilisateurs', 'en': 'All users'},
+  'auditAllTables': {'fr': 'Toutes les données', 'en': 'All data'},
+  'auditEmpty': {'fr': 'Aucune entrée.', 'en': 'No entries.'},
+  'auditUser': {'fr': 'Utilisateur', 'en': 'User'},
+  'auditAction': {'fr': 'Action', 'en': 'Action'},
+  'auditTable': {'fr': 'Données', 'en': 'Data'},
+  'auditDetail': {'fr': 'Détail', 'en': 'Detail'},
+  'auditActionSave': {'fr': 'Enregistrement', 'en': 'Saved'},
+  'auditActionDelete': {'fr': 'Suppression', 'en': 'Deleted'},
+  'auditActionUserCreate': {'fr': 'Utilisateur créé', 'en': 'User created'},
+  'auditActionUserUpdate': {'fr': 'Utilisateur modifié', 'en': 'User updated'},
+  'auditActionSetup': {'fr': 'Installation (1er admin)', 'en': 'Setup (first admin)'},
+  'auditTableWells': {'fr': 'Puits', 'en': 'Wells'},
+  'auditTableTypes': {'fr': 'Types d\'analyse', 'en': 'Analysis types'},
+  'auditTableRecords': {'fr': 'Analyses puits', 'en': 'Well analyses'},
+  'auditTableInterventions': {'fr': 'Interventions', 'en': 'Interventions'},
+  'auditTablePoints': {'fr': 'Points de prélèvement', 'en': 'Sample points'},
+  'auditTablePlantAnalyses': {'fr': 'Analyses usine', 'en': 'Plant analyses'},
+  'auditTableThresholds': {'fr': 'Seuils', 'en': 'Thresholds'},
+  'auditTableConfig': {'fr': 'Paramètres', 'en': 'Settings'},
+  'auditTableUsers': {'fr': 'Utilisateurs', 'en': 'Users'},
+  // Navigation et chargements
+  'drawerNavigation': {'fr': 'Navigation', 'en': 'Navigation'},
+  'drawerTools': {'fr': 'Outils', 'en': 'Tools'},
+  'drawerCollapse': {'fr': 'Réduire le menu', 'en': 'Collapse menu'},
+  'drawerExpand': {'fr': 'Agrandir le menu', 'en': 'Expand menu'},
+  'loadingReport': {'fr': 'Génération du rapport…', 'en': 'Generating the report…'},
+  'loadingFile': {'fr': 'Lecture du fichier…', 'en': 'Reading the file…'},
+  'loadingImport': {'fr': 'Import des analyses…', 'en': 'Importing analyses…'},
 };
 
 /// Traduit une clé pour une [Locale] donnée ; retombe sur le français.
@@ -896,10 +1586,7 @@ class LocaleController extends StateNotifier<Locale> {
     final prefs = await SharedPreferences.getInstance();
     final code = prefs.getString(_localeKey);
     if (code != null) {
-      state = supportedLocales.firstWhere(
-        (l) => l.languageCode == code,
-        orElse: () => const Locale('fr'),
-      );
+      state = supportedLocales.firstWhere((l) => l.languageCode == code, orElse: () => const Locale('fr'));
     }
   }
 
@@ -910,5 +1597,4 @@ class LocaleController extends StateNotifier<Locale> {
   }
 }
 
-final localeProvider =
-    StateNotifierProvider<LocaleController, Locale>((ref) => LocaleController());
+final localeProvider = StateNotifierProvider<LocaleController, Locale>((ref) => LocaleController());

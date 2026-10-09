@@ -5,7 +5,14 @@ import '../../features/auth/presentation/onboarding_screen.dart';
 import '../../features/auth/presentation/pin_setup_screen.dart';
 import '../../features/auth/presentation/profile_setup_screen.dart';
 import '../../features/auth/presentation/unlock_screen.dart';
+import '../../features/admin/presentation/admin_screen.dart';
 import '../../features/admin/presentation/analysis_types_screen.dart';
+import '../../features/admin/presentation/audit_screen.dart';
+import '../../features/admin/presentation/data_admin_screen.dart';
+import '../../features/admin/presentation/firebase_project_screen.dart';
+import '../../features/admin/presentation/sample_points_screen.dart';
+import '../../features/admin/presentation/thresholds_screen.dart';
+import '../../features/admin/presentation/users_screen.dart';
 import '../../features/admin/presentation/wells_manage_screen.dart';
 import '../../features/analysis/presentation/compare_screen.dart';
 import '../../features/analysis/presentation/decline_screen.dart';
@@ -13,7 +20,11 @@ import '../../features/analysis/presentation/ratio_trend_screen.dart';
 import '../../features/entry/presentation/quick_entry_screen.dart';
 import '../../features/home/presentation/home_shell.dart';
 import '../../features/interventions/presentation/interventions_screen.dart';
+import '../../features/plant/presentation/plant_entry_screen.dart';
+import '../../features/plant/presentation/plant_point_screen.dart';
+import '../../features/plant/presentation/plant_trend_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
+import '../../features/setup/presentation/setup_screen.dart';
 import '../../features/wells/presentation/trend_screen.dart';
 import '../../features/wells/presentation/well_detail_screen.dart';
 import '../../features/wells/presentation/well_history_screen.dart';
@@ -22,10 +33,7 @@ import '../auth/app_lock.dart';
 import '../auth/auth_providers.dart';
 import '../models/user_role.dart';
 
-const _authFreeLocations = {
-  '/onboarding',
-  '/setup-profile',
-};
+const _authFreeLocations = {'/onboarding', '/setup', '/setup-profile'};
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final onboardingDone = ref.watch(onboardingDoneProvider);
@@ -35,7 +43,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
   String initialLocation() {
     if (!onboardingDone) return '/onboarding';
-    if (!sessionAuthenticated) return '/setup-profile';
+    if (!sessionAuthenticated) return '/setup';
     if (appLock.hasPin == false) return '/pin-setup';
     if (appLock.hasPin == true && !appLock.unlocked) return '/unlock';
     return '/home';
@@ -49,7 +57,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return loc == '/onboarding' ? null : '/onboarding';
       }
       if (!sessionAuthenticated) {
-        return _authFreeLocations.contains(loc) ? null : '/setup-profile';
+        return _authFreeLocations.contains(loc) ? null : '/setup';
       }
       // Profil configuré mais verrouillage local (code 4 chiffres / empreinte)
       // pas encore passé : on bloque tout le reste de l'app.
@@ -68,31 +76,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return '/home';
       }
       if (loc == '/entry' && !role.canEnterData) return '/home';
-      if (loc == '/admin/analysis-types' && !role.canConfigure) return '/home';
-      if (loc == '/admin/wells' && !role.canConfigure) return '/home';
+      if (loc.startsWith('/plant/entry') && !role.canEnterData) return '/home';
+      // Administration : réservée au rôle admin (écrans masqués et protégés).
+      if ((loc == '/admin' || loc.startsWith('/admin/')) && !role.canConfigure) return '/home';
       return null;
     },
     routes: [
-      GoRoute(
-        path: '/onboarding',
-        builder: (context, state) => const OnboardingScreen(),
-      ),
-      GoRoute(
-        path: '/setup-profile',
-        builder: (context, state) => const ProfileSetupScreen(),
-      ),
-      GoRoute(
-        path: '/pin-setup',
-        builder: (context, state) => const PinSetupScreen(),
-      ),
-      GoRoute(
-        path: '/unlock',
-        builder: (context, state) => const UnlockScreen(),
-      ),
-      GoRoute(
-        path: '/home',
-        builder: (context, state) => const HomeShell(),
-      ),
+      GoRoute(path: '/onboarding', builder: (context, state) => const OnboardingScreen()),
+      GoRoute(path: '/setup', builder: (context, state) => const SetupScreen()),
+      GoRoute(path: '/setup-profile', builder: (context, state) => const ProfileSetupScreen()),
+      GoRoute(path: '/pin-setup', builder: (context, state) => const PinSetupScreen()),
+      GoRoute(path: '/unlock', builder: (context, state) => const UnlockScreen()),
+      GoRoute(path: '/home', builder: (context, state) => const HomeShell()),
       GoRoute(
         path: '/wells/:id',
         builder: (context, state) => WellDetailScreen(wellId: state.pathParameters['id']!),
@@ -103,10 +98,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/wells/:id/trend/:typeId',
-        builder: (context, state) => TrendScreen(
-          wellId: state.pathParameters['id']!,
-          typeId: state.pathParameters['typeId']!,
-        ),
+        builder: (context, state) =>
+            TrendScreen(wellId: state.pathParameters['id']!, typeId: state.pathParameters['typeId']!),
       ),
       GoRoute(
         path: '/wells/:id/interventions',
@@ -114,10 +107,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/wells/:id/decline',
-        builder: (context, state) => DeclineScreen(
-          wellId: state.pathParameters['id']!,
-          initialFluid: state.uri.queryParameters['fluid'],
-        ),
+        builder: (context, state) =>
+            DeclineScreen(wellId: state.pathParameters['id']!, initialFluid: state.uri.queryParameters['fluid']),
       ),
       GoRoute(
         path: '/wells/:id/ratio/:ratio',
@@ -127,9 +118,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-        path: '/settings',
-        builder: (context, state) => const SettingsScreen(),
+        path: '/plant/point/:id',
+        builder: (context, state) => PlantPointScreen(pointId: state.pathParameters['id']!),
       ),
+      GoRoute(
+        path: '/plant/point/:id/trend/:param',
+        builder: (context, state) =>
+            PlantTrendScreen(pointId: state.pathParameters['id']!, paramKey: state.pathParameters['param']!),
+      ),
+      GoRoute(
+        path: '/plant/entry/:id',
+        builder: (context, state) => PlantEntryScreen(
+          pointId: state.pathParameters['id']!,
+          initialDate: DateTime.tryParse(state.uri.queryParameters['date'] ?? ''),
+        ),
+      ),
+      GoRoute(path: '/settings', builder: (context, state) => const SettingsScreen()),
       GoRoute(
         path: '/compare',
         builder: (context, state) {
@@ -150,14 +154,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           initialTypeId: state.uri.queryParameters['typeId'],
         ),
       ),
-      GoRoute(
-        path: '/admin/analysis-types',
-        builder: (context, state) => const AnalysisTypesScreen(),
-      ),
-      GoRoute(
-        path: '/admin/wells',
-        builder: (context, state) => const WellsManageScreen(),
-      ),
+      GoRoute(path: '/admin', builder: (context, state) => const AdminScreen()),
+      GoRoute(path: '/admin/users', builder: (context, state) => const UsersScreen()),
+      GoRoute(path: '/admin/points', builder: (context, state) => const SamplePointsScreen()),
+      GoRoute(path: '/admin/thresholds', builder: (context, state) => const ThresholdsScreen()),
+      GoRoute(path: '/admin/data', builder: (context, state) => const DataAdminScreen()),
+      GoRoute(path: '/admin/firebase', builder: (context, state) => const FirebaseProjectScreen()),
+      GoRoute(path: '/admin/audit', builder: (context, state) => const AuditScreen()),
+      GoRoute(path: '/admin/analysis-types', builder: (context, state) => const AnalysisTypesScreen()),
+      GoRoute(path: '/admin/wells', builder: (context, state) => const WellsManageScreen()),
     ],
   );
 });

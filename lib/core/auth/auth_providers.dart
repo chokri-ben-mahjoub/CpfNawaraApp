@@ -4,6 +4,9 @@ import 'package:uuid/uuid.dart';
 
 import '../l10n/app_strings.dart';
 import '../models/user_role.dart';
+import '../settings/app_settings.dart';
+import '../sync/firebase_config_provider.dart';
+import '../sync/sync_service.dart';
 
 const _onboardingDoneKey = 'onboarding_done';
 const _profileIdKey = 'profile_id';
@@ -27,8 +30,7 @@ class OnboardingController extends StateNotifier<bool> {
   }
 }
 
-final onboardingDoneProvider =
-    StateNotifierProvider<OnboardingController, bool>((ref) => OnboardingController());
+final onboardingDoneProvider = StateNotifierProvider<OnboardingController, bool>((ref) => OnboardingController());
 
 /// Profil de l'utilisateur de cet appareil. Mode 100% local pour l'instant
 /// (pas de backend configuré) : un seul profil par appareil, créé une fois
@@ -66,19 +68,15 @@ class ProfileController extends StateNotifier<AppProfile?> {
       fullName: prefs.getString(_profileNameKey) ?? '',
       phone: prefs.getString(_profilePhoneKey) ?? '',
       serviceKey: prefs.getString(_profileServiceKey) ?? '',
-      // Appareil local mono-utilisateur : accès complet (pas de notion de
-      // rôle distribué tant qu'il n'y a pas de backend partagé).
+      // Rôle du profil local (mode personnel) ; avec un compte d'équipe,
+      // c'est celui de la fiche d'équipe qui compte (currentRoleProvider).
       role: UserRole.admin,
     );
   }
 
   /// Crée le profil local (nom, service, téléphone) — une seule fois par
   /// appareil, juste après l'onboarding.
-  Future<void> createProfile({
-    required String fullName,
-    required String phone,
-    required String serviceKey,
-  }) async {
+  Future<void> createProfile({required String fullName, required String phone, required String serviceKey}) async {
     final id = _uuid.v4();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_profileIdKey, id);
@@ -90,11 +88,7 @@ class ProfileController extends StateNotifier<AppProfile?> {
 
   /// Modifie le profil existant en gardant son identifiant (le code à 4
   /// chiffres, rattaché à cet identifiant, reste valable).
-  Future<void> updateProfile({
-    required String fullName,
-    required String phone,
-    required String serviceKey,
-  }) async {
+  Future<void> updateProfile({required String fullName, required String phone, required String serviceKey}) async {
     final current = state;
     if (current == null) return;
     final prefs = await SharedPreferences.getInstance();
@@ -121,10 +115,19 @@ final profileProvider = StateNotifierProvider<ProfileController, AppProfile?>((r
 /// True dès qu'un profil local a été configuré sur cet appareil.
 final sessionAuthenticatedProvider = Provider<bool>((ref) => ref.watch(profileProvider) != null);
 
-/// Rôle de l'utilisateur courant (toujours Admin tant que l'app fonctionne en
-/// local mono-appareil ; redeviendra piloté par le backend si un back-end
-/// partagé est rebranché un jour, voir README).
-final currentRoleProvider = Provider<UserRole>((ref) => ref.watch(profileProvider)?.role ?? UserRole.reader);
+/// Rôle de l'utilisateur de l'appareil : celui de sa fiche d'équipe quand un
+/// compte est connecté (lecteur si le compte est inactif ou en attente) ;
+/// administrateur en mode personnel. Tant que la fiche n'a jamais pu être
+/// lue, l'appareil garde l'accès complet à ses données locales — rien n'est
+/// envoyé à l'équipe sans rôle connu, et les règles Firestore protègent le
+/// serveur.
+final currentRoleProvider = Provider<UserRole>((ref) {
+  final sync = ref.watch(syncControllerProvider);
+  if (!sync.isSignedIn) return UserRole.admin;
+  final member = sync.member;
+  if (member == null) return sync.memberStatus == MemberStatus.unknown ? UserRole.admin : UserRole.reader;
+  return member.active ? member.role : UserRole.reader;
+});
 
 /// Point d'entrée unique pour créer/effacer le profil local de cet appareil.
 class AuthService {
@@ -135,7 +138,12 @@ class AuthService {
     return _ref.read(profileProvider.notifier).createProfile(fullName: fullName, phone: phone, serviceKey: serviceKey);
   }
 
-  Future<void> signOut() => _ref.read(profileProvider.notifier).reset();
+  /// Efface le profil local et déconnecte le compte d'équipe de cet
+  /// appareil (les données locales restent).
+  Future<void> signOut() async {
+    await _ref.read(syncControllerProvider.notifier).signOut();
+    await _ref.read(profileProvider.notifier).reset();
+  }
 }
 
 final authServiceProvider = Provider<AuthService>((ref) => AuthService(ref));
@@ -144,4 +152,8 @@ final authServiceProvider = Provider<AuthService>((ref) => AuthService(ref));
 final authReadyProvider = FutureProvider<void>((ref) async {
   await ref.read(onboardingDoneProvider.notifier).load();
   await ref.read(localeProvider.notifier).load();
+  // Projet Firebase configuré, et système d'unités (lu par les contrôleurs
+  // de données dès leur premier chargement).
+  await ref.read(firebaseConfigProvider.notifier).ready;
+  await ref.read(appSettingsProvider.notifier).ready;
 });

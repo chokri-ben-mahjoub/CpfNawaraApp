@@ -1,24 +1,71 @@
+import 'dart:async';
+
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
+import '../plant/plant_catalog.dart';
 import '../platform/app_platform.dart';
 
-/// Base locale SQLite (sqflite) : seule source de données tant qu'aucun
-/// backend partagé n'est branché (voir README, section "Mode local actuel").
+/// Base locale SQLite (sqflite) : source de données de l'app sur chaque
+/// appareil. Quand un compte de synchronisation est connecté (Réglages ›
+/// Synchronisation), elle est recopiée dans Firestore et fusionnée avec les
+/// autres appareils (voir `lib/core/sync/`).
+///
+/// Chaque ligne porte `updated_at` (ms depuis l'époque, 0 = donnée de
+/// démarrage jamais modifiée) et `dirty` (1 = modification locale pas encore
+/// envoyée) ; les suppressions sont notées dans `sync_deletions` pour être
+/// propagées aux autres appareils.
 class LocalDatabase {
   LocalDatabase._();
   static final LocalDatabase instance = LocalDatabase._();
 
   /// Version du schéma (voir `onUpgrade`), enregistrée dans les sauvegardes.
-  static const schemaVersion = 5;
+  static const schemaVersion = 8;
 
-  /// Tables sauvegardées / restaurées (voir `backup_service.dart`).
-  static const dataTables = ['wells', 'analysis_types', 'analysis_records', 'interventions'];
+  /// Tables sauvegardées / restaurées / synchronisées.
+  static const dataTables = [
+    'wells',
+    'analysis_types',
+    'analysis_records',
+    'interventions',
+    // Module Usine CPF (v7).
+    'sample_points',
+    'plant_analyses',
+    'plant_thresholds',
+    // Paramètres partagés (heure limite des analyses...), v8.
+    'app_config',
+  ];
+
+  /// Tables qui ont reçu les colonnes de synchronisation par migration (v6) ;
+  /// les suivantes sont créées directement avec.
+  static const _v6Tables = ['wells', 'analysis_types', 'analysis_records', 'interventions'];
 
   Database? _db;
 
   Future<Database> get database async => _db ??= await _open();
+
+  final _changes = StreamController<void>.broadcast();
+
+  /// Émis après chaque modification locale (saisie, correction, suppression)
+  /// : la synchronisation s'en sert pour envoyer les changements.
+  Stream<void> get changes => _changes.stream;
+
+  void notifyChange() => _changes.add(null);
+
+  /// Colonnes de suivi à ajouter à une ligne écrite localement.
+  static Map<String, Object?> stamp(Map<String, Object?> row) => {
+    ...row,
+    'updated_at': DateTime.now().millisecondsSinceEpoch,
+    'dirty': 1,
+  };
+
+  /// Note la suppression d'une ligne pour la propager aux autres appareils.
+  static Future<void> recordDeletion(DatabaseExecutor db, String table, String id) => db.insert('sync_deletions', {
+    'table_name': table,
+    'row_id': id,
+    'deleted_at': DateTime.now().millisecondsSinceEpoch,
+  }, conflictAlgorithm: ConflictAlgorithm.replace);
 
   /// Chemin du fichier de base (affiché dans Réglages › Données). Sur PC, dans
   /// AppData (dossier de l'app) plutôt que dans "Documents", visible et
@@ -30,12 +77,18 @@ class LocalDatabase {
     return p.join(dir.path, 'suivi_puits.db');
   }
 
-  Future<Database> _open() async {
-    return openDatabase(
-      await path,
-      version: schemaVersion,
-      onCreate: (db, version) async {
-        await db.execute('''
+  Future<Database> _open() async => openAt(await path);
+
+  /// Ouvre (ou crée) une base au schéma de l'app à [dbPath] — utilisé par
+  /// l'app, et par les tests de synchronisation pour simuler plusieurs
+  /// appareils.
+  static Future<Database> openAt(String dbPath, {DatabaseFactory? factory}) async {
+    return (factory ?? databaseFactory).openDatabase(
+      dbPath,
+      options: OpenDatabaseOptions(
+        version: schemaVersion,
+        onCreate: (db, version) async {
+          await db.execute('''
           create table wells (
             id text primary key,
             code text not null,
@@ -45,7 +98,7 @@ class LocalDatabase {
             reservoir_pressure real
           )
         ''');
-        await db.execute('''
+          await db.execute('''
           create table analysis_types (
             id text primary key,
             label text not null,
@@ -55,7 +108,7 @@ class LocalDatabase {
             frequency text not null
           )
         ''');
-        await db.execute('''
+          await db.execute('''
           create table analysis_records (
             id text primary key,
             well_id text not null,
@@ -68,40 +121,173 @@ class LocalDatabase {
             recorded_at text not null
           )
         ''');
-        await _createInterventionsTable(db);
-        await _seed(db);
-      },
-      onUpgrade: (db, oldVersion, newVersion) async {
-        if (oldVersion < 2) {
-          await db.execute("alter table wells add column group_name text not null default ''");
-        }
-        if (oldVersion < 3) {
-          for (final type in _productionFlowTypes) {
-            await db.insert('analysis_types', type, conflictAlgorithm: ConflictAlgorithm.ignore);
-          }
-        }
-        if (oldVersion < 4) {
-          // Renomme les puits de démo "Nawara ..." vers des noms génériques —
-          // seulement s'ils n'ont pas déjà été renommés par l'utilisateur
-          // (on ne touche qu'aux id/nom encore identiques au seed d'origine).
-          for (final rename in _wellRenames) {
-            await db.update(
-              'wells',
-              {'code': rename['newCode'], 'name': rename['newName']},
-              where: 'id = ? and name = ?',
-              whereArgs: [rename['id'], rename['oldName']],
-            );
-          }
-        }
-        if (oldVersion < 5) {
-          // Journal des interventions + pression de gisement (Pr) par puits
-          // + type "Pression de fond (Pwf)" : de quoi calculer le PI.
-          await db.execute('alter table wells add column reservoir_pressure real');
           await _createInterventionsTable(db);
-          await db.insert('analysis_types', _bottomHolePressureType, conflictAlgorithm: ConflictAlgorithm.ignore);
-        }
-      },
+          await _addSyncColumns(db);
+          await _createPlantTables(db);
+          await _migrateV8(db);
+          await _seed(db);
+        },
+        onUpgrade: (db, oldVersion, newVersion) async {
+          if (oldVersion < 2) {
+            await db.execute("alter table wells add column group_name text not null default ''");
+          }
+          if (oldVersion < 3) {
+            for (final type in _productionFlowTypes) {
+              await db.insert('analysis_types', type, conflictAlgorithm: ConflictAlgorithm.ignore);
+            }
+          }
+          if (oldVersion < 4) {
+            // Renomme les puits de démo "Nawara ..." vers des noms génériques —
+            // seulement s'ils n'ont pas déjà été renommés par l'utilisateur
+            // (on ne touche qu'aux id/nom encore identiques au seed d'origine).
+            for (final rename in _wellRenames) {
+              await db.update(
+                'wells',
+                {'code': rename['newCode'], 'name': rename['newName']},
+                where: 'id = ? and name = ?',
+                whereArgs: [rename['id'], rename['oldName']],
+              );
+            }
+          }
+          if (oldVersion < 5) {
+            // Journal des interventions + pression de gisement (Pr) par puits
+            // + type "Pression de fond (Pwf)" : de quoi calculer le PI.
+            await db.execute('alter table wells add column reservoir_pressure real');
+            await _createInterventionsTable(db);
+            await db.insert('analysis_types', _bottomHolePressureType, conflictAlgorithm: ConflictAlgorithm.ignore);
+          }
+          if (oldVersion < 6) {
+            // Synchronisation entre appareils : date de modification + marqueur
+            // "à envoyer" + journal des suppressions. Les données déjà saisies
+            // reçoivent une date de modification (> 0) ; les puits et types de
+            // démarrage jamais modifiés restent à 0, pour ne jamais écraser une
+            // version modifiée sur un autre appareil.
+            await _addSyncColumns(db);
+            final now = DateTime.now().millisecondsSinceEpoch;
+            await db.update('analysis_records', {'updated_at': now});
+            await db.update('interventions', {'updated_at': now});
+            await _stampModifiedSeeds(db, 'wells', _seedWells, now);
+            await _stampModifiedSeeds(db, 'analysis_types', _seedTypes, now);
+          }
+          if (oldVersion < 7) {
+            // Module Usine CPF : points de prélèvement, analyses, seuils.
+            await _createPlantTables(db);
+            await _seedPlantPoints(db);
+          }
+          if (oldVersion < 8) {
+            // Administration : type, statut et coordonnées des puits,
+            // paramètres choisis par point, alerte activable par seuil,
+            // paramètres partagés.
+            await _migrateV8(db);
+          }
+        },
+      ),
     );
+  }
+
+  static Future<void> _migrateV8(Database db) async {
+    await db.execute("alter table wells add column well_type text not null default ''");
+    await db.execute("alter table wells add column status text not null default ''");
+    await db.execute('alter table wells add column latitude real');
+    await db.execute('alter table wells add column longitude real');
+    await db.execute('alter table sample_points add column params_json text');
+    await db.execute('alter table plant_thresholds add column alert_enabled integer not null default 1');
+    await db.execute('''
+      create table if not exists app_config (
+        id text primary key,
+        value text,
+        updated_at integer not null default 0,
+        dirty integer not null default 0
+      )
+    ''');
+  }
+
+  static Future<void> _addSyncColumns(Database db) async {
+    for (final table in _v6Tables) {
+      await db.execute('alter table $table add column updated_at integer not null default 0');
+      await db.execute('alter table $table add column dirty integer not null default 0');
+    }
+    await db.execute('''
+      create table if not exists sync_deletions (
+        table_name text not null,
+        row_id text not null,
+        deleted_at integer not null,
+        primary key (table_name, row_id)
+      )
+    ''');
+  }
+
+  /// Module Usine CPF (voir `lib/core/plant/`). `plant_analyses.values_json`
+  /// contient les valeurs mesurées ({"bsw": 0.2, "appearance": "..."}) ;
+  /// une seule analyse par point et par jour (id = `<point>_<date>`).
+  static Future<void> _createPlantTables(DatabaseExecutor db) async {
+    await db.execute('''
+      create table if not exists sample_points (
+        id text primary key,
+        code text not null,
+        circuit text not null,
+        name text not null,
+        equipment text not null default '',
+        profile text not null,
+        sort_order integer not null default 0,
+        active integer not null default 1,
+        updated_at integer not null default 0,
+        dirty integer not null default 0
+      )
+    ''');
+    await db.execute('''
+      create table if not exists plant_analyses (
+        id text primary key,
+        point_id text not null,
+        analysis_date text not null,
+        values_json text not null,
+        source text not null,
+        operator_name text not null default '',
+        comment text,
+        recorded_at text not null,
+        updated_at integer not null default 0,
+        dirty integer not null default 0
+      )
+    ''');
+    await db.execute(
+      'create unique index if not exists plant_analyses_point_date on plant_analyses (point_id, analysis_date)',
+    );
+    await db.execute('''
+      create table if not exists plant_thresholds (
+        id text primary key,
+        point_id text not null,
+        param_key text not null,
+        min_value real,
+        max_value real,
+        updated_at integer not null default 0,
+        dirty integer not null default 0
+      )
+    ''');
+  }
+
+  static Future<void> _seedPlantPoints(DatabaseExecutor db) async {
+    for (final point in plantSeedPoints) {
+      await db.insert('sample_points', point, conflictAlgorithm: ConflictAlgorithm.ignore);
+    }
+  }
+
+  /// Date de modification pour les lignes ajoutées ou modifiées par
+  /// l'utilisateur ; les lignes identiques aux données de démarrage restent
+  /// à 0.
+  static Future<void> _stampModifiedSeeds(Database db, String table, List<Map<String, Object?>> seeds, int now) async {
+    final byId = {for (final seed in seeds) seed['id']: seed};
+    for (final row in await db.query(table)) {
+      final seed = byId[row['id']];
+      final unchanged = seed != null && seed.entries.every((e) => _sameValue(row[e.key], e.value));
+      if (!unchanged) {
+        await db.update(table, {'updated_at': now}, where: 'id = ?', whereArgs: [row['id']]);
+      }
+    }
+  }
+
+  static bool _sameValue(Object? a, Object? b) {
+    if (a is num && b is num) return a.toDouble() == b.toDouble();
+    return a == b;
   }
 
   /// Réajoute les types d'analyse intégrés apparus après la version
@@ -116,38 +302,103 @@ class LocalDatabase {
     if (fromVersion < 5) {
       await db.insert('analysis_types', _bottomHolePressureType, conflictAlgorithm: ConflictAlgorithm.ignore);
     }
+    if (fromVersion < 7) {
+      await _seedPlantPoints(db);
+    }
   }
 
   /// Puits et types d'analyse de démarrage, pour ne pas ouvrir l'app sur un
   /// écran totalement vide. Aucun enregistrement d'analyse n'est pré-rempli :
   /// l'historique reflète uniquement les vraies saisies.
-  Future<void> _seed(Database db) async {
-    const wells = [
-      {'id': 'w1', 'code': 'PN-01', 'name': 'Puits Nord 1', 'active': 1, 'group_name': 'Zone Nord'},
-      {'id': 'w2', 'code': 'PN-02', 'name': 'Puits Nord 2', 'active': 1, 'group_name': 'Zone Nord'},
-      {'id': 'w3', 'code': 'PS-01', 'name': 'Puits Sud 1', 'active': 1, 'group_name': 'Zone Sud'},
-      {'id': 'w4', 'code': 'PS-02', 'name': 'Puits Sud 2', 'active': 0, 'group_name': 'Zone Sud'},
-      {'id': 'w5', 'code': 'PS-03', 'name': 'Puits Sud 3', 'active': 1, 'group_name': 'Zone Sud'},
-    ];
-    for (final well in wells) {
+  static Future<void> _seed(Database db) async {
+    for (final well in _seedWells) {
       await db.insert('wells', well);
     }
 
-    const types = [
-      {'id': 't_bsw', 'label': 'BSW', 'unit': '%', 'min_value': 0.0, 'max_value': 2.0, 'frequency': 'daily'},
-      {'id': 't_salinity', 'label': 'Salinité', 'unit': 'mg/L', 'min_value': 0.0, 'max_value': 5000.0, 'frequency': 'daily'},
-      {'id': 't_density', 'label': 'Densité', 'unit': 'kg/m³', 'min_value': 780.0, 'max_value': 860.0, 'frequency': 'weekly'},
-      {'id': 't_h2s', 'label': 'H2S', 'unit': 'ppm', 'min_value': 0.0, 'max_value': 10.0, 'frequency': 'daily'},
-      {'id': 't_pressure', 'label': 'Pression', 'unit': 'bar', 'min_value': 20.0, 'max_value': 120.0, 'frequency': 'daily'},
-      {'id': 't_temperature', 'label': 'Température', 'unit': '°C', 'min_value': 15.0, 'max_value': 90.0, 'frequency': 'daily'},
-      ..._productionFlowTypes,
-      _bottomHolePressureType,
-    ];
-    for (final type in types) {
+    for (final type in _seedTypes) {
       await db.insert('analysis_types', type);
     }
+    await _seedPlantPoints(db);
   }
 }
+
+/// Puits de démarrage (aussi utilisés pour reconnaître, à la migration v6,
+/// ceux que l'utilisateur n'a jamais modifiés).
+const _seedWells = [
+  {
+    'id': 'w1',
+    'code': 'PN-01',
+    'name': 'Puits Nord 1',
+    'active': 1,
+    'group_name': 'Zone Nord',
+    'reservoir_pressure': null,
+  },
+  {
+    'id': 'w2',
+    'code': 'PN-02',
+    'name': 'Puits Nord 2',
+    'active': 1,
+    'group_name': 'Zone Nord',
+    'reservoir_pressure': null,
+  },
+  {
+    'id': 'w3',
+    'code': 'PS-01',
+    'name': 'Puits Sud 1',
+    'active': 1,
+    'group_name': 'Zone Sud',
+    'reservoir_pressure': null,
+  },
+  {
+    'id': 'w4',
+    'code': 'PS-02',
+    'name': 'Puits Sud 2',
+    'active': 0,
+    'group_name': 'Zone Sud',
+    'reservoir_pressure': null,
+  },
+  {
+    'id': 'w5',
+    'code': 'PS-03',
+    'name': 'Puits Sud 3',
+    'active': 1,
+    'group_name': 'Zone Sud',
+    'reservoir_pressure': null,
+  },
+];
+
+/// Types d'analyse de démarrage.
+const _seedTypes = [
+  {'id': 't_bsw', 'label': 'BSW', 'unit': '%', 'min_value': 0.0, 'max_value': 2.0, 'frequency': 'daily'},
+  {
+    'id': 't_salinity',
+    'label': 'Salinité',
+    'unit': 'mg/L',
+    'min_value': 0.0,
+    'max_value': 5000.0,
+    'frequency': 'daily',
+  },
+  {
+    'id': 't_density',
+    'label': 'Densité',
+    'unit': 'kg/m³',
+    'min_value': 780.0,
+    'max_value': 860.0,
+    'frequency': 'weekly',
+  },
+  {'id': 't_h2s', 'label': 'H2S', 'unit': 'ppm', 'min_value': 0.0, 'max_value': 10.0, 'frequency': 'daily'},
+  {'id': 't_pressure', 'label': 'Pression', 'unit': 'bar', 'min_value': 20.0, 'max_value': 120.0, 'frequency': 'daily'},
+  {
+    'id': 't_temperature',
+    'label': 'Température',
+    'unit': '°C',
+    'min_value': 15.0,
+    'max_value': 90.0,
+    'frequency': 'daily',
+  },
+  ..._productionFlowTypes,
+  _bottomHolePressureType,
+];
 
 Future<void> _createInterventionsTable(Database db) async {
   await db.execute('''
@@ -194,7 +445,28 @@ const _wellRenames = [
 /// selon le puits) : la plage est volontairement large pour ne jamais
 /// déclencher d'alerte "hors seuil".
 const _productionFlowTypes = [
-  {'id': 't_oil_flow', 'label': 'Débit huile', 'unit': 'm³/j', 'min_value': 0.0, 'max_value': 100000.0, 'frequency': 'daily'},
-  {'id': 't_gas_flow', 'label': 'Débit gaz', 'unit': 'Sm³/j', 'min_value': 0.0, 'max_value': 1000000.0, 'frequency': 'daily'},
-  {'id': 't_water_flow', 'label': 'Débit eau', 'unit': 'm³/j', 'min_value': 0.0, 'max_value': 100000.0, 'frequency': 'daily'},
+  {
+    'id': 't_oil_flow',
+    'label': 'Débit huile',
+    'unit': 'm³/j',
+    'min_value': 0.0,
+    'max_value': 100000.0,
+    'frequency': 'daily',
+  },
+  {
+    'id': 't_gas_flow',
+    'label': 'Débit gaz',
+    'unit': 'Sm³/j',
+    'min_value': 0.0,
+    'max_value': 1000000.0,
+    'frequency': 'daily',
+  },
+  {
+    'id': 't_water_flow',
+    'label': 'Débit eau',
+    'unit': 'm³/j',
+    'min_value': 0.0,
+    'max_value': 100000.0,
+    'frequency': 'daily',
+  },
 ];

@@ -52,3 +52,6 @@ app.*.map.json
 # Configuration Firebase propre à votre projet (à récupérer dans la console
 # Firebase > Paramètres du projet), gardée hors du dépôt.
 /android/app/google-services.json
+
+# Journaux des émulateurs Firebase (tests de synchronisation)
+*-debug.log

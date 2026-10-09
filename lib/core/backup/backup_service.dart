@@ -44,9 +44,7 @@ class BackupService {
       'app': backupAppId,
       'schemaVersion': LocalDatabase.schemaVersion,
       'exportedAt': DateTime.now().toIso8601String(),
-      'tables': {
-        for (final table in LocalDatabase.dataTables) table: await db.query(table),
-      },
+      'tables': {for (final table in LocalDatabase.dataTables) table: await db.query(table)},
     };
   }
 
@@ -91,10 +89,9 @@ class BackupService {
     try {
       for (final table in LocalDatabase.dataTables) {
         final rows = rawTables[table];
-        if (rows == null) {
-          tables[table] = const [];
-          continue;
-        }
+        // Table absente : sauvegarde d'une version plus ancienne de l'app,
+        // ces données-là ne sont pas touchées à la restauration.
+        if (rows == null) continue;
         tables[table] = [for (final row in rows as List) Map<String, Object?>.from(row as Map)];
       }
     } catch (_) {
@@ -115,26 +112,38 @@ class BackupService {
   /// transaction (tout ou rien). Les colonnes inconnues sont ignorées, les
   /// colonnes absentes (sauvegarde d'une version plus ancienne) prennent leur
   /// valeur par défaut.
+  ///
+  /// Avec la synchronisation, la sauvegarde restaurée devient la version la
+  /// plus récente : toutes ses lignes sont marquées "à envoyer" et les
+  /// lignes qui n'y figurent pas sont supprimées aussi sur les autres
+  /// appareils.
   static Future<void> restore(BackupPayload payload) async {
     final db = await LocalDatabase.instance.database;
+    final now = DateTime.now().millisecondsSinceEpoch;
     await db.transaction((txn) async {
       for (final table in LocalDatabase.dataTables) {
+        if (!payload.tables.containsKey(table)) continue;
         final columns = (await txn.rawQuery('pragma table_info($table)')).map((c) => c['name'] as String).toSet();
+        final previousIds = (await txn.query(table, columns: ['id'])).map((r) => r['id'] as String).toSet();
         await txn.delete(table);
         final batch = txn.batch();
+        final restoredIds = <String>{};
         for (final row in payload.tables[table] ?? const <Map<String, Object?>>[]) {
-          batch.insert(
-            table,
-            {
-              for (final entry in row.entries)
-                if (columns.contains(entry.key)) entry.key: entry.value,
-            },
-            conflictAlgorithm: ConflictAlgorithm.replace,
-          );
+          restoredIds.add('${row['id']}');
+          batch.insert(table, {
+            for (final entry in row.entries)
+              if (columns.contains(entry.key)) entry.key: entry.value,
+            'updated_at': now,
+            'dirty': 1,
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
         }
         await batch.commit(noResult: true);
+        for (final id in previousIds.difference(restoredIds)) {
+          await LocalDatabase.recordDeletion(txn, table, id);
+        }
       }
       await LocalDatabase.addBuiltInTypesSince(txn, payload.schemaVersion);
     });
+    LocalDatabase.instance.notifyChange();
   }
 }

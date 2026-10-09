@@ -1,0 +1,661 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
+
+import '../../../core/analysis/series.dart';
+import '../../../core/auth/auth_providers.dart';
+import '../../../core/export/export_service.dart';
+import '../../../core/export/export_table.dart';
+import '../../../core/l10n/app_strings.dart';
+import '../../../core/models/user_role.dart';
+import '../../../core/plant/plant_catalog.dart';
+import '../../../core/plant/plant_repository.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/responsive.dart';
+import '../plant_report.dart';
+import 'widgets/plant_diagram.dart';
+import '../../../core/widgets/app_loader.dart';
+
+enum PlantView { diagram, list }
+
+final plantViewProvider = StateProvider<PlantView>((ref) => PlantView.diagram);
+
+String plantDayLabel(DateTime day, Locale locale, String Function(String) s) {
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  if (day == today) return s('navToday');
+  if (day == today.subtract(const Duration(days: 1))) return s('wellHistoryYesterday');
+  return DateFormat('EEE d MMM yyyy', locale.languageCode).format(day);
+}
+
+/// Export Excel/CSV de toutes les analyses de l'usine : une feuille par
+/// circuit, une colonne par paramètre (action de la barre du haut).
+Future<void> exportPlantAnalyses(WidgetRef ref, BuildContext context) async {
+  final locale = ref.read(localeProvider);
+  String s(String key) => tr(locale, key);
+  final controller = ref.read(plantControllerProvider.notifier);
+  final tables = <ExportTable>[];
+  for (final circuit in PlantCircuit.values) {
+    final points = controller.pointsOf(circuit);
+    final params = <String, PlantParam>{
+      for (final p in points)
+        for (final param in p.params) param.key: param,
+    }.values.toList();
+    final rows = <List<Object?>>[];
+    for (final point in points) {
+      for (final a in controller.analysesFor(point.id)) {
+        rows.add([
+          DateOnly(a.date),
+          point.code,
+          point.name,
+          for (final param in params)
+            param.isNumeric ? a.number(param.key) : (a.values[param.key] == null ? null : s('${a.values[param.key]}')),
+          s(a.source),
+          a.operatorName,
+          a.comment ?? '',
+        ]);
+      }
+    }
+    rows.sort((a, b) => (b[0] as DateOnly).date.compareTo((a[0] as DateOnly).date));
+    tables.add(
+      ExportTable(
+        name: s(circuit.labelKey),
+        headers: [
+          s('colDate'),
+          s('plantColPoint'),
+          s('plantColName'),
+          for (final param in params) param.unit.isEmpty ? s(param.labelKey) : '${s(param.labelKey)} (${param.unit})',
+          s('plantColSource'),
+          s('colOperator'),
+          s('colComment'),
+        ],
+        rows: rows,
+      ),
+    );
+  }
+  await runExport(context: context, locale: locale, baseName: 'usine_analyses', tables: tables);
+}
+
+/// Onglet "Usine" : schéma interactif ou liste par circuit, état du jour de
+/// chaque point de prélèvement, rapport journalier PDF.
+class PlantScreen extends ConsumerWidget {
+  const PlantScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final locale = ref.watch(localeProvider);
+    final day = ref.watch(plantDayProvider);
+    final view = ref.watch(plantViewProvider);
+    final state = ref.watch(plantControllerProvider);
+    final controller = ref.read(plantControllerProvider.notifier);
+    String s(String key) => tr(locale, key);
+
+    final points = state.points.where((p) => p.active).toList();
+    final statuses = {for (final p in points) p.id: controller.status(p, day)};
+    final analysed = statuses.values.where((st) => st != PlantStatus.missing).length;
+    final out = statuses.values.where((st) => st == PlantStatus.outOfRange).length;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    return ListView(
+      padding: pagePadding(context, top: 8, bottom: 32),
+      children: [
+        Row(
+          children: [
+            IconButton(
+              tooltip: s('plantPreviousDay'),
+              onPressed: () => ref.read(plantDayProvider.notifier).state = day.subtract(const Duration(days: 1)),
+              icon: const Icon(Icons.chevron_left),
+            ),
+            Expanded(
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: day,
+                    firstDate: DateTime(2000),
+                    lastDate: today,
+                  );
+                  if (picked != null) ref.read(plantDayProvider.notifier).state = picked;
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.event_outlined, size: 18),
+                      const SizedBox(width: 8),
+                      Text(
+                        plantDayLabel(day, locale, s),
+                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            IconButton(
+              tooltip: s('plantNextDay'),
+              onPressed: day.isBefore(today)
+                  ? () => ref.read(plantDayProvider.notifier).state = day.add(const Duration(days: 1))
+                  : null,
+              icon: const Icon(Icons.chevron_right),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: _SummaryTile(
+                label: s('plantSummaryAnalysed'),
+                value: '$analysed / ${points.length}',
+                color: accentColor,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _SummaryTile(
+                label: s('plantSummaryOut'),
+                value: '$out',
+                color: out > 0 ? scheme.error : Colors.green.shade600,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _SummaryTile(
+                label: s('plantSummaryMissing'),
+                value: '${points.length - analysed}',
+                color: points.length - analysed > 0 ? scheme.outline : Colors.green.shade600,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final viewSelector = SegmentedButton<PlantView>(
+              showSelectedIcon: false,
+              segments: [
+                ButtonSegment(
+                  value: PlantView.diagram,
+                  icon: const Icon(Icons.account_tree_outlined),
+                  label: Text(s('plantViewDiagram')),
+                ),
+                ButtonSegment(
+                  value: PlantView.list,
+                  icon: const Icon(Icons.view_list_outlined),
+                  label: Text(s('plantViewList')),
+                ),
+              ],
+              selected: {view},
+              onSelectionChanged: (sel) => ref.read(plantViewProvider.notifier).state = sel.first,
+            );
+            final report = FilledButton.tonalIcon(
+              onPressed: () => _chooseReport(context, ref),
+              icon: const Icon(Icons.picture_as_pdf_outlined),
+              label: Text(s('plantReport')),
+            );
+            if (constraints.maxWidth < 560) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [viewSelector, const SizedBox(height: 8), report],
+              );
+            }
+            return Row(
+              children: [
+                Expanded(child: viewSelector),
+                const SizedBox(width: 8),
+                report,
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 14),
+        if (view == PlantView.diagram) ...[
+          Card(
+            clipBehavior: Clip.antiAlias,
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: PlantDiagram(day: day, onPointTap: (p) => showPlantPointSheet(context, p)),
+            ),
+          ),
+          const SizedBox(height: 10),
+          const PlantDiagramLegend(),
+          const SizedBox(height: 6),
+          Text(s('plantDiagramHint'), style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
+        ] else
+          for (final circuit in PlantCircuit.values) _CircuitSection(circuit: circuit, day: day),
+      ],
+    );
+  }
+
+  Future<void> _chooseReport(BuildContext context, WidgetRef ref) async {
+    final locale = ref.read(localeProvider);
+    String s(String key) => tr(locale, key);
+    final circuits = await showModalBottomSheet<List<PlantCircuit>>(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+              child: Text(
+                s('plantReportChoose'),
+                style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.select_all),
+              title: Text(s('plantReportAllCircuits'), style: const TextStyle(fontWeight: FontWeight.w700)),
+              onTap: () => Navigator.of(sheetContext).pop(PlantCircuit.values),
+            ),
+            for (final c in PlantCircuit.values)
+              ListTile(
+                leading: Icon(c.icon, color: c.color),
+                title: Text(s(c.labelKey)),
+                onTap: () => Navigator.of(sheetContext).pop([c]),
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (circuits == null || !context.mounted) return;
+    final day = ref.read(plantDayProvider);
+    final bytes = await runWithLoading(
+      context,
+      s('loadingReport'),
+      () => buildPlantDailyReport(
+        controller: ref.read(plantControllerProvider.notifier),
+        day: day,
+        circuits: circuits,
+        s: s,
+        languageCode: locale.languageCode,
+        operatorName: ref.read(profileProvider)?.fullName ?? '',
+      ),
+    );
+    if (!context.mounted) return;
+    final scope = circuits.length == 1 ? s(circuits.first.labelKey) : s('plantReportAllShort');
+    await saveOrShareFile(
+      context: context,
+      locale: locale,
+      baseName: 'rapport_usine_${scope}_${plantDateKey(day)}',
+      extension: 'pdf',
+      mimeType: 'application/pdf',
+      bytes: bytes,
+      shareSubject: '${s('plantReportTitle')} — ${plantDateKey(day)}',
+    );
+  }
+}
+
+class _SummaryTile extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+  const _SummaryTile({required this.label, required this.value, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            value,
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: color),
+          ),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 11.5, color: scheme.onSurfaceVariant),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CircuitSection extends ConsumerWidget {
+  final PlantCircuit circuit;
+  final DateTime day;
+  const _CircuitSection({required this.circuit, required this.day});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final locale = ref.watch(localeProvider);
+    ref.watch(plantControllerProvider);
+    final controller = ref.read(plantControllerProvider.notifier);
+    String s(String key) => tr(locale, key);
+    final points = controller.pointsOf(circuit);
+    if (points.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(circuit.icon, color: circuit.color, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  s(circuit.labelKey),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                ),
+              ),
+              Container(
+                width: 26,
+                height: 4,
+                decoration: BoxDecoration(color: circuit.color, borderRadius: BorderRadius.circular(2)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ResponsiveWrapGrid(
+            minItemWidth: 340,
+            spacing: 10,
+            children: [for (final p in points) _PointTile(point: p, day: day)],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PointTile extends ConsumerWidget {
+  final SamplePoint point;
+  final DateTime day;
+  const _PointTile({required this.point, required this.day});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final locale = ref.watch(localeProvider);
+    final controller = ref.read(plantControllerProvider.notifier);
+    String s(String key) => tr(locale, key);
+    final status = controller.status(point, day);
+    final color = plantStatusColor(status, scheme);
+    final analysis = controller.analysisOn(point.id, day);
+    final outParams = analysis == null ? const <PlantParam>[] : controller.outOfRange(point, analysis);
+    final latest = controller.latest(point.id);
+
+    final detail = switch (status) {
+      PlantStatus.ok => s('plantStatusOk'),
+      PlantStatus.outOfRange => '${s('plantStatusOut')} : ${outParams.map((p) => s(p.labelKey)).join(', ')}',
+      PlantStatus.missing =>
+        latest == null
+            ? s('plantNeverAnalysed')
+            : '${s('plantLastAnalysis')} : ${DateFormat('d MMM', locale.languageCode).format(latest.date)}',
+    };
+
+    return Card(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () => context.push('/plant/point/${point.id}'),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: point.circuit.color, width: 3),
+                ),
+                child: Center(
+                  child: Text(
+                    point.code,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: status == PlantStatus.missing ? scheme.surface : Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(point.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5)),
+                    Text(point.equipment, style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
+                    const SizedBox(height: 4),
+                    Text(
+                      detail,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: status == PlantStatus.missing ? scheme.onSurfaceVariant : color,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Fiche rapide d'un point (depuis le schéma) : dernière analyse et accès à
+/// la saisie, aux détails et tendances.
+Future<void> showPlantPointSheet(BuildContext context, SamplePoint point) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+    builder: (sheetContext) => _PointSheet(point: point),
+  );
+}
+
+class _PointSheet extends ConsumerWidget {
+  final SamplePoint point;
+  const _PointSheet({required this.point});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final locale = ref.watch(localeProvider);
+    final role = ref.watch(currentRoleProvider);
+    final day = ref.watch(plantDayProvider);
+    ref.watch(plantControllerProvider);
+    final controller = ref.read(plantControllerProvider.notifier);
+    String s(String key) => tr(locale, key);
+    final analysis = controller.analysisOn(point.id, day) ?? controller.latest(point.id);
+    final status = controller.status(point, day);
+
+    return SafeArea(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.85),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(color: point.circuit.color, borderRadius: BorderRadius.circular(10)),
+                    child: Text(
+                      point.code,
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          point.name,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                        ),
+                        Text(
+                          '${s(point.circuit.labelKey)} · ${point.equipment}',
+                          style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                  PlantStatusChip(status: status),
+                ],
+              ),
+              const SizedBox(height: 14),
+              if (analysis == null)
+                Text(s('plantNeverAnalysed'), style: TextStyle(color: scheme.onSurfaceVariant))
+              else ...[
+                Text(
+                  '${s('plantAnalysisOf')} ${DateFormat('EEEE d MMMM yyyy', locale.languageCode).format(analysis.date)}',
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                ),
+                const SizedBox(height: 8),
+                PlantValuesTable(point: point, analysis: analysis),
+              ],
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  if (role.canEnterData)
+                    Expanded(
+                      child: FilledButton.icon(
+                        style: FilledButton.styleFrom(backgroundColor: accentColor, foregroundColor: Colors.white),
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          context.push('/plant/entry/${point.id}?date=${plantDateKey(day)}');
+                        },
+                        icon: const Icon(Icons.edit_note),
+                        label: Text(s('plantEnter')),
+                      ),
+                    ),
+                  if (role.canEnterData) const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        context.push('/plant/point/${point.id}');
+                      },
+                      icon: const Icon(Icons.show_chart),
+                      label: Text(s('plantDetailsTrends')),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class PlantStatusChip extends ConsumerWidget {
+  final PlantStatus status;
+  const PlantStatusChip({super.key, required this.status});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final locale = ref.watch(localeProvider);
+    final color = plantStatusColor(status, scheme);
+    final key = switch (status) {
+      PlantStatus.ok => 'plantStatusOk',
+      PlantStatus.outOfRange => 'plantStatusOut',
+      PlantStatus.missing => 'plantStatusMissing',
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(100)),
+      child: Text(
+        tr(locale, key),
+        style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 12),
+      ),
+    );
+  }
+}
+
+/// Tableau des valeurs d'une analyse : paramètre, valeur, unité, seuil,
+/// valeur hors seuil en rouge. Toucher un paramètre numérique ouvre sa
+/// courbe de tendance.
+class PlantValuesTable extends ConsumerWidget {
+  final SamplePoint point;
+  final PlantAnalysis analysis;
+  const PlantValuesTable({super.key, required this.point, required this.analysis});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final locale = ref.watch(localeProvider);
+    final controller = ref.read(plantControllerProvider.notifier);
+    String s(String key) => tr(locale, key);
+
+    final rows = <Widget>[];
+    for (final param in point.params) {
+      final value = analysis.values[param.key];
+      final out = controller.isOut(point.id, param, value);
+      final t = controller.threshold(point.id, param.key);
+      final color = out == true ? scheme.error : (out == false ? Colors.green.shade700 : scheme.onSurface);
+      final text = value == null
+          ? '—'
+          : param.isNumeric
+          ? '${formatNumber((value as num).toDouble())}${param.unit.isEmpty ? '' : ' ${param.unit}'}'
+          : s('$value');
+      rows.add(
+        InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: param.isNumeric ? () => context.push('/plant/point/${point.id}/trend/${param.key}') : null,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 4),
+            child: Row(
+              children: [
+                if (out == true)
+                  Icon(Icons.warning_amber_rounded, size: 16, color: scheme.error)
+                else
+                  const SizedBox(width: 16),
+                const SizedBox(width: 6),
+                Expanded(child: Text(s(param.labelKey), style: const TextStyle(fontSize: 13))),
+                if (t != null && param.isNumeric)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 10),
+                    child: Text(t.label(formatNumber), style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
+                  ),
+                Text(
+                  text,
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: color),
+                ),
+                if (param.isNumeric) Icon(Icons.chevron_right, size: 16, color: scheme.onSurfaceVariant),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(color: scheme.surfaceContainerLow, borderRadius: BorderRadius.circular(14)),
+      child: Column(children: rows),
+    );
+  }
+}

@@ -30,7 +30,10 @@ class InterventionsScreen extends ConsumerWidget {
 
     final well = controller.findWell(wellId);
     if (well == null) {
-      return Scaffold(appBar: AppBar(), body: Center(child: Text(s('wellsEmpty'))));
+      return Scaffold(
+        appBar: AppBar(),
+        body: Center(child: Text(s('wellsEmpty'))),
+      );
     }
     final interventions = controller.interventionsForWell(wellId);
 
@@ -57,7 +60,7 @@ class InterventionsScreen extends ConsumerWidget {
           ),
         ],
       ),
-      floatingActionButton: role.canEnterData
+      floatingActionButton: role.canManageInterventions
           ? FloatingActionButton.extended(
               onPressed: () => showInterventionForm(context, wellId: wellId),
               icon: const Icon(Icons.add),
@@ -91,10 +94,7 @@ class InterventionsScreen extends ConsumerWidget {
                     child: Row(
                       children: [
                         Expanded(
-                          child: _SummaryValue(
-                            label: s('interventionsCount'),
-                            value: '${interventions.length}',
-                          ),
+                          child: _SummaryValue(label: s('interventionsCount'), value: '${interventions.length}'),
                         ),
                         Expanded(
                           child: _SummaryValue(
@@ -118,7 +118,7 @@ class InterventionsScreen extends ConsumerWidget {
                           intervention: interventions[i],
                           locale: locale,
                           s: s,
-                          onTap: role.canEnterData
+                          onTap: role.canManageInterventions
                               ? () => showInterventionForm(context, wellId: wellId, existing: interventions[i])
                               : null,
                         ),

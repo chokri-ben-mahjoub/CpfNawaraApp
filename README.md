@@ -9,9 +9,10 @@ Riverpod, go_router, Google Fonts) avec une nouvelle identité visuelle
 (ambre énergie `#FF7A33` / bleu nuit `#0B1E2D`) adaptée à un contexte
 industriel gaz/pétrole.
 
-## Mode local actuel
+## Mode local (par défaut)
 
-**Aucune configuration de backend n'est nécessaire pour l'instant.** Toutes
+**Aucune configuration n'est nécessaire pour utiliser l'app seule.** La
+synchronisation entre appareils est optionnelle (voir plus bas). Toutes
 les données (puits, types d'analyse, historique) sont stockées dans une base
 SQLite locale sur l'appareil (`lib/core/data/local_database.dart`, via
 `sqflite`) — `flutter run` / `flutter build apk` fonctionnent directement,
@@ -57,6 +58,145 @@ Pour générer un APK installable :
 flutter build apk --release
 ```
 
+## Module Usine CPF (onglet « Usine »)
+
+Points de prélèvement et analyses de laboratoire de l'usine de traitement de
+gaz, par circuit (`lib/core/plant/`, `lib/features/plant/`).
+
+- **Points** (table `sample_points`) : condensat C1 Inlet Separator, C2 Test
+  Separator, C3 avant rebouilleur, C4 bac de stockage ; eau produite W1 Test
+  Separator, W2 Inlet Separator, W3 séparateur W/C, W4 eau du séparateur
+  d'entrée vers W/C ; gaz G1 Test Separator, G2 Inlet Separator, G3 gaz
+  export ; amine LA (pauvre, pompe HP) et RA (riche, flash drum).
+- **Paramètres** (`plant_catalog.dart`, une valeur numérique par paramètre) :
+  condensat densité, BSW, water cut, salinité, chlorures ; eau pH, densité,
+  salinité, TDS, TSS, aspect (choix), fer, TPH ; gaz composition (C1, C2,
+  C3, C4+, CO2, N2 en mol %) + H2S, et pour G3 points de rosée HC et eau ;
+  amine concentration, moussage, pH, %PZ, conductivité, salinité, CO2
+  loading, TDS, TSS.
+- **Données** : `plant_analyses` (valeurs en JSON, source, opérateur ; une
+  analyse par point et par jour, id = `<point>_<date>`), `plant_thresholds`
+  (min/max par point et paramètre). Base SQLite locale (schéma v7),
+  synchronisée par Firebase comme le reste.
+- **Écrans** : schéma de procédé interactif (toucher un point → dernières
+  analyses ; vert = dans les seuils, rouge = hors seuil, gris = pas d'analyse
+  ce jour), liste par circuit, fiche point (valeurs, historique, seuils),
+  saisie (valeur hors seuil signalée en direct, total de composition),
+  courbes de tendance avec bande de seuil, alertes (onglet Alertes : hors
+  seuil et non analysés du jour), rapport journalier PDF par circuit ou
+  complet (`plant_report.dart`, paquet `pdf`), export Excel/CSV de toutes
+  les analyses (une feuille par circuit).
+- Aucun seuil n'est prédéfini : à régler par point (icône réglages de la
+  fiche point), selon les spécifications de l'usine.
+
+## Équipe, synchronisation et Administration (Firebase)
+
+Tout se configure depuis l'app, sans fichier à modifier.
+
+### Installation (premier lancement)
+
+1. **Mode** : « Équipe (synchronisé) » ou « Personnel (sur cet appareil) »
+   (local, sans compte, comme avant).
+2. **Projet Firebase** : projet PuitsTrack intégré (un clic), **coller** la
+   configuration (objet `firebaseConfig` de la console ou
+   `google-services.json`), ou **scanner le QR code** affiché par
+   l'administrateur (Administration › Projet Firebase). Enregistré sur
+   l'appareil (`lib/core/sync/firebase_config_provider.dart`).
+3. **Compte** : le **premier compte créé devient administrateur** ; les
+   suivants envoient une demande d'accès validée par l'administrateur (ou
+   l'administrateur crée les comptes lui-même).
+
+Une seule fois dans la console Firebase (l'app détecte ce qui manque et
+ouvre la bonne page) : activer *Authentication › E-mail/Mot de passe*,
+créer *Firestore Database*, publier les **règles** (`firestore.rules`,
+copiables depuis Administration › Projet Firebase).
+
+### Rôles (`users/{uid}` : email, nom, role, actif)
+
+| Rôle | Droits |
+|---|---|
+| `admin` | tout, dont l'Administration |
+| `ingenieur` | analyses (puits + usine) et interventions |
+| `operateur` | analyses (puits + usine) |
+| `lecteur` | consultation |
+
+Compte `actif: false` : plus aucun accès. Les règles Firestore lisent le
+rôle (`users/{uid}.role`) ; l'app masque et bloque aussi les écrans
+(`/admin/*` réservé à l'admin, saisie masquée au lecteur, interventions
+réservées à l'ingénieur et à l'admin). Sans compte d'équipe, l'utilisateur
+de l'appareil est administrateur de ses données locales.
+
+### Modèle Firestore
+
+```
+config/setup                 { ownerUid, ownerEmail, createdAt }   premier admin (une seule fois)
+users/{uid}                  { email, nom, role, actif, service, demande, createdAt, updatedAt }
+wells/{id}                   { code, name, group_name, well_type, status, latitude, longitude,
+                               reservoir_pressure, active, updated_at, deleted, syncedAt }
+analysis_types/{id}          { label, unit, min_value, max_value, frequency, ... }
+analysis_records/{id}        { well_id, type_id, value, service_key, operator_name, recorded_at, ... }
+interventions/{id}           { well_id, intervention_date, type_key, cost, currency, result_key, ... }
+sample_points/{id}           { code, circuit, name, equipment, profile, params_json, active, ... }
+plant_analyses/{point_date}  { point_id, analysis_date, values_json, source, operator_name, ... }
+plant_thresholds/{point_param} { point_id, param_key, min_value, max_value, alert_enabled, ... }
+app_config/{clé}             { value }   ex: missing_deadline = "10:00"
+audit/{id}                   { uid, email, nom, action, table, docId, label, changedAt, at }
+```
+
+Une collection par table de la base locale (données partagées par
+l'équipe). Valeurs toujours en SI ; l'affichage SI/API se règle par
+appareil.
+
+### Administration (icône bouclier en haut, ou Réglages › Administration)
+
+`lib/features/admin/presentation/` :
+
+- **Utilisateurs et rôles** (`users_screen.dart`) : liste (tableau sur
+  grand écran), ajout avec mot de passe provisoire **sans déconnecter
+  l'admin** (inscription REST dont la session n'est pas conservée),
+  modification du rôle, désactivation, e-mail de réinitialisation du mot
+  de passe, validation des demandes d'accès.
+- **Puits** (`wells_manage_screen.dart`) : nom, code, champ, type, statut,
+  latitude/longitude (lien carte), Pr.
+- **Points de prélèvement** (`sample_points_screen.dart`) : code, circuit,
+  équipement, paramètres analysés au choix (pH, densité, BSW, salinité,
+  H2S...).
+- **Seuils et alertes** (`thresholds_screen.dart`) : min / max / alerte
+  activée par point et paramètre ; heure limite des analyses « non
+  reçues » (onglet Alertes).
+- **Données** (`data_admin_screen.dart`) : import CSV/Excel (formats long,
+  large et usine, aperçu, doublons ignorés, modèles téléchargeables ; les
+  exports de l'app se réimportent), export complet, sauvegarde JSON.
+- **Projet Firebase** (`firebase_project_screen.dart`) : configuration, QR
+  code pour les autres appareils, test réseau / compte / base / règles,
+  règles à copier.
+- **Journal d'audit** (`audit_screen.dart`) : chaque envoi à l'équipe est
+  enregistré (qui, quoi, quand), filtres par utilisateur et par donnée.
+
+Réglages de l'appareil : unités **SI / API** (psi, °F, bbl/j, scf/j,
+°API — conversion au chargement et à l'enregistrement,
+`lib/core/units/unit_system.dart`), langue FR/EN, thème sombre, état de la
+connexion et de la synchronisation.
+
+### Synchronisation (`lib/core/sync/`)
+
+- La base locale SQLite reste la source des écrans (l'app marche hors
+  ligne). Chaque ligne porte `updated_at` + `dirty`, les suppressions vont
+  dans `sync_deletions`. Lecture des changements du serveur (`syncedAt` >
+  dernière lecture, 2 min de recouvrement) puis envoi des modifications
+  locales que le rôle autorise (les autres sont abandonnées au profit de la
+  version de l'équipe) ; le plus récent gagne en cas de conflit.
+  Déclenchée 2 s après chaque saisie, toutes les 60 s, et au retour au
+  premier plan.
+- **Sans SDK natif** : API REST Firebase (Identity Toolkit + Firestore) en
+  pur Dart → même code sur Android, Windows et web.
+- **Tests** : `test/sync_emulator_test.dart` (premier admin, demande
+  d'accès, rôles, désactivation, audit, deux appareils, conflit) contre les
+  émulateurs : `firebase emulators:start --only auth,firestore --project
+  puitstrack` (Java requis), puis `flutter test`. App branchée sur les
+  émulateurs : `--dart-define=SYNC_EMULATOR=true`. Après modification de
+  `firestore.rules` : `python tool/gen_rules_dart.py`.
+
 ## Windows (installateur Setup.exe)
 
 Une seule commande (PowerShell, depuis la racine du projet) :
@@ -88,9 +228,19 @@ un PC neuf sans rien d'autre (DLL Visual C++ `msvcp140`, `vcruntime140`,
 ## Web
 
 ```bash
-flutter build web --release --no-web-resources-cdn
+powershell -ExecutionPolicy Bypass -File tool\build_web.ps1   # build + mode hors ligne
 python tool/serve_web.py        # test local : http://localhost:8765
 ```
+
+- **Hors ligne** : `web/offline_sw.js` (service worker) garde l'app en
+  cache dès la première ouverture ; ensuite elle s'ouvre et fonctionne sans
+  réseau (saisies enregistrées dans le navigateur, envoyées à l'équipe au
+  retour du réseau). `tool/gen_offline_sw.py` (appelé par
+  `tool/build_web.ps1`) y inscrit la liste des fichiers et une version :
+  chaque nouveau build remplace le cache. `web/flutter_bootstrap.js`
+  l'enregistre (à la place du service worker Flutter, obsolète) et demande
+  au navigateur un stockage persistant. Sans `gen_offline_sw.py`, le cache
+  se remplit simplement au fil des chargements.
 
 - Base SQLite en WebAssembly (`web/sqlite3.wasm` + `web/sqflite_sw.js`,
   générés par `dart run sqflite_common_ffi_web:setup`), données dans le

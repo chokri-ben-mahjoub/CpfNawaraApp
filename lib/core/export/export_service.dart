@@ -79,9 +79,7 @@ Future<void> runExport({
       messenger.showSnackBar(
         SnackBar(
           duration: const Duration(seconds: 8),
-          content: Text(
-            saved.length == 1 ? '${s(one)}\n${saved.first.fileName}' : '${saved.length} ${s(many)}',
-          ),
+          content: Text(saved.length == 1 ? '${s(one)}\n${saved.first.fileName}' : '${saved.length} ${s(many)}'),
           action: DownloadSaver.canOpen
               ? SnackBarAction(
                   label: s('exportOpen'),
@@ -99,10 +97,9 @@ Future<void> runExport({
     }
 
     messenger.hideCurrentSnackBar();
-    await shareFiles(
-      [for (final file in files) ShareableFile(file.name, file.mime, file.bytes)],
-      subject: shareSubject ?? baseName,
-    );
+    await shareFiles([
+      for (final file in files) ShareableFile(file.name, file.mime, file.bytes),
+    ], subject: shareSubject ?? baseName);
   } on PlatformException catch (e) {
     messenger.hideCurrentSnackBar();
     messenger.showSnackBar(
@@ -110,6 +107,92 @@ Future<void> runExport({
     );
   } catch (_) {
     messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(SnackBar(content: Text(s('exportError'))));
+  }
+}
+
+/// Fichier déjà généré (ex: rapport PDF) : propose "Télécharger" ou
+/// "Partager", puis informe l'utilisateur du résultat.
+Future<void> saveOrShareFile({
+  required BuildContext context,
+  required Locale locale,
+  required String baseName,
+  required String extension,
+  required String mimeType,
+  required List<int> bytes,
+  String? shareSubject,
+}) async {
+  String s(String key) => tr(locale, key);
+  final messenger = ScaffoldMessenger.of(context);
+  final download = await showModalBottomSheet<bool>(
+    context: context,
+    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+    builder: (sheetContext) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              s('exportSheetTitle'),
+              style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 16),
+            if (DownloadSaver.isSupported) ...[
+              SizedBox(
+                height: 52,
+                child: FilledButton.icon(
+                  onPressed: () => Navigator.of(sheetContext).pop(true),
+                  icon: const Icon(Icons.download_rounded),
+                  label: Text(s('exportActionDownload'), style: const TextStyle(fontWeight: FontWeight.w700)),
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+            SizedBox(
+              height: 52,
+              child: OutlinedButton.icon(
+                onPressed: () => Navigator.of(sheetContext).pop(false),
+                icon: const Icon(Icons.ios_share_outlined),
+                label: Text(s('exportActionShare'), style: const TextStyle(fontWeight: FontWeight.w700)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+  if (download == null) return;
+  final suffix = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
+  final name = '${_safeFileName(baseName)}_$suffix.$extension';
+  try {
+    if (download && DownloadSaver.isSupported) {
+      final saved = await DownloadSaver.save(fileName: name, mimeType: mimeType, bytes: bytes);
+      messenger.showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 8),
+          content: Text('${s(isWeb ? 'exportDownloadedOne' : 'exportSavedOne')}\n${saved.fileName}'),
+          action: DownloadSaver.canOpen
+              ? SnackBarAction(
+                  label: s('exportOpen'),
+                  onPressed: () async {
+                    if (!await DownloadSaver.open(saved)) {
+                      messenger.showSnackBar(SnackBar(content: Text(s('exportNoAppToOpen'))));
+                    }
+                  },
+                )
+              : null,
+        ),
+      );
+    } else {
+      await shareFiles([ShareableFile(name, mimeType, bytes)], subject: shareSubject ?? baseName);
+    }
+  } on PlatformException catch (e) {
+    messenger.showSnackBar(
+      SnackBar(content: Text(e.code == 'permission_denied' ? s('exportPermissionDenied') : s('exportError'))),
+    );
+  } catch (_) {
     messenger.showSnackBar(SnackBar(content: Text(s('exportError'))));
   }
 }
