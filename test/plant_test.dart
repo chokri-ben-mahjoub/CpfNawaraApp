@@ -6,10 +6,22 @@ import 'package:puitstrack/core/plant/plant_catalog.dart';
 import 'package:puitstrack/core/plant/plant_repository.dart';
 import 'package:puitstrack/features/plant/plant_report.dart';
 
+final _circuitsById = {
+  for (final row in plantSeedCircuits)
+    row['id']! as String: PlantCircuit(
+      id: row['id']! as String,
+      labelKey: row['label_key']! as String,
+      colorValue: row['color']! as int,
+      iconKey: row['icon']! as String,
+      defaultProfile: row['default_profile']! as String,
+      sortOrder: row['sort_order']! as int,
+    ),
+};
+
 SamplePoint _point(Map<String, Object> row) => SamplePoint(
   id: row['id']! as String,
   code: row['code']! as String,
-  circuit: PlantCircuitX.fromKey(row['circuit']! as String),
+  circuit: _circuitsById[row['circuit']! as String]!,
   name: row['name']! as String,
   equipment: row['equipment']! as String,
   profile: row['profile']! as String,
@@ -53,6 +65,7 @@ PlantController seededPlant(DateTime today) {
         'pp_c1': {'bsw': PlantThreshold(max: 0.5)},
         'pp_g3': {'h2s': PlantThreshold(max: 4), 'water_dew_point': PlantThreshold(max: -10)},
       },
+      circuits: _circuitsById.values.toList(),
     ),
   );
 }
@@ -61,13 +74,14 @@ void main() {
   final today = DateTime(2026, 10, 9);
   setUpAll(() => initializeDateFormatting('fr'));
 
-  test('catalogue : 13 points, paramètres par profil', () {
-    expect(plantSeedPoints, hasLength(13));
+  test('catalogue : 20 points, paramètres par profil', () {
+    expect(plantSeedPoints, hasLength(20));
     expect(paramsForProfile('condensate').map((p) => p.key), ['density', 'bsw', 'water_cut', 'salinity', 'chlorides']);
     expect(paramsForProfile('gas_export').map((p) => p.key), containsAll(['h2s', 'hc_dew_point', 'water_dew_point']));
     expect(paramsForProfile('gas').map((p) => p.key), isNot(contains('hc_dew_point')));
     expect(paramsForProfile('amine').map((p) => p.key), containsAll(['concentration', 'foam', 'pz', 'co2_loading']));
-    expect(plantSeedPoints.map((p) => p['id']).toSet(), hasLength(13), reason: 'ids uniques');
+    expect(paramsForProfile('water_treatment').map((p) => p.key), containsAll(['free_chlorine', 'ph', 'tds']));
+    expect(plantSeedPoints.map((p) => p['id']).toSet(), hasLength(20), reason: 'ids uniques');
   });
 
   test('état du jour : vert, rouge, gris', () {
@@ -93,7 +107,7 @@ void main() {
     final bytes = await buildPlantDailyReport(
       controller: plant,
       day: today,
-      circuits: PlantCircuit.values,
+      circuits: _circuitsById.values.toList(),
       s: (key) => key,
       languageCode: 'fr',
       operatorName: 'Ahmed',

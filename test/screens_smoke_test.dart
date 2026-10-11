@@ -168,12 +168,23 @@ WellsState _seed() {
 PlantController _seedPlant() {
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
+  final circuitsById = {
+    for (final row in plantSeedCircuits)
+      row['id']! as String: PlantCircuit(
+        id: row['id']! as String,
+        labelKey: row['label_key']! as String,
+        colorValue: row['color']! as int,
+        iconKey: row['icon']! as String,
+        defaultProfile: row['default_profile']! as String,
+        sortOrder: row['sort_order']! as int,
+      ),
+  };
   final points = [
     for (final row in plantSeedPoints)
       SamplePoint(
         id: row['id']! as String,
         code: row['code']! as String,
-        circuit: PlantCircuitX.fromKey(row['circuit']! as String),
+        circuit: circuitsById[row['circuit']! as String]!,
         name: row['name']! as String,
         equipment: row['equipment']! as String,
         profile: row['profile']! as String,
@@ -211,6 +222,7 @@ PlantController _seedPlant() {
         'pp_c1': {'bsw': PlantThreshold(max: 0.5)},
         'pp_g3': {'h2s': PlantThreshold(max: 4)},
       },
+      circuits: circuitsById.values.toList(),
     ),
   );
 }

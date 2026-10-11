@@ -26,7 +26,8 @@ class _ThresholdsScreenState extends ConsumerState<ThresholdsScreen> {
     final scheme = Theme.of(context).colorScheme;
     final locale = ref.watch(localeProvider);
     final shared = ref.watch(sharedConfigProvider);
-    final points = ref.watch(plantControllerProvider).points;
+    final plant = ref.watch(plantControllerProvider);
+    final points = plant.points;
     String s(String key) => tr(locale, key);
     final selected = points.where((p) => p.id == _pointId).firstOrNull ?? points.firstOrNull;
 
@@ -71,7 +72,7 @@ class _ThresholdsScreenState extends ConsumerState<ThresholdsScreen> {
           AdminSectionTitle(s('thresholdsByPoint')),
           Text(s('thresholdsIntro'), style: TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant, height: 1.4)),
           const SizedBox(height: 12),
-          for (final circuit in PlantCircuit.values)
+          for (final circuit in plant.circuits)
             if (points.any((p) => p.circuit == circuit)) ...[
               Padding(
                 padding: const EdgeInsets.only(bottom: 6, top: 4),

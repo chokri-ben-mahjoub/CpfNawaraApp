@@ -8,6 +8,7 @@ import '../../features/auth/presentation/unlock_screen.dart';
 import '../../features/admin/presentation/admin_screen.dart';
 import '../../features/admin/presentation/analysis_types_screen.dart';
 import '../../features/admin/presentation/audit_screen.dart';
+import '../../features/admin/presentation/circuits_screen.dart';
 import '../../features/admin/presentation/data_admin_screen.dart';
 import '../../features/admin/presentation/firebase_project_screen.dart';
 import '../../features/admin/presentation/sample_points_screen.dart';
@@ -157,6 +158,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/admin', builder: (context, state) => const AdminScreen()),
       GoRoute(path: '/admin/users', builder: (context, state) => const UsersScreen()),
       GoRoute(path: '/admin/points', builder: (context, state) => const SamplePointsScreen()),
+      GoRoute(path: '/admin/circuits', builder: (context, state) => const CircuitsScreen()),
       GoRoute(path: '/admin/thresholds', builder: (context, state) => const ThresholdsScreen()),
       GoRoute(path: '/admin/data', builder: (context, state) => const DataAdminScreen()),
       GoRoute(path: '/admin/firebase', builder: (context, state) => const FirebaseProjectScreen()),

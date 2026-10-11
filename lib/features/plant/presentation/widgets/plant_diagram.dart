@@ -13,6 +13,11 @@ const _canvas = Size(1000, 560);
 /// Diamètre des points de prélèvement (unités du schéma).
 const _markerSize = 40.0;
 
+/// Circuits dont les tuyaux sont dessinés sur ce schéma fixe (voir
+/// [_PlantPainter.paint]) : un circuit ajouté par un administrateur n'a pas
+/// de tuyaux tracés et n'apparaît donc pas dans la légende ci-dessous.
+const _drawnCircuitIds = {'condensate', 'water', 'gas', 'amine'};
+
 /// Position des points de prélèvement sur le schéma (par code).
 const _markerPositions = <String, Offset>{
   'C1': Offset(376, 180),
@@ -169,9 +174,9 @@ class _PlantPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final gas = PlantCircuit.gas.color;
-    final cond = PlantCircuit.condensate.color;
-    final water = PlantCircuit.water.color;
+    final gas = gasPipeColor;
+    final cond = condensatePipeColor;
+    final water = waterPipeColor;
     const lean = Color(0xFF2E9E5B);
     const rich = Color(0xFF8E24AA);
 
@@ -392,6 +397,7 @@ class PlantDiagramLegend extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     final locale = ref.watch(localeProvider);
+    final circuits = ref.watch(plantControllerProvider).circuits;
     String s(String key) => tr(locale, key);
 
     Widget line(Color color, String label, {bool dashed = false}) => Row(
@@ -423,7 +429,10 @@ class PlantDiagramLegend extends ConsumerWidget {
       spacing: 16,
       runSpacing: 8,
       children: [
-        for (final c in PlantCircuit.values) line(c.color, s(c.labelKey)),
+        // Seuls les 4 circuits intégrés ont des tuyaux dessinés ci-dessus ;
+        // un circuit ajouté par un administrateur n'apparaît que dans la vue
+        // Liste (voir plant_screen.dart), pas sur ce schéma fixe.
+        for (final c in circuits.where((c) => _drawnCircuitIds.contains(c.id))) line(c.color, s(c.labelKey)),
         line(const Color(0xFF8E24AA), s('plantEqRichAmine')),
         dot(Colors.green.shade600, s('plantStatusOk')),
         dot(scheme.error, s('plantStatusOut')),

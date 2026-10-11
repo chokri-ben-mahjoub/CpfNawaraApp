@@ -102,8 +102,13 @@ void main() {
     expect(await updatedAt('analysis_records', 'r1'), greaterThan(0));
     expect(await db.query('sync_deletions'), isEmpty);
     // v7 : module Usine (points de prélèvement de démarrage, non envoyés).
-    expect(await db.query('sample_points'), hasLength(13));
+    // v10 : + circuit Traitement eau (7 points de plus).
+    expect(await db.query('sample_points'), hasLength(20));
     expect(await db.query('sample_points', where: 'dirty = 1 or updated_at > 0'), isEmpty);
+    // v9 : circuits configurables (Administration > Circuits), de démarrage.
+    // v10 : + circuit Traitement eau.
+    expect(await db.query('plant_circuits'), hasLength(5));
+    expect(await db.query('plant_circuits', where: 'dirty = 1 or updated_at > 0'), isEmpty);
     // v8 : type, statut, coordonnées des puits (statut déduit de "actif"),
     // paramètres par point, alerte par seuil, paramètres partagés.
     final w1 = (await db.query('wells', where: 'id = ?', whereArgs: ['w1'])).first;
@@ -112,7 +117,7 @@ void main() {
     expect(w1.containsKey('latitude'), isTrue);
     expect((await db.query('sample_points')).first.containsKey('params_json'), isTrue);
     expect(await db.query('app_config'), isEmpty);
-    expect(LocalDatabase.schemaVersion, 8);
+    expect(LocalDatabase.schemaVersion, 10);
 
     // Première connexion : tout ce qui a été saisi/modifié part au serveur.
     final engine = SyncEngine(

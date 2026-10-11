@@ -50,6 +50,12 @@ class AdminScreen extends ConsumerWidget {
         onTap: () => context.push('/admin/points'),
       ),
       _AdminTile(
+        icon: Icons.account_tree_outlined,
+        title: s('adminCircuits'),
+        subtitle: fill(s('adminCircuitsCount'), {'n': '${plant.circuits.length}'}),
+        onTap: () => context.push('/admin/circuits'),
+      ),
+      _AdminTile(
         icon: Icons.notifications_active_outlined,
         title: s('adminThresholds'),
         subtitle: fill(s('adminThresholdsCount'), {

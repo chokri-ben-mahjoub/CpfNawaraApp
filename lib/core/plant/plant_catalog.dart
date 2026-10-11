@@ -5,35 +5,77 @@ import '../units/unit_system.dart';
 /// Module "Usine CPF" : points de prélèvement de l'usine de traitement de
 /// gaz et analyses de laboratoire, organisés par circuit.
 
-enum PlantCircuit { condensate, water, gas, amine }
+/// Couleurs des circuits intégrés, aussi utilisées pour les tuyaux du schéma
+/// PFD (fixes : le dessin ne suit pas le paramétrage des circuits).
+const condensatePipeColor = Color(0xFF9C5B2E);
+const waterPipeColor = Color(0xFF1E88E5);
+const gasPipeColor = Color(0xFFE8A400);
 
-extension PlantCircuitX on PlantCircuit {
-  String get storageKey => name;
+/// Icônes proposées pour un circuit (Administration > Circuits).
+const circuitIconOptions = <String, IconData>{
+  'opacity': Icons.opacity,
+  'water_drop': Icons.water_drop_outlined,
+  'fire': Icons.local_fire_department_outlined,
+  'science': Icons.science_outlined,
+  'bolt': Icons.bolt,
+  'thermostat': Icons.thermostat_outlined,
+  'filter': Icons.filter_alt_outlined,
+  'air': Icons.air,
+  'compress': Icons.compress,
+  'factory': Icons.factory_outlined,
+  'tank': Icons.propane_tank_outlined,
+  'settings': Icons.settings_outlined,
+};
 
-  String get labelKey => switch (this) {
-    PlantCircuit.condensate => 'plantCircuitCondensate',
-    PlantCircuit.water => 'plantCircuitWater',
-    PlantCircuit.gas => 'plantCircuitGas',
-    PlantCircuit.amine => 'plantCircuitAmine',
-  };
+IconData circuitIcon(String key) => circuitIconOptions[key] ?? Icons.science_outlined;
 
-  /// Couleur des lignes du schéma (même code que le PFD de l'usine).
-  Color get color => switch (this) {
-    PlantCircuit.condensate => const Color(0xFF9C5B2E),
-    PlantCircuit.water => const Color(0xFF1E88E5),
-    PlantCircuit.gas => const Color(0xFFE8A400),
-    PlantCircuit.amine => const Color(0xFF2E9E5B),
-  };
+/// Couleurs proposées pour un circuit (Administration > Circuits).
+const circuitColorOptions = <Color>[
+  condensatePipeColor,
+  waterPipeColor,
+  gasPipeColor,
+  Color(0xFF2E9E5B), // vert (amine)
+  Color(0xFF8E24AA), // violet
+  Color(0xFFD81B60), // rose
+  Color(0xFF00897B), // sarcelle
+  Color(0xFF5E35B1), // indigo
+  Color(0xFF6D4C41), // marron
+  Color(0xFF546E7A), // ardoise
+];
 
-  IconData get icon => switch (this) {
-    PlantCircuit.condensate => Icons.opacity,
-    PlantCircuit.water => Icons.water_drop_outlined,
-    PlantCircuit.gas => Icons.local_fire_department_outlined,
-    PlantCircuit.amine => Icons.science_outlined,
-  };
+/// Un circuit de l'usine (table `plant_circuits`) : regroupe des points de
+/// prélèvement avec une couleur et une icône pour les écrans liste / alertes
+/// / rapports (le schéma PFD, lui, est un dessin fixe indépendant). Les 4
+/// circuits intégrés (condensat, eau, gaz, amine) ont un [labelKey] traduit
+/// (clé de `app_strings.dart`) ; un circuit ajouté par un administrateur
+/// stocke directement son nom dans [labelKey] (texte libre, non traduit,
+/// comme le nom d'un point de prélèvement).
+class PlantCircuit {
+  final String id;
+  final String labelKey;
+  final int colorValue;
+  final String iconKey;
+  final String defaultProfile;
+  final int sortOrder;
 
-  static PlantCircuit fromKey(String key) =>
-      PlantCircuit.values.firstWhere((c) => c.name == key, orElse: () => PlantCircuit.condensate);
+  const PlantCircuit({
+    required this.id,
+    required this.labelKey,
+    required this.colorValue,
+    required this.iconKey,
+    required this.defaultProfile,
+    this.sortOrder = 0,
+  });
+
+  Color get color => Color(colorValue);
+  IconData get icon => circuitIcon(iconKey);
+  String get storageKey => id;
+
+  @override
+  bool operator ==(Object other) => other is PlantCircuit && other.id == id;
+
+  @override
+  int get hashCode => id.hashCode;
 }
 
 enum ParamKind { number, choice }
@@ -126,6 +168,24 @@ const _waterParams = [
   PlantParam('tph', 'plantParamTph', 'mg/L'),
 ];
 
+/// Traitement de l'eau de puits (chloration, osmose inverse) : chlore libre
+/// résiduel en plus des paramètres d'eau usuels.
+const _waterTreatmentParams = [
+  PlantParam('free_chlorine', 'plantParamFreeChlorine', 'mg/L'),
+  PlantParam('ph', 'plantParamPh', ''),
+  PlantParam('salinity', 'plantParamSalinity', 'g/L NaCl'),
+  PlantParam('tds', 'plantParamTds', 'mg/L'),
+  PlantParam('tss', 'plantParamTss', 'mg/L'),
+  PlantParam(
+    'appearance',
+    'plantParamAppearance',
+    '',
+    kind: ParamKind.choice,
+    choices: ['plantAppearanceClear', 'plantAppearanceSlightlyTurbid', 'plantAppearanceTurbid', 'plantAppearanceOily'],
+    okChoices: ['plantAppearanceClear', 'plantAppearanceSlightlyTurbid'],
+  ),
+];
+
 /// Composition du gaz (chromatographie), en % molaire, + H2S.
 const _gasParams = [
   PlantParam('ch4', 'plantParamCh4', 'mol %'),
@@ -162,6 +222,7 @@ const plantProfiles = <String, List<PlantParam>>{
   'gas': _gasParams,
   'gas_export': _exportGasParams,
   'amine': _amineParams,
+  'water_treatment': _waterTreatmentParams,
 };
 
 List<PlantParam> paramsForProfile(String profile) => plantProfiles[profile] ?? const [];
@@ -173,14 +234,7 @@ const plantProfileLabelKeys = {
   'gas': 'plantProfileGas',
   'gas_export': 'plantProfileGasExport',
   'amine': 'plantProfileAmine',
-};
-
-/// Profil proposé par défaut pour un circuit.
-String defaultProfileFor(PlantCircuit circuit) => switch (circuit) {
-  PlantCircuit.condensate => 'condensate',
-  PlantCircuit.water => 'water',
-  PlantCircuit.gas => 'gas',
-  PlantCircuit.amine => 'amine',
+  'water_treatment': 'plantProfileWaterTreatment',
 };
 
 /// Tous les paramètres connus (un par clé), pour choisir librement ceux
@@ -208,6 +262,52 @@ PlantParam? plantParamByKey(String key, {String? profile}) {
 
 /// Paramètres "composition" du gaz, regroupés à l'écran.
 const gasCompositionKeys = {'ch4', 'c2h6', 'c3h8', 'c4plus', 'co2', 'n2'};
+
+/// Circuits de départ (table `plant_circuits`) : ids stables, identiques sur
+/// tous les appareils (synchronisation) — les points existants y font déjà
+/// référence par ces mêmes ids.
+const plantSeedCircuits = [
+  {
+    'id': 'condensate',
+    'label_key': 'plantCircuitCondensate',
+    'color': 0xFF9C5B2E,
+    'icon': 'opacity',
+    'default_profile': 'condensate',
+    'sort_order': 1,
+  },
+  {
+    'id': 'water',
+    'label_key': 'plantCircuitWater',
+    'color': 0xFF1E88E5,
+    'icon': 'water_drop',
+    'default_profile': 'water',
+    'sort_order': 2,
+  },
+  {
+    'id': 'gas',
+    'label_key': 'plantCircuitGas',
+    'color': 0xFFE8A400,
+    'icon': 'fire',
+    'default_profile': 'gas',
+    'sort_order': 3,
+  },
+  {
+    'id': 'amine',
+    'label_key': 'plantCircuitAmine',
+    'color': 0xFF2E9E5B,
+    'icon': 'science',
+    'default_profile': 'amine',
+    'sort_order': 4,
+  },
+  {
+    'id': 'water_treatment',
+    'label_key': 'plantCircuitWaterTreatment',
+    'color': 0xFF00897B,
+    'icon': 'filter',
+    'default_profile': 'water_treatment',
+    'sort_order': 5,
+  },
+];
 
 /// Points de prélèvement de départ (table `sample_points`) : ids stables,
 /// identiques sur tous les appareils (synchronisation).
@@ -328,6 +428,70 @@ const plantSeedPoints = [
     'equipment': 'Flash Drum',
     'profile': 'amine',
     'sort_order': 13,
+  },
+  // Traitement de l'eau de puits (chloration, osmose inverse).
+  {
+    'id': 'pp_wt1',
+    'code': 'WT1',
+    'circuit': 'water_treatment',
+    'name': 'Well Water',
+    'equipment': 'Puits (eau brute)',
+    'profile': 'water_treatment',
+    'sort_order': 14,
+  },
+  {
+    'id': 'pp_wt2',
+    'code': 'WT2',
+    'circuit': 'water_treatment',
+    'name': 'Chlorination Unit',
+    'equipment': 'Dosage chlore (NaOCl)',
+    'profile': 'water_treatment',
+    'sort_order': 15,
+  },
+  {
+    'id': 'pp_wt3',
+    'code': 'WT3',
+    'circuit': 'water_treatment',
+    'name': 'Plant Water',
+    'equipment': 'Eau usine (après chloration)',
+    'profile': 'water_treatment',
+    'sort_order': 16,
+  },
+  {
+    'id': 'pp_wt4',
+    'code': 'WT4',
+    'circuit': 'water_treatment',
+    'name': 'Plant Water Storage Tank',
+    'equipment': 'Bac de stockage eau usine (TK/TKB)',
+    'profile': 'water_treatment',
+    'sort_order': 17,
+  },
+  {
+    'id': 'pp_wt5',
+    'code': 'WT5',
+    'circuit': 'water_treatment',
+    'name': 'RO Unit Outlet',
+    'equipment': 'Sortie unité d\'osmose inverse',
+    'profile': 'water_treatment',
+    'sort_order': 18,
+  },
+  {
+    'id': 'pp_wt6',
+    'code': 'WT6',
+    'circuit': 'water_treatment',
+    'name': 'Fresh Water Storage Tank',
+    'equipment': 'Bac de stockage eau douce',
+    'profile': 'water_treatment',
+    'sort_order': 19,
+  },
+  {
+    'id': 'pp_wt7',
+    'code': 'WT7',
+    'circuit': 'water_treatment',
+    'name': 'Aquifer / Reject Water',
+    'equipment': 'Rejet aquifère (concentrat RO)',
+    'profile': 'water_treatment',
+    'sort_order': 20,
   },
 ];
 

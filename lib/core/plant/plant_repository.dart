@@ -103,6 +103,7 @@ enum PlantStatus { ok, outOfRange, missing }
 class PlantState {
   final List<SamplePoint> points;
   final List<PlantAnalysis> analyses;
+  final List<PlantCircuit> circuits;
 
   /// pointId -> paramètre -> seuil.
   final Map<String, Map<String, PlantThreshold>> thresholds;
@@ -110,9 +111,15 @@ class PlantState {
   /// Faux tant que la base locale n'a pas encore été lue.
   final bool ready;
 
-  const PlantState({required this.points, required this.analyses, required this.thresholds, this.ready = true});
+  const PlantState({
+    required this.points,
+    required this.analyses,
+    required this.thresholds,
+    this.circuits = const [],
+    this.ready = true,
+  });
 
-  static const empty = PlantState(points: [], analyses: [], thresholds: {}, ready: false);
+  static const empty = PlantState(points: [], analyses: [], thresholds: {}, circuits: [], ready: false);
 }
 
 DateTime _day(DateTime t) => DateTime(t.year, t.month, t.day);
@@ -138,7 +145,11 @@ class PlantController extends StateNotifier<PlantState> {
 
   Future<void> _load() async {
     final db = await LocalDatabase.instance.database;
-    final points = (await db.query('sample_points', orderBy: 'sort_order, code')).map(_pointFromRow).toList();
+    final circuits = (await db.query('plant_circuits', orderBy: 'sort_order')).map(_circuitFromRow).toList();
+    final circuitsById = {for (final c in circuits) c.id: c};
+    final points = (await db.query('sample_points', orderBy: 'sort_order, code'))
+        .map((row) => _pointFromRow(row, circuitsById))
+        .toList();
     final byId = {for (final p in points) p.id: p};
     // Valeurs et seuils convertis dans le système d'unités choisi (base en SI).
     PlantParam? paramOf(String pointId, String key) {
@@ -180,7 +191,7 @@ class PlantController extends StateNotifier<PlantState> {
       final t = PlantThreshold(min: min, max: max, alertEnabled: (row['alert_enabled'] as num?) != 0);
       if (!t.isEmpty || !t.alertEnabled) (thresholds[pointId] ??= {})[key] = t;
     }
-    state = PlantState(points: points, analyses: analyses, thresholds: thresholds);
+    state = PlantState(points: points, analyses: analyses, thresholds: thresholds, circuits: circuits);
   }
 
   // ------------------------------------------------------------- Lecture
@@ -374,16 +385,70 @@ class PlantController extends StateNotifier<PlantState> {
   /// Prochain numéro d'ordre (nouveau point affiché en fin de liste).
   int get nextSortOrder => state.points.fold<int>(0, (m, p) => p.sortOrder > m ? p.sortOrder : m) + 1;
 
+  /// Crée ou modifie un circuit (id vide = nouveau circuit).
+  Future<String> saveCircuit(PlantCircuit circuit) async {
+    final db = await LocalDatabase.instance.database;
+    final id = circuit.id.isEmpty ? 'pc_${_uuid.v4().substring(0, 8)}' : circuit.id;
+    await db.insert(
+      'plant_circuits',
+      LocalDatabase.stamp({
+        'id': id,
+        'label_key': circuit.labelKey,
+        'color': circuit.colorValue,
+        'icon': circuit.iconKey,
+        'default_profile': circuit.defaultProfile,
+        'sort_order': circuit.sortOrder,
+      }),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+    await _afterWrite();
+    return id;
+  }
+
+  /// Supprime un circuit ; refusé (retourne `false`) tant qu'un point lui est
+  /// encore rattaché.
+  Future<bool> deleteCircuit(String circuitId) async {
+    if (state.points.any((p) => p.circuit.id == circuitId)) return false;
+    final db = await LocalDatabase.instance.database;
+    await LocalDatabase.recordDeletion(db, 'plant_circuits', circuitId);
+    await db.delete('plant_circuits', where: 'id = ?', whereArgs: [circuitId]);
+    await _afterWrite();
+    return true;
+  }
+
+  /// Prochain numéro d'ordre (nouveau circuit affiché en fin de liste).
+  int get nextCircuitSortOrder => state.circuits.fold<int>(0, (m, c) => c.sortOrder > m ? c.sortOrder : m) + 1;
+
   Future<void> _afterWrite() async {
     await _load();
     LocalDatabase.instance.notifyChange();
   }
 }
 
-SamplePoint _pointFromRow(Map<String, Object?> row) => SamplePoint(
+/// Circuit de secours si un point référence un circuit introuvable (ne
+/// devrait pas arriver : la suppression d'un circuit encore utilisé est
+/// refusée — voir [PlantController.deleteCircuit]).
+const _unknownCircuit = PlantCircuit(
+  id: '?',
+  labelKey: 'plantCircuitUnknown',
+  colorValue: 0xFF9E9E9E,
+  iconKey: 'science',
+  defaultProfile: 'condensate',
+);
+
+PlantCircuit _circuitFromRow(Map<String, Object?> row) => PlantCircuit(
+  id: row['id'] as String,
+  labelKey: row['label_key'] as String,
+  colorValue: (row['color'] as num).toInt(),
+  iconKey: row['icon'] as String? ?? 'science',
+  defaultProfile: row['default_profile'] as String? ?? 'condensate',
+  sortOrder: (row['sort_order'] as num?)?.toInt() ?? 0,
+);
+
+SamplePoint _pointFromRow(Map<String, Object?> row, Map<String, PlantCircuit> circuitsById) => SamplePoint(
   id: row['id'] as String,
   code: row['code'] as String,
-  circuit: PlantCircuitX.fromKey(row['circuit'] as String),
+  circuit: circuitsById[row['circuit'] as String] ?? _unknownCircuit,
   name: row['name'] as String,
   equipment: row['equipment'] as String? ?? '',
   profile: row['profile'] as String,

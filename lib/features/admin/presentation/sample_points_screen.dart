@@ -17,7 +17,8 @@ class SamplePointsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     final locale = ref.watch(localeProvider);
-    final points = ref.watch(plantControllerProvider).points;
+    final plant = ref.watch(plantControllerProvider);
+    final points = plant.points;
     String s(String key) => tr(locale, key);
 
     return Scaffold(
@@ -31,7 +32,7 @@ class SamplePointsScreen extends ConsumerWidget {
         padding: pagePadding(context, top: 8, bottom: 130),
         children: [
           Text(s('pointsIntro'), style: TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant, height: 1.4)),
-          for (final circuit in PlantCircuit.values) ...[
+          for (final circuit in plant.circuits) ...[
             AdminSectionTitle(s(circuit.labelKey)),
             AdminTable<SamplePoint>(
               items: points.where((p) => p.circuit == circuit).toList(),
@@ -102,8 +103,8 @@ class _PointFormState extends ConsumerState<_PointForm> {
     _code = TextEditingController(text: p?.code ?? '');
     _name = TextEditingController(text: p?.name ?? '');
     _equipment = TextEditingController(text: p?.equipment ?? '');
-    _circuit = p?.circuit ?? PlantCircuit.condensate;
-    _profile = p?.profile ?? defaultProfileFor(_circuit);
+    _circuit = p?.circuit ?? ref.read(plantControllerProvider).circuits.first;
+    _profile = p?.profile ?? _circuit.defaultProfile;
     _params = [for (final x in p?.storedParams ?? paramsForProfile(_profile)) x.key];
     _active = p?.active ?? true;
   }
@@ -241,14 +242,14 @@ class _PointFormState extends ConsumerState<_PointForm> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              for (final c in PlantCircuit.values)
+              for (final c in ref.watch(plantControllerProvider).circuits)
                 ChoiceChip(
                   avatar: Icon(c.icon, size: 18, color: c.color),
                   label: Text(s(c.labelKey)),
                   selected: _circuit == c,
                   onSelected: (_) {
                     setState(() => _circuit = c);
-                    if (_isNew) _setProfile(defaultProfileFor(c));
+                    if (_isNew) _setProfile(c.defaultProfile);
                   },
                 ),
             ],

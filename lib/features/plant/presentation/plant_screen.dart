@@ -36,7 +36,7 @@ Future<void> exportPlantAnalyses(WidgetRef ref, BuildContext context) async {
   String s(String key) => tr(locale, key);
   final controller = ref.read(plantControllerProvider.notifier);
   final tables = <ExportTable>[];
-  for (final circuit in PlantCircuit.values) {
+  for (final circuit in ref.read(plantControllerProvider).circuits) {
     final points = controller.pointsOf(circuit);
     final params = <String, PlantParam>{
       for (final p in points)
@@ -228,13 +228,14 @@ class PlantScreen extends ConsumerWidget {
           const SizedBox(height: 6),
           Text(s('plantDiagramHint'), style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
         ] else
-          for (final circuit in PlantCircuit.values) _CircuitSection(circuit: circuit, day: day),
+          for (final circuit in state.circuits) _CircuitSection(circuit: circuit, day: day),
       ],
     );
   }
 
   Future<void> _chooseReport(BuildContext context, WidgetRef ref) async {
     final locale = ref.read(localeProvider);
+    final allCircuits = ref.read(plantControllerProvider).circuits;
     String s(String key) => tr(locale, key);
     final circuits = await showModalBottomSheet<List<PlantCircuit>>(
       context: context,
@@ -254,9 +255,9 @@ class PlantScreen extends ConsumerWidget {
             ListTile(
               leading: const Icon(Icons.select_all),
               title: Text(s('plantReportAllCircuits'), style: const TextStyle(fontWeight: FontWeight.w700)),
-              onTap: () => Navigator.of(sheetContext).pop(PlantCircuit.values),
+              onTap: () => Navigator.of(sheetContext).pop(allCircuits),
             ),
-            for (final c in PlantCircuit.values)
+            for (final c in allCircuits)
               ListTile(
                 leading: Icon(c.icon, color: c.color),
                 title: Text(s(c.labelKey)),

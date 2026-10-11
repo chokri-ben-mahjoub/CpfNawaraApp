@@ -58,13 +58,25 @@ WellsState _wells() => WellsState(
   ],
 );
 
+final _circuitsById = {
+  for (final row in plantSeedCircuits)
+    row['id']! as String: PlantCircuit(
+      id: row['id']! as String,
+      labelKey: row['label_key']! as String,
+      colorValue: row['color']! as int,
+      iconKey: row['icon']! as String,
+      defaultProfile: row['default_profile']! as String,
+      sortOrder: row['sort_order']! as int,
+    ),
+};
+
 PlantState _plant() => PlantState(
   points: [
     for (final row in plantSeedPoints)
       SamplePoint(
         id: row['id'] as String,
         code: row['code'] as String,
-        circuit: PlantCircuitX.fromKey(row['circuit'] as String),
+        circuit: _circuitsById[row['circuit'] as String]!,
         name: row['name'] as String,
         equipment: row['equipment'] as String,
         profile: row['profile'] as String,
@@ -72,6 +84,7 @@ PlantState _plant() => PlantState(
   ],
   analyses: const [],
   thresholds: const {},
+  circuits: _circuitsById.values.toList(),
 );
 
 AnalysisImporter _importer() => AnalysisImporter(
@@ -231,7 +244,13 @@ const firebaseConfig = {
     const point = SamplePoint(
       id: 'p',
       code: 'X1',
-      circuit: PlantCircuit.water,
+      circuit: PlantCircuit(
+        id: 'water',
+        labelKey: 'plantCircuitWater',
+        colorValue: 0xFF1E88E5,
+        iconKey: 'water_drop',
+        defaultProfile: 'water',
+      ),
       name: 'Test',
       equipment: '',
       profile: 'water',

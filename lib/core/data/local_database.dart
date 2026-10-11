@@ -21,7 +21,7 @@ class LocalDatabase {
   static final LocalDatabase instance = LocalDatabase._();
 
   /// Version du schéma (voir `onUpgrade`), enregistrée dans les sauvegardes.
-  static const schemaVersion = 8;
+  static const schemaVersion = 10;
 
   /// Tables sauvegardées / restaurées / synchronisées.
   static const dataTables = [
@@ -35,6 +35,8 @@ class LocalDatabase {
     'plant_thresholds',
     // Paramètres partagés (heure limite des analyses...), v8.
     'app_config',
+    // Circuits configurables (remplace l'énumération fixe), v9.
+    'plant_circuits',
   ];
 
   /// Tables qui ont reçu les colonnes de synchronisation par migration (v6) ;
@@ -125,6 +127,7 @@ class LocalDatabase {
           await _addSyncColumns(db);
           await _createPlantTables(db);
           await _migrateV8(db);
+          await _createPlantCircuitsTable(db);
           await _seed(db);
         },
         onUpgrade: (db, oldVersion, newVersion) async {
@@ -179,6 +182,18 @@ class LocalDatabase {
             // paramètres choisis par point, alerte activable par seuil,
             // paramètres partagés.
             await _migrateV8(db);
+          }
+          if (oldVersion < 9) {
+            // Circuits configurables par l'administrateur (Administration >
+            // Circuits), remplace l'énumération fixe condensat/eau/gaz/amine.
+            await _createPlantCircuitsTable(db);
+            await _seedPlantCircuits(db);
+          }
+          if (oldVersion < 10) {
+            // Circuit "Traitement eau" (puits, chloration, stockage, osmose
+            // inverse) ajouté aux données de démarrage.
+            await _seedPlantCircuits(db);
+            await _seedPlantPoints(db);
           }
         },
       ),
@@ -271,6 +286,30 @@ class LocalDatabase {
     }
   }
 
+  /// Circuits de l'usine (Administration > Circuits) : regroupent les points
+  /// de prélèvement, remplacent l'ancienne énumération fixe condensat/eau/
+  /// gaz/amine, désormais éditables (nom, couleur, icône, profil par défaut).
+  static Future<void> _createPlantCircuitsTable(DatabaseExecutor db) async {
+    await db.execute('''
+      create table if not exists plant_circuits (
+        id text primary key,
+        label_key text not null,
+        color integer not null,
+        icon text not null default 'science',
+        default_profile text not null default 'condensate',
+        sort_order integer not null default 0,
+        updated_at integer not null default 0,
+        dirty integer not null default 0
+      )
+    ''');
+  }
+
+  static Future<void> _seedPlantCircuits(DatabaseExecutor db) async {
+    for (final circuit in plantSeedCircuits) {
+      await db.insert('plant_circuits', circuit, conflictAlgorithm: ConflictAlgorithm.ignore);
+    }
+  }
+
   /// Date de modification pour les lignes ajoutées ou modifiées par
   /// l'utilisateur ; les lignes identiques aux données de démarrage restent
   /// à 0.
@@ -305,6 +344,14 @@ class LocalDatabase {
     if (fromVersion < 7) {
       await _seedPlantPoints(db);
     }
+    if (fromVersion < 9) {
+      await _createPlantCircuitsTable(db);
+      await _seedPlantCircuits(db);
+    }
+    if (fromVersion < 10) {
+      await _seedPlantCircuits(db);
+      await _seedPlantPoints(db);
+    }
   }
 
   /// Puits et types d'analyse de démarrage, pour ne pas ouvrir l'app sur un
@@ -318,6 +365,7 @@ class LocalDatabase {
     for (final type in _seedTypes) {
       await db.insert('analysis_types', type);
     }
+    await _seedPlantCircuits(db);
     await _seedPlantPoints(db);
   }
 }
