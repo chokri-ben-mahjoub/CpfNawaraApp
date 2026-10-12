@@ -23,6 +23,8 @@ String auditTableKey(String table) => switch (table) {
   'app_config' => 'auditTableConfig',
   'plant_circuits' => 'auditTableCircuits',
   'plant_schemas' => 'auditTableSchemas',
+  'plant_params' => 'auditTableParams',
+  'plant_profiles' => 'auditTableProfiles',
   'users' => 'auditTableUsers',
   _ => table,
 };

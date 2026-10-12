@@ -236,6 +236,11 @@ class PlantState {
   final List<PlantCircuit> circuits;
   final List<PlantSchema> schemas;
 
+  /// Paramètres personnalisés et modèles modifiés (aussi publiés dans
+  /// [PlantCustomCatalog] pour les fonctions du catalogue).
+  final List<PlantParam> customParams;
+  final List<PlantProfileDef> profileDefs;
+
   /// pointId -> paramètre -> seuil.
   final Map<String, Map<String, PlantThreshold>> thresholds;
 
@@ -248,6 +253,8 @@ class PlantState {
     required this.thresholds,
     this.circuits = const [],
     this.schemas = const [],
+    this.customParams = const [],
+    this.profileDefs = const [],
     this.ready = true,
   });
 
@@ -280,6 +287,12 @@ class PlantController extends StateNotifier<PlantState> {
 
   Future<void> _load() async {
     final db = await LocalDatabase.instance.database;
+    // Paramètres et modèles personnalisés d'abord : la lecture des analyses
+    // et des seuils en dépend (unités, paramètres des points).
+    final customParams = (await db.query('plant_params', orderBy: 'sort_order, label')).map(_paramFromRow).toList();
+    final profileDefs = (await db.query('plant_profiles', orderBy: 'sort_order, label')).map(_profileFromRow).toList();
+    PlantCustomCatalog.params = {for (final p in customParams) p.key: p};
+    PlantCustomCatalog.profiles = {for (final d in profileDefs) d.id: d};
     final circuits = (await db.query('plant_circuits', orderBy: 'sort_order')).map(_circuitFromRow).toList();
     final circuitsById = {for (final c in circuits) c.id: c};
     final points = (await db.query(
@@ -334,6 +347,8 @@ class PlantController extends StateNotifier<PlantState> {
       thresholds: thresholds,
       circuits: circuits,
       schemas: schemas,
+      customParams: customParams,
+      profileDefs: profileDefs,
     );
   }
 
@@ -621,6 +636,87 @@ class PlantController extends StateNotifier<PlantState> {
     return true;
   }
 
+  /// Points et modèles qui utilisent un paramètre (libellés), pour refuser
+  /// sa suppression.
+  List<String> paramUsage(String key) => [
+    for (final p in state.points)
+      if (p.paramKeys?.contains(key) ?? false) p.code,
+    for (final d in state.profileDefs)
+      if (d.paramKeys.contains(key)) d.label,
+  ];
+
+  /// Crée ou modifie un paramètre personnalisé (clé vide = nouveau).
+  Future<String> saveParam(PlantParam param, {int? sortOrder}) async {
+    final db = await LocalDatabase.instance.database;
+    final key = param.key.isEmpty ? 'cp_${_uuid.v4().substring(0, 8)}' : param.key;
+    await db.insert(
+      'plant_params',
+      LocalDatabase.stamp({
+        'id': key,
+        'label': param.labelKey,
+        'unit': param.unit,
+        'kind': param.kind.name,
+        'choices_json': param.isNumeric ? null : jsonEncode(param.choices),
+        'ok_choices_json': param.isNumeric ? null : jsonEncode(param.okChoices),
+        'sort_order': sortOrder ?? state.customParams.length + 1,
+      }),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+    await _afterWrite();
+    return key;
+  }
+
+  /// Supprime un paramètre personnalisé ; refusé (retourne `false`) tant
+  /// qu'un point ou un modèle l'utilise. Les valeurs déjà saisies restent
+  /// dans les analyses.
+  Future<bool> deleteParam(String key) async {
+    if (paramUsage(key).isNotEmpty) return false;
+    final db = await LocalDatabase.instance.database;
+    await LocalDatabase.recordDeletion(db, 'plant_params', key);
+    await db.delete('plant_params', where: 'id = ?', whereArgs: [key]);
+    await _afterWrite();
+    return true;
+  }
+
+  /// Crée ou modifie un modèle de paramètres (id vide = nouveau modèle ; id
+  /// d'un modèle intégré = modification de ce modèle).
+  Future<String> saveProfile(PlantProfileDef def) async {
+    final db = await LocalDatabase.instance.database;
+    final id = def.id.isEmpty ? 'pm_${_uuid.v4().substring(0, 8)}' : def.id;
+    await db.insert(
+      'plant_profiles',
+      LocalDatabase.stamp({
+        'id': id,
+        'label': def.label,
+        'params_json': jsonEncode(def.paramKeys),
+        'sort_order': def.sortOrder,
+      }),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+    await _afterWrite();
+    return id;
+  }
+
+  /// Circuits et points qui utilisent un modèle (libellés).
+  List<String> profileUsage(String id) => [
+    for (final c in state.circuits)
+      if (c.defaultProfile == id) c.labelKey,
+    for (final p in state.points)
+      if (p.profile == id) p.code,
+  ];
+
+  /// Supprime un modèle ajouté (refusé, `false`, s'il est encore utilisé),
+  /// ou remet un modèle intégré dans son état d'origine.
+  Future<bool> deleteProfile(String id) async {
+    final builtIn = builtInPlantProfiles.containsKey(id);
+    if (!builtIn && profileUsage(id).isNotEmpty) return false;
+    final db = await LocalDatabase.instance.database;
+    await LocalDatabase.recordDeletion(db, 'plant_profiles', id);
+    await db.delete('plant_profiles', where: 'id = ?', whereArgs: [id]);
+    await _afterWrite();
+    return true;
+  }
+
   static double _round(double v) => (v.clamp(0.0, 1.0) * 10000).roundToDouble() / 10000;
 
   Future<void> _afterWrite() async {
@@ -659,6 +755,32 @@ SamplePoint _pointFromRow(Map<String, Object?> row, Map<String, PlantCircuit> ci
   sortOrder: (row['sort_order'] as num?)?.toInt() ?? 0,
   active: (row['active'] as num?) != 0,
   paramKeys: _decodeKeys(row['params_json'] as String?),
+);
+
+List<String> _decodeStrings(Object? json) {
+  if (json is! String || json.isEmpty) return const [];
+  try {
+    final decoded = jsonDecode(json);
+    return decoded is List ? [for (final v in decoded) '$v'] : const [];
+  } catch (_) {
+    return const [];
+  }
+}
+
+PlantParam _paramFromRow(Map<String, Object?> row) => customPlantParam(
+  key: row['id'] as String,
+  label: row['label'] as String? ?? '',
+  unit: row['unit'] as String? ?? '',
+  kind: row['kind'] == 'choice' ? ParamKind.choice : ParamKind.number,
+  choices: _decodeStrings(row['choices_json']),
+  okChoices: _decodeStrings(row['ok_choices_json']),
+);
+
+PlantProfileDef _profileFromRow(Map<String, Object?> row) => PlantProfileDef(
+  id: row['id'] as String,
+  label: row['label'] as String? ?? '',
+  paramKeys: _decodeStrings(row['params_json']),
+  sortOrder: (row['sort_order'] as num?)?.toInt() ?? 0,
 );
 
 PlantSchema _schemaFromRow(Map<String, Object?> row) {

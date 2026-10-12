@@ -20,7 +20,12 @@ const schemaImageMaxBase64 = 700000;
 /// image lisible ou reste trop lourd. Fonction de premier niveau : appelable
 /// avec `compute` (hors du fil de l'interface).
 SchemaImage? compressSchemaImage(Uint8List bytes) {
-  final decoded = img.decodeImage(bytes);
+  img.Image? decoded;
+  try {
+    decoded = img.decodeImage(bytes);
+  } catch (_) {
+    return null; // fichier abîmé ou format inconnu
+  }
   if (decoded == null) return null;
   var source = img.bakeOrientation(decoded);
   if (source.hasAlpha) {

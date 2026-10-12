@@ -29,6 +29,7 @@ import '../../../core/units/unit_system.dart';
 import '../../../core/widgets/filter_pills.dart';
 import 'sync_section.dart';
 import '../../../core/widgets/responsive.dart';
+import '../../../core/widgets/profile_avatar.dart';
 
 /// Réglages de l'app : profil, apparence, sécurité, sauvegarde, rappels,
 /// saisie & export, paramétrage, données et à propos.
@@ -117,15 +118,8 @@ class _ProfileSection extends ConsumerWidget {
       children: [
         Row(
           children: [
-            CircleAvatar(
-              radius: 24,
-              backgroundColor: accentColor.withValues(alpha: 0.14),
-              child: Text(
-                (name.isEmpty ? s('accountNoName') : name)[0].toUpperCase(),
-                style: const TextStyle(color: accentColor, fontWeight: FontWeight.w800, fontSize: 18),
-              ),
-            ),
-            const SizedBox(width: 12),
+            const ProfileAvatar(radius: 28, editable: true),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

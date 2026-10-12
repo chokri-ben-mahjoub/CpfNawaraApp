@@ -6,6 +6,7 @@ import '../../../core/plant/plant_catalog.dart';
 import '../../../core/plant/plant_repository.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/responsive.dart';
+import 'params_screen.dart';
 import 'widgets/admin_widgets.dart';
 
 /// Points de prélèvement du circuit CPF : code, circuit, équipement et
@@ -265,8 +266,19 @@ class _PointFormState extends ConsumerState<_PointForm> {
             onChanged: (v) => _setProfile(v ?? _profile),
           ),
           const SizedBox(height: 16),
-          Text(s('pointsParams'), style: const TextStyle(fontWeight: FontWeight.w800)),
-          const SizedBox(height: 4),
+          Row(
+            children: [
+              Expanded(child: Text(s('pointsParams'), style: const TextStyle(fontWeight: FontWeight.w800))),
+              TextButton.icon(
+                onPressed: () async {
+                  final key = await showPlantParamForm(context);
+                  if (key != null && mounted) setState(() => _params.add(key));
+                },
+                icon: const Icon(Icons.add, size: 18),
+                label: Text(s('paramsAdd')),
+              ),
+            ],
+          ),
           Text(s('pointsParamsHint'), style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
           const SizedBox(height: 8),
           Wrap(

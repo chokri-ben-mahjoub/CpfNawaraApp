@@ -143,6 +143,66 @@ void main() {
     expect(const PlantState(points: [], analyses: [], thresholds: {}).visibleSchemas.single.id, 'pfd');
   });
 
+  test('paramètres personnalisés et modèles modifiés', () {
+    addTearDown(() {
+      PlantCustomCatalog.params = const {};
+      PlantCustomCatalog.profiles = const {};
+    });
+    final turbidity = customPlantParam(key: 'cp_turb', label: 'Turbidité', unit: 'NTU');
+    final aspect = customPlantParam(
+      key: 'cp_asp',
+      label: 'Couleur',
+      unit: '',
+      kind: ParamKind.choice,
+      choices: const ['Claire', 'Jaune', 'Noire'],
+      okChoices: const ['Claire'],
+    );
+    PlantCustomCatalog.params = {turbidity.key: turbidity, aspect.key: aspect};
+    PlantCustomCatalog.profiles = {
+      // Modèle intégré modifié : pH retiré, turbidité ajoutée.
+      'water': const PlantProfileDef(id: 'water', label: 'plantProfileWater', paramKeys: ['density', 'cp_turb']),
+      'pm_cool': const PlantProfileDef(id: 'pm_cool', label: 'Eau de refroidissement', paramKeys: ['ph', 'cp_asp']),
+    };
+    expect(paramsForProfile('water').map((p) => p.key), ['density', 'cp_turb']);
+    expect(paramsForProfile('water').first.fixedUnit, isTrue, reason: 'densité de l\'eau : variante du modèle');
+    expect(paramsForProfile('condensate').map((p) => p.key), contains('bsw'), reason: 'modèle intact');
+    expect(plantProfileLabelKeys['pm_cool'], 'Eau de refroidissement');
+    expect(plantProfileLabelKeys.keys.last, 'pm_cool');
+    expect(plantParamCatalog.map((p) => p.key), containsAll(['cp_turb', 'cp_asp', 'bsw']));
+    expect(plantParamByKey('cp_turb')!.unit, 'NTU');
+    final turb = plantParamByKey('cp_turb')!;
+    expect(turb.displayed(), same(turb), reason: 'unité libre, jamais convertie');
+    expect(turb.toSi(12), 12);
+
+    final point = SamplePoint(
+      id: 'p',
+      code: 'CW1',
+      circuit: _circuitsById['water']!,
+      name: 'Refroidissement',
+      equipment: '',
+      profile: 'pm_cool',
+    );
+    final controller = PlantController.seeded(
+      PlantState(
+        points: [point],
+        analyses: [
+          PlantAnalysis(
+            id: plantAnalysisId('p', today),
+            pointId: 'p',
+            date: today,
+            values: const {'ph': 7.0, 'cp_asp': 'Noire'},
+            source: 'plantSourceLab',
+            operatorName: '',
+            recordedAt: today,
+          ),
+        ],
+        thresholds: const {},
+      ),
+    );
+    expect(point.params.map((p) => p.key), ['ph', 'cp_asp']);
+    expect(controller.status(point, today), PlantStatus.outOfRange, reason: 'choix non conforme');
+  });
+
   test('une analyse par point et par jour (identifiant naturel)', () {
     expect(plantAnalysisId('pp_c1', DateTime(2026, 1, 5, 14, 30)), 'pp_c1_2026-01-05');
   });

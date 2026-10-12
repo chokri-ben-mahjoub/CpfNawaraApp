@@ -21,7 +21,7 @@ class LocalDatabase {
   static final LocalDatabase instance = LocalDatabase._();
 
   /// Version du schéma (voir `onUpgrade`), enregistrée dans les sauvegardes.
-  static const schemaVersion = 11;
+  static const schemaVersion = 12;
 
   /// Tables sauvegardées / restaurées / synchronisées.
   static const dataTables = [
@@ -39,6 +39,9 @@ class LocalDatabase {
     'plant_circuits',
     // Schémas de l'usine (dessin intégré, image importée ou fond vierge), v11.
     'plant_schemas',
+    // Paramètres personnalisés et modèles de paramètres modifiables, v12.
+    'plant_params',
+    'plant_profiles',
   ];
 
   /// Tables qui ont reçu les colonnes de synchronisation par migration (v6) ;
@@ -146,6 +149,7 @@ class LocalDatabase {
           await _migrateV8(db);
           await _createPlantCircuitsTable(db);
           await _createPlantSchemasTable(db);
+          await _createPlantParamTables(db);
           await _seed(db);
         },
         onUpgrade: (db, oldVersion, newVersion) async {
@@ -218,6 +222,11 @@ class LocalDatabase {
             // l'administrateur (Usine › Schéma › Configurer).
             await _createPlantSchemasTable(db);
             await _seedPlantSchemas(db);
+          }
+          if (oldVersion < 12) {
+            // Paramètres personnalisés et modèles modifiables
+            // (Administration > Paramètres et modèles).
+            await _createPlantParamTables(db);
           }
         },
       ),
@@ -349,6 +358,37 @@ class LocalDatabase {
     ''');
   }
 
+  /// Paramètres personnalisés (`plant_params` : libellé et unité libres,
+  /// `kind` = `number` ou `choice`, choix en JSON) et modèles de paramètres
+  /// (`plant_profiles` : nouveaux modèles, ou modèles intégrés modifiés sous
+  /// le même id ; `params_json` = liste ordonnée des clés). Aucune donnée de
+  /// démarrage : les modèles intégrés restent dans `plant_catalog.dart`.
+  static Future<void> _createPlantParamTables(DatabaseExecutor db) async {
+    await db.execute('''
+      create table if not exists plant_params (
+        id text primary key,
+        label text not null,
+        unit text not null default '',
+        kind text not null default 'number',
+        choices_json text,
+        ok_choices_json text,
+        sort_order integer not null default 0,
+        updated_at integer not null default 0,
+        dirty integer not null default 0
+      )
+    ''');
+    await db.execute('''
+      create table if not exists plant_profiles (
+        id text primary key,
+        label text not null,
+        params_json text not null default '[]',
+        sort_order integer not null default 0,
+        updated_at integer not null default 0,
+        dirty integer not null default 0
+      )
+    ''');
+  }
+
   static Future<void> _seedPlantSchemas(DatabaseExecutor db) async {
     await db.insert('plant_schemas', {
       'id': 'pfd',
@@ -409,6 +449,9 @@ class LocalDatabase {
     if (fromVersion < 11) {
       await _createPlantSchemasTable(db);
       await _seedPlantSchemas(db);
+    }
+    if (fromVersion < 12) {
+      await _createPlantParamTables(db);
     }
   }
 

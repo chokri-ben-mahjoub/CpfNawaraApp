@@ -10,6 +10,7 @@ import '../../../core/settings/app_settings.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/responsive.dart';
 import 'widgets/numeric_keypad.dart';
+import '../../../core/widgets/profile_avatar.dart';
 
 const _codeLength = 4;
 
@@ -121,14 +122,7 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> with SingleTickerPr
           child: Column(
             children: [
               const SizedBox(height: 24),
-              CircleAvatar(
-                radius: 32,
-                backgroundColor: accentColor.withValues(alpha: 0.14),
-                child: Text(
-                  (name == null || name.isEmpty ? s('accountNoName') : name)[0].toUpperCase(),
-                  style: const TextStyle(color: accentColor, fontWeight: FontWeight.w800, fontSize: 24),
-                ),
-              ),
+              const ProfileAvatar(radius: 40),
               const SizedBox(height: 16),
               Text(
                 name == null || name.isEmpty ? s('unlockTitle') : '${s('unlockTitle')}, $name',

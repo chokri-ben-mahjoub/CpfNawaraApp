@@ -215,8 +215,10 @@ const _amineParams = [
   PlantParam('tss', 'plantParamTss', 'mg/L'),
 ];
 
-/// Profil d'un point = liste de ses paramètres (colonne `profile` en base).
-const plantProfiles = <String, List<PlantParam>>{
+/// Modèles intégrés : profil d'un point = liste de ses paramètres (colonne
+/// `profile` en base). Un administrateur peut les modifier (table
+/// `plant_profiles`, voir [PlantCustomCatalog]).
+const builtInPlantProfiles = <String, List<PlantParam>>{
   'condensate': _condensateParams,
   'water': _waterParams,
   'gas': _gasParams,
@@ -225,10 +227,38 @@ const plantProfiles = <String, List<PlantParam>>{
   'water_treatment': _waterTreatmentParams,
 };
 
-List<PlantParam> paramsForProfile(String profile) => plantProfiles[profile] ?? const [];
+/// Modèle de paramètres défini par l'administrateur (table
+/// `plant_profiles`) : nouveau modèle, ou modèle intégré modifié (même id).
+class PlantProfileDef {
+  final String id;
 
-/// Profils proposés à la création d'un point (libellé = clé de traduction).
-const plantProfileLabelKeys = {
+  /// Nom libre, ou clé de traduction (modèle intégré non renommé).
+  final String label;
+  final List<String> paramKeys;
+  final int sortOrder;
+
+  const PlantProfileDef({required this.id, required this.label, required this.paramKeys, this.sortOrder = 0});
+
+  bool get builtIn => builtInPlantProfiles.containsKey(id);
+}
+
+/// Paramètres personnalisés et modèles modifiés, chargés depuis la base par
+/// `PlantController` : consultés par [paramsForProfile], [plantParamByKey],
+/// [plantParamCatalog] et [plantProfileLabelKeys].
+class PlantCustomCatalog {
+  static Map<String, PlantParam> params = const {};
+  static Map<String, PlantProfileDef> profiles = const {};
+}
+
+/// Paramètres d'un modèle : modifié par l'administrateur, sinon intégré.
+List<PlantParam> paramsForProfile(String profile) {
+  final custom = PlantCustomCatalog.profiles[profile];
+  if (custom == null) return builtInPlantProfiles[profile] ?? const [];
+  return [for (final key in custom.paramKeys) ?_paramIn(key, builtInPlantProfiles[profile])];
+}
+
+/// Modèles intégrés d'origine (libellé = clé de traduction).
+const builtInProfileLabelKeys = {
   'condensate': 'plantProfileCondensate',
   'water': 'plantProfileWater',
   'gas': 'plantProfileGas',
@@ -237,16 +267,40 @@ const plantProfileLabelKeys = {
   'water_treatment': 'plantProfileWaterTreatment',
 };
 
-/// Tous les paramètres connus (un par clé), pour choisir librement ceux
-/// analysés sur un point.
-final List<PlantParam> plantParamCatalog = () {
+/// Modèles proposés (id -> libellé ou clé de traduction) : intégrés, puis
+/// ceux ajoutés par l'administrateur.
+Map<String, String> get plantProfileLabelKeys {
+  final custom = PlantCustomCatalog.profiles;
+  final added = custom.values.where((d) => !d.builtIn).toList()..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+  return {
+    for (final e in builtInProfileLabelKeys.entries) e.key: custom[e.key]?.label ?? e.value,
+    for (final d in added) d.id: d.label,
+  };
+}
+
+/// Paramètres intégrés (un par clé).
+final List<PlantParam> builtInParamCatalog = () {
   final seen = <String>{};
   return [
-    for (final list in plantProfiles.values)
+    for (final list in builtInPlantProfiles.values)
       for (final p in list)
         if (seen.add(p.key)) p,
   ];
 }();
+
+/// Tous les paramètres connus (intégrés puis personnalisés), pour choisir
+/// librement ceux analysés sur un point.
+List<PlantParam> get plantParamCatalog => [...builtInParamCatalog, ...PlantCustomCatalog.params.values];
+
+PlantParam? _paramIn(String key, List<PlantParam>? preferred) {
+  for (final p in preferred ?? const <PlantParam>[]) {
+    if (p.key == key) return p;
+  }
+  for (final p in builtInParamCatalog) {
+    if (p.key == key) return p;
+  }
+  return PlantCustomCatalog.params[key];
+}
 
 /// Définition d'un paramètre : celle du profil du point en priorité (unités
 /// propres au circuit), sinon celle du catalogue.
@@ -254,11 +308,21 @@ PlantParam? plantParamByKey(String key, {String? profile}) {
   for (final p in paramsForProfile(profile ?? '')) {
     if (p.key == key) return p;
   }
-  for (final p in plantParamCatalog) {
-    if (p.key == key) return p;
-  }
-  return null;
+  return _paramIn(key, builtInPlantProfiles[profile]);
 }
+
+/// Paramètre personnalisé : libellé et choix en texte libre, unité jamais
+/// convertie.
+PlantParam customPlantParam({
+  required String key,
+  required String label,
+  required String unit,
+  ParamKind kind = ParamKind.number,
+  List<String> choices = const [],
+  List<String> okChoices = const [],
+}) => PlantParam(key, label, unit, kind: kind, choices: choices, okChoices: okChoices, fixedUnit: true);
+
+bool isCustomPlantParam(String key) => PlantCustomCatalog.params.containsKey(key);
 
 /// Paramètres "composition" du gaz, regroupés à l'écran.
 const gasCompositionKeys = {'ch4', 'c2h6', 'c3h8', 'c4plus', 'co2', 'n2'};

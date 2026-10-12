@@ -94,6 +94,13 @@ gaz, par circuit (`lib/core/plant/`, `lib/features/plant/`).
   Administration › Schémas de l'usine), puis place les points en les faisant
   glisser ; positions en fractions de la largeur / hauteur
   (`positions_json`).
+- **Paramètres et modèles** (Administration, `params_screen.dart`, v12) :
+  paramètres personnalisés (table `plant_params` : nom, unité libre non
+  convertie, nombre ou liste de choix avec choix conformes) et modèles de
+  paramètres (`plant_profiles` : nouveaux modèles, ou modèle intégré modifié
+  sous le même id, remis d'origine en supprimant la ligne). Les points qui
+  suivent un modèle sans changement suivent ses modifications. Suppression
+  refusée tant qu'un point ou un modèle s'en sert.
 - **Vue « Courbes »** (`plant_trends_view.dart`) : plus fortes variations
   entre les deux dernières analyses, puis par circuit (groupe de points) les
   courbes lissées d'un paramètre pour tous les points ; hausse en orange,

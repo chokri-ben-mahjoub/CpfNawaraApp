@@ -53,7 +53,7 @@ service cloud.firestore {
     function dataTables() {
       return ['wells', 'analysis_types', 'analysis_records', 'interventions', 'sample_points',
               'plant_analyses', 'plant_thresholds', 'app_config', 'plant_circuits',
-              'plant_schemas'];
+              'plant_schemas', 'plant_params', 'plant_profiles'];
     }
     function writableBy(cid, table) {
       return isAdmin(cid)

@@ -120,7 +120,10 @@ void main() {
     // v11 : schémas configurables (schéma intégré de démarrage, non envoyé).
     expect(await db.query('plant_schemas'), hasLength(1));
     expect(await db.query('plant_schemas', where: 'dirty = 1 or updated_at > 0'), isEmpty);
-    expect(LocalDatabase.schemaVersion, 11);
+    // v12 : paramètres personnalisés et modèles modifiables (vides).
+    expect(await db.query('plant_params'), isEmpty);
+    expect(await db.query('plant_profiles'), isEmpty);
+    expect(LocalDatabase.schemaVersion, 12);
 
     // Première connexion : tout ce qui a été saisi/modifié part au serveur.
     final engine = SyncEngine(
