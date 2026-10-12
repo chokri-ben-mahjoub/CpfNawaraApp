@@ -274,6 +274,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                 card: (context, m) => AdminCard(
                   leading: CircleAvatar(
                     backgroundColor: (m.active ? accentColor : scheme.outline).withValues(alpha: 0.14),
+                    foregroundImage: memberPhoto(m),
                     child: Text(
                       (m.name.isEmpty ? m.email : m.name).substring(0, 1).toUpperCase(),
                       style: TextStyle(color: m.active ? accentColor : scheme.outline, fontWeight: FontWeight.w800),
@@ -796,5 +797,16 @@ class _MemberFormState extends ConsumerState<_MemberForm> {
         ],
       ),
     );
+  }
+}
+
+/// Photo de profil d'un membre (fiche de l'entreprise), ou `null`.
+ImageProvider? memberPhoto(TeamMember m) {
+  final photo = m.photo;
+  if (photo == null) return null;
+  try {
+    return MemoryImage(base64Decode(photo));
+  } catch (_) {
+    return null;
   }
 }

@@ -267,6 +267,45 @@ void main() {
     expect((await list(adminA, alpha.path, 'wells')).length, 1);
   });
 
+  test('photo de profil : sur la fiche du membre, par lui seul, conservée par l\'admin', () async {
+    if (!running) return markTestSkipped('Émulateurs Firebase non démarrés');
+    const photo = 'AAAA';
+    await team.setOwnPhoto(operatorA, alpha.id, photo, 1000);
+    var member = (await team.member(operatorA, alpha.id))!;
+    expect(member.photo, photo);
+    expect(member.photoAt, 1000);
+    // Visible par l'administrateur (liste des utilisateurs).
+    final listed = (await team.listMembers(adminA, alpha.id)).firstWhere((m) => m.uid == operatorA.uid);
+    expect(listed.photo, photo);
+    // Un membre ne change pas la photo d'un autre.
+    await expectLater(
+      firestore.commit(operatorA.idToken, [
+        {
+          'update': {
+            'name': _config.documentName('companies/${alpha.id}/members/${adminA.uid}'),
+            'fields': encodeFields({'photo': photo, 'photoAt': 1}),
+          },
+          'updateMask': {
+            'fieldPaths': ['photo', 'photoAt'],
+          },
+        },
+      ]),
+      _denied(),
+    );
+    // Photo trop lourde refusée.
+    await expectLater(team.setOwnPhoto(operatorA, alpha.id, 'A' * 200000, 2000), _denied());
+    // L'administrateur modifie la fiche : la photo reste.
+    await team.updateMember(adminA, alpha.id, adminName: 'Admin A', member: member.copyWith(service: 'serviceLab'));
+    member = (await team.member(operatorA, alpha.id))!;
+    expect(member.photo, photo);
+    expect(member.service, 'serviceLab');
+    // Retrait.
+    await team.setOwnPhoto(operatorA, alpha.id, null, 3000);
+    member = (await team.member(operatorA, alpha.id))!;
+    expect(member.photo, isNull);
+    expect(member.photoAt, 3000);
+  });
+
   test('rôles et désactivation, sans Cloud Functions', () async {
     if (!running) return markTestSkipped('Émulateurs Firebase non démarrés');
     expect(await teamWithoutFunctions.functionsAvailable(adminA), isFalse);

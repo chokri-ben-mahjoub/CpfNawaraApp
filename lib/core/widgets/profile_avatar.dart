@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +9,7 @@ import '../auth/app_lock.dart';
 import '../auth/auth_providers.dart';
 import '../auth/profile_photo.dart';
 import '../l10n/app_strings.dart';
+import '../sync/sync_service.dart';
 import '../theme/app_theme.dart';
 import 'app_loader.dart';
 
@@ -117,8 +120,10 @@ Future<void> showProfilePhotoSheet(BuildContext context, WidgetRef ref) async {
   if (choice == null || !context.mounted) return;
   final controller = ref.read(profileProvider.notifier);
   final messenger = ScaffoldMessenger.of(context);
+  final sync = ref.read(syncControllerProvider.notifier);
   if (choice == 'remove') {
     await controller.setPhoto(null);
+    unawaited(sync.syncProfilePhoto());
     return;
   }
   XFile? file;
@@ -144,5 +149,7 @@ Future<void> showProfilePhotoSheet(BuildContext context, WidgetRef ref) async {
     return;
   }
   await controller.setPhoto(photo);
+  // Aussi sur la fiche de membre : visible sur les autres appareils du compte.
+  unawaited(sync.syncProfilePhoto());
   messenger.showSnackBar(SnackBar(content: Text(s('profilePhotoSaved'))));
 }

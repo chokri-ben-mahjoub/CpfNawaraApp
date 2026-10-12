@@ -226,9 +226,7 @@ class SyncController extends StateNotifier<SyncState> {
     // est déjà créé et connecté.
     final current = _session;
     if (current != null && current.email.toLowerCase() == email.trim().toLowerCase()) return freshSession();
-    final session = createAccount
-        ? await _team.auth.signUp(email, password)
-        : await _team.auth.signIn(email, password);
+    final session = createAccount ? await _team.auth.signUp(email, password) : await _team.auth.signIn(email, password);
     await _saveSession(session);
     state = SyncState(phase: SyncPhase.idle, email: session.email);
     return session;
@@ -365,10 +363,7 @@ class SyncController extends StateNotifier<SyncState> {
   /// sauf [force]).
   Future<MemberStatus> _refreshMembership(AuthSession session, {bool force = false}) async {
     final checked = _memberCheckedAt;
-    if (!force &&
-        checked != null &&
-        state.company != null &&
-        DateTime.now().difference(checked) < _memberRefresh) {
+    if (!force && checked != null && state.company != null && DateTime.now().difference(checked) < _memberRefresh) {
       return state.memberStatus;
     }
     final cid = state.company?.id ?? await _team.companyIdOf(session);
@@ -383,7 +378,40 @@ class SyncController extends StateNotifier<SyncState> {
     await _setCompany(company ?? Company(id: cid, name: '', ownerUid: ''), member, status);
     _memberCheckedAt = DateTime.now();
     if (status == MemberStatus.active && company != null) await _bindDevice(company);
+    if (status == MemberStatus.active) unawaited(syncProfilePhoto());
     return status;
+  }
+
+  /// Photo de profil partagée entre les appareils du compte : celle de la
+  /// fiche de membre si elle est plus récente que celle de l'appareil, sinon
+  /// celle de l'appareil est envoyée. Sans réseau, nouvel essai à la
+  /// prochaine relecture de la fiche.
+  Future<void> syncProfilePhoto() async {
+    final member = state.member;
+    final cid = state.company?.id;
+    final profile = _ref.read(profileProvider);
+    if (member == null || cid == null || profile == null || state.memberStatus != MemberStatus.active) return;
+    try {
+      if (member.photoAt > profile.photoAt) {
+        final photo = member.photo;
+        await _ref
+            .read(profileProvider.notifier)
+            .setPhoto(photo == null ? null : base64Decode(photo), at: member.photoAt);
+      } else if (profile.photoAt > member.photoAt) {
+        final photo = profile.photo == null ? null : base64Encode(profile.photo!);
+        await _team.setOwnPhoto(await freshSession(), cid, photo, profile.photoAt);
+        final current = state.member;
+        if (current != null && mounted) {
+          await _setCompany(
+            state.company,
+            current.copyWith(photo: () => photo, photoAt: profile.photoAt),
+            state.memberStatus,
+          );
+        }
+      }
+    } catch (_) {
+      // Hors ligne ou photo illisible : nouvel essai plus tard.
+    }
   }
 
   /// Déconnecte le compte sur cet appareil : les données restent sur
