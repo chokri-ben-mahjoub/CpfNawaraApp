@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/l10n/app_strings.dart';
@@ -228,6 +229,17 @@ class SyncSettingsContent extends ConsumerWidget {
         ],
         const SizedBox(height: 10),
         Text(s('syncAutoHint'), style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant, height: 1.35)),
+        if (controller.isOwner) ...[
+          const SizedBox(height: 8),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.storefront_outlined, color: accentColor),
+            title: Text(s('ownerTitle'), style: const TextStyle(fontWeight: FontWeight.w700)),
+            subtitle: Text(s('ownerEntryHint')),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/owner'),
+          ),
+        ],
         const SizedBox(height: 12),
         Row(
           children: [

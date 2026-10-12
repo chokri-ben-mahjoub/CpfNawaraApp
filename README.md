@@ -116,8 +116,13 @@ entreprises, chacune isolée par les règles Firestore.
 
 ### Installation (premier lancement)
 
-- **Créer mon entreprise** : nom de l'entreprise + e-mail + mot de passe ;
-  le créateur devient **admin**.
+- **Créer mon entreprise** : **code d'activation** + nom de l'entreprise +
+  e-mail + mot de passe ; le créateur devient **admin**. Les codes (usage
+  unique, `activationCodes/{code}`) sont créés par le propriétaire de
+  PuitsTrack dans Réglages › Clients et codes d'activation (`owner_screen.dart`),
+  visible pour `platformOwnerEmail` (`app_info.dart`, identique à `isOwner()`
+  dans `firestore.rules`), adresse vérifiée par e-mail. Le propriétaire peut
+  créer une entreprise sans code.
 - **Rejoindre mon entreprise** : code d'invitation `ABCD-EFGH` (ou QR code)
   créé par l'admin dans Administration › Utilisateurs › **Inviter** (usage
   unique, 7 jours, e-mail imposé facultatif, rôle fixé par l'admin).

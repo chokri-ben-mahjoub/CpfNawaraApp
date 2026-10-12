@@ -129,6 +129,52 @@ class TeamMember {
   }
 }
 
+/// Code d'activation vendu à un client par le propriétaire : nécessaire
+/// pour créer une entreprise, à usage unique.
+class ActivationCode {
+  final String code;
+
+  /// Nom du client (repère pour le propriétaire).
+  final String label;
+  final bool used;
+  final String usedBy;
+  final String companyId;
+  final DateTime? createdAt;
+  final DateTime? usedAt;
+
+  const ActivationCode({
+    required this.code,
+    required this.label,
+    this.used = false,
+    this.usedBy = '',
+    this.companyId = '',
+    this.createdAt,
+    this.usedAt,
+  });
+
+  String get displayCode => formatInviteCode(code);
+
+  static ActivationCode fromFields(String code, Map<String, Object?> f) => ActivationCode(
+    code: code,
+    label: '${f['label'] ?? ''}',
+    used: f['used'] == true,
+    usedBy: '${f['usedBy'] ?? ''}',
+    companyId: '${f['companyId'] ?? ''}',
+    createdAt: DateTime.tryParse('${f['createdAt'] ?? ''}')?.toLocal(),
+    usedAt: DateTime.tryParse('${f['usedAt'] ?? ''}')?.toLocal(),
+  );
+}
+
+/// Code d'activation refusé : `unknown` (inexistant) ou `used` (déjà
+/// utilisé).
+class ActivationException implements Exception {
+  final String reason;
+  const ActivationException(this.reason);
+
+  @override
+  String toString() => 'ActivationException($reason)';
+}
+
 /// Invitation à rejoindre une entreprise : code à usage unique, rôle
 /// attribué, e-mail imposé ou non, expiration.
 class Invite {
@@ -184,6 +230,12 @@ String normalizeInviteCode(String text) {
 }
 
 bool isValidInviteCode(String code) => RegExp('^[$_inviteAlphabet]{8}\$').hasMatch(code);
+
+/// Code aléatoire de 8 caractères sans ambiguïté (ni 0/O, ni 1/I/L).
+String _randomCode() {
+  final random = Random.secure();
+  return List.generate(8, (_) => _inviteAlphabet[random.nextInt(_inviteAlphabet.length)]).join();
+}
 
 /// Entrée du journal d'audit (`companies/{cid}/audit/{id}`).
 class AuditEntry {
@@ -358,12 +410,12 @@ class TeamService {
     return doc == null ? null : TeamMember.fromDocument(doc);
   }
 
-  /// Teste les règles publiées : `config/rules_v3` n'existe jamais, mais les
+  /// Teste les règles publiées : `config/rules_v4` n'existe jamais, mais les
   /// règles de PuitsTrack autorisent à le lire (réponse "introuvable") —
   /// d'anciennes règles ou les règles par défaut refusent.
   Future<RulesStatus> probeRules(AuthSession session) async {
     try {
-      await firestore.getDocument(session.idToken, 'config/rules_v3');
+      await firestore.getDocument(session.idToken, 'config/rules_v4');
       return RulesStatus.ok;
     } on SyncServerException catch (e) {
       if (e.isDatabaseMissing) return RulesStatus.databaseMissing;
@@ -380,8 +432,15 @@ class TeamService {
     required String companyName,
     required String name,
     String service = '',
+    String? activation,
   }) async {
     if (await companyIdOf(session) != null) throw const AlreadyInCompanyException();
+    final code = activation == null ? null : normalizeInviteCode(activation);
+    if (code != null) {
+      final found = await previewActivation(code);
+      if (found == null) throw const ActivationException('unknown');
+      if (found.used) throw const ActivationException('used');
+    }
     final cid = _uuid.v4().replaceAll('-', '').substring(0, 20);
     final company = Company(id: cid, name: companyName, ownerUid: session.uid);
     final member = TeamMember(
@@ -395,10 +454,17 @@ class TeamService {
     await firestore.commit(session.idToken, [
       _write(
         company.path,
-        {'name': companyName, 'ownerUid': session.uid},
+        {'name': companyName, 'ownerUid': session.uid, 'activation': ?code},
         create: true,
         serverTimes: ['createdAt', 'updatedAt'],
       ),
+      if (code != null)
+        _write(
+          'activationCodes/$code',
+          {'used': true, 'usedBy': session.uid, 'companyId': cid},
+          mask: ['used', 'usedBy', 'companyId'],
+          serverTimes: ['usedAt'],
+        ),
       _write(
         '${company.path}/members/${session.uid}',
         member.fields,
@@ -417,6 +483,60 @@ class TeamService {
       ),
     ]);
     return (company, member);
+  }
+
+  /// Code d'activation (lisible sans compte : le connaître suffit).
+  Future<ActivationCode?> previewActivation(String code) async {
+    final normalized = normalizeInviteCode(code);
+    if (!isValidInviteCode(normalized)) return null;
+    final doc = await firestore.getDocument(null, 'activationCodes/$normalized');
+    if (doc == null) return null;
+    return ActivationCode.fromFields(normalized, decodeFields(doc['fields'] as Map<String, Object?>?));
+  }
+
+  // ------------------------------------------------- Propriétaire (codes)
+
+  /// Nouveau code d'activation pour le client [label] (propriétaire).
+  Future<ActivationCode> createActivationCode(AuthSession owner, String label) async {
+    final code = _randomCode();
+    await firestore.commit(owner.idToken, [
+      _write('activationCodes/$code', {'label': label, 'used': false}, create: true, serverTimes: ['createdAt']),
+    ]);
+    return ActivationCode(code: code, label: label, createdAt: DateTime.now());
+  }
+
+  /// Tous les codes d'activation, les plus récents d'abord (propriétaire).
+  Future<List<ActivationCode>> listActivationCodes(AuthSession owner) async {
+    final docs = await firestore.runQuery(owner.idToken, '', {
+      'from': [
+        {'collectionId': 'activationCodes'},
+      ],
+      'limit': 1000,
+    });
+    final codes = [
+      for (final d in docs)
+        ActivationCode.fromFields(
+          (d['name'] as String).split('/').last,
+          decodeFields(d['fields'] as Map<String, Object?>?),
+        ),
+    ];
+    codes.sort((a, b) => (b.createdAt ?? DateTime(0)).compareTo(a.createdAt ?? DateTime(0)));
+    return codes;
+  }
+
+  Future<void> deleteActivationCode(AuthSession owner, String code) =>
+      firestore.commit(owner.idToken, [_delete('activationCodes/$code')]);
+
+  /// Toutes les entreprises (propriétaire).
+  Future<List<Company>> listCompanies(AuthSession owner) async {
+    final docs = await firestore.runQuery(owner.idToken, '', {
+      'from': [
+        {'collectionId': 'companies'},
+      ],
+      'limit': 1000,
+    });
+    return [for (final d in docs) Company.fromDocument(d)]
+      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
   }
 
   /// Aperçu d'un code d'invitation (avant même de créer son compte).
@@ -673,8 +793,7 @@ class TeamService {
     String email = '',
     Duration validity = const Duration(days: 7),
   }) async {
-    final random = Random.secure();
-    final code = List.generate(8, (_) => _inviteAlphabet[random.nextInt(_inviteAlphabet.length)]).join();
+    final code = _randomCode();
     final invite = Invite(
       code: code,
       companyId: company.id,

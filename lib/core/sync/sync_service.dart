@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../app_info.dart';
 import '../auth/auth_providers.dart';
 import '../backup/backup_service.dart';
 import '../config/shared_config.dart';
@@ -239,21 +240,67 @@ class SyncController extends StateNotifier<SyncState> {
     required String password,
     required String companyName,
     required String name,
+    required String activation,
     bool existingAccount = false,
   }) async {
+    // Le propriétaire de PuitsTrack n'a pas besoin de code.
+    final code = isOwnerEmail(email) && activation.trim().isEmpty ? null : activation;
+    // Code vérifié avant de créer le compte : un code faux ne laisse pas de
+    // compte sans entreprise.
+    if (code != null) await checkActivation(code);
     final session = await _login(email, password, createAccount: !existingAccount);
-    final (company, member) = await _team.createCompany(session, companyName: companyName, name: name);
+    final (company, member) = await _team.createCompany(
+      session,
+      companyName: companyName,
+      name: name,
+      activation: code,
+    );
     await _connected(session, company, member);
     return MemberStatus.active;
   }
 
   /// Compte déjà connecté (sans entreprise) : crée son entreprise.
-  Future<MemberStatus> createCompanyForCurrent({required String companyName, required String name}) async {
+  Future<MemberStatus> createCompanyForCurrent({
+    required String companyName,
+    required String name,
+    required String activation,
+  }) async {
     final session = await freshSession();
-    final (company, member) = await _team.createCompany(session, companyName: companyName, name: name);
+    final (company, member) = await _team.createCompany(
+      session,
+      companyName: companyName,
+      name: name,
+      activation: isOwner && activation.trim().isEmpty ? null : activation,
+    );
     await _connected(session, company, member);
     return MemberStatus.active;
   }
+
+  /// Vérifie un code d'activation (sans compte) : [ActivationException] s'il
+  /// est inconnu ou déjà utilisé.
+  Future<ActivationCode> checkActivation(String code) async {
+    await _ready;
+    final found = await _team.previewActivation(code);
+    if (found == null) throw const ActivationException('unknown');
+    if (found.used) throw const ActivationException('used');
+    return found;
+  }
+
+  // ------------------------------------------------------ Propriétaire
+
+  /// Compte connecté = propriétaire de PuitsTrack (écran Clients).
+  bool get isOwner => isOwnerEmail(state.email ?? '');
+
+  /// Adresse du propriétaire vérifiée ? Renouvelle la session pour que les
+  /// règles voient la vérification.
+  Future<bool> ownerVerified() async {
+    final session = await freshSession();
+    if (!await _team.auth.emailVerified(session)) return false;
+    await _saveSession(await _team.auth.refresh(session));
+    return true;
+  }
+
+  Future<void> sendOwnerVerification() async => _team.auth.sendEmailVerification(await freshSession());
 
   /// Rejoint une entreprise avec un code d'invitation (nouveau compte ou
   /// compte existant).
@@ -536,3 +583,6 @@ final syncControllerProvider = StateNotifierProvider<SyncController, SyncState>(
   final config = ref.watch(firebaseConfigProvider);
   return SyncController(ref, config: config);
 });
+
+/// Adresse du propriétaire de PuitsTrack ([platformOwnerEmail]).
+bool isOwnerEmail(String email) => email.trim().toLowerCase() == platformOwnerEmail;

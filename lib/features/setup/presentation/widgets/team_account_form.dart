@@ -55,6 +55,7 @@ String teamErrorKey(Object error) => switch (error) {
     'email' => 'inviteErrorEmail',
     _ => 'inviteErrorUnknown',
   },
+  ActivationException(:final reason) => reason == 'used' ? 'activationErrorUsed' : 'activationErrorUnknown',
   AlreadyInCompanyException() => 'teamErrorAlreadyInCompany',
   SyncAuthException(:final code) => authErrorKey(code),
   SyncNetworkException() => 'syncOffline',
@@ -189,6 +190,7 @@ class _TeamAccountFormState extends ConsumerState<TeamAccountForm> {
   final _password = TextEditingController();
   final _confirm = TextEditingController();
   final _code = TextEditingController();
+  final _activation = TextEditingController();
   bool _existing = false;
   bool _busy = false;
   bool _obscure = true;
@@ -219,6 +221,7 @@ class _TeamAccountFormState extends ConsumerState<TeamAccountForm> {
     _password.dispose();
     _confirm.dispose();
     _code.dispose();
+    _activation.dispose();
     super.dispose();
   }
 
@@ -287,7 +290,11 @@ class _TeamAccountFormState extends ConsumerState<TeamAccountForm> {
       final MemberStatus status;
       if (widget.currentAccount) {
         status = _create
-            ? await controller.createCompanyForCurrent(companyName: _company.text.trim(), name: name)
+            ? await controller.createCompanyForCurrent(
+                companyName: _company.text.trim(),
+                name: name,
+                activation: _activation.text,
+              )
             : await controller.joinCompanyForCurrent(code: _code.text, name: name);
       } else {
         status = switch (widget.mode) {
@@ -296,6 +303,7 @@ class _TeamAccountFormState extends ConsumerState<TeamAccountForm> {
             password: _password.text,
             companyName: _company.text.trim(),
             name: name,
+            activation: _activation.text,
             existingAccount: _existing,
           ),
           TeamFormMode.join => await controller.joinCompany(
@@ -353,6 +361,27 @@ class _TeamAccountFormState extends ConsumerState<TeamAccountForm> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (_create) ...[
+            TextFormField(
+              controller: _activation,
+              textCapitalization: TextCapitalization.characters,
+              style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1.5),
+              decoration: InputDecoration(
+                labelText: t('activationCodeLabel'),
+                hintText: 'ABCD-EFGH',
+                helperText: t('activationCodeHint'),
+                helperMaxLines: 2,
+                prefixIcon: const Icon(Icons.verified_user_outlined),
+              ),
+              validator: (v) {
+                // Propriétaire de PuitsTrack : code facultatif.
+                final owner = widget.currentAccount
+                    ? ref.read(syncControllerProvider.notifier).isOwner
+                    : isOwnerEmail(_email.text);
+                if (owner && (v ?? '').trim().isEmpty) return null;
+                return isValidInviteCode(normalizeInviteCode(v ?? '')) ? null : t('inviteErrorFormat');
+              },
+            ),
+            const SizedBox(height: 12),
             TextFormField(
               controller: _company,
               textCapitalization: TextCapitalization.words,
