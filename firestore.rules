@@ -118,7 +118,8 @@ service cloud.firestore {
           || (request.auth.uid == uid && validInvite(cid, uid)));
         allow update: if isAdmin(cid)
           || (active(cid) && request.auth.uid == uid
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nom', 'updatedAt']));
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nom', 'updatedAt', 'photo', 'photoAt'])
+            && (request.resource.data.get('photo', null) == null || request.resource.data.photo.size() < 150000));
         allow delete: if isAdmin(cid);
       }
 

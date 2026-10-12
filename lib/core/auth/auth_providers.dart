@@ -17,6 +17,7 @@ const _profileNameKey = 'profile_name';
 const _profilePhoneKey = 'profile_phone';
 const _profileServiceKey = 'profile_service';
 const _profilePhotoKey = 'profile_photo';
+const _profilePhotoAtKey = 'profile_photo_at';
 
 /// Écran d'accueil (carrousel de présentation) déjà vu par l'utilisateur.
 class OnboardingController extends StateNotifier<bool> {
@@ -51,6 +52,10 @@ class AppProfile {
   /// appareil.
   final Uint8List? photo;
 
+  /// Date (ms) du dernier changement de photo, retrait compris : sert à
+  /// garder la plus récente entre les appareils du compte.
+  final int photoAt;
+
   const AppProfile({
     required this.id,
     required this.fullName,
@@ -58,17 +63,25 @@ class AppProfile {
     required this.serviceKey,
     required this.role,
     this.photo,
+    this.photoAt = 0,
   });
 
-  AppProfile copyWith({String? fullName, String? phone, String? serviceKey, Uint8List? photo, bool clearPhoto = false}) =>
-      AppProfile(
-        id: id,
-        fullName: fullName ?? this.fullName,
-        phone: phone ?? this.phone,
-        serviceKey: serviceKey ?? this.serviceKey,
-        role: role,
-        photo: clearPhoto ? null : (photo ?? this.photo),
-      );
+  AppProfile copyWith({
+    String? fullName,
+    String? phone,
+    String? serviceKey,
+    Uint8List? photo,
+    bool clearPhoto = false,
+    int? photoAt,
+  }) => AppProfile(
+    id: id,
+    fullName: fullName ?? this.fullName,
+    phone: phone ?? this.phone,
+    serviceKey: serviceKey ?? this.serviceKey,
+    role: role,
+    photo: clearPhoto ? null : (photo ?? this.photo),
+    photoAt: photoAt ?? this.photoAt,
+  );
 }
 
 Uint8List? _decodePhoto(String? data) {
@@ -100,20 +113,25 @@ class ProfileController extends StateNotifier<AppProfile?> {
       // c'est celui de la fiche d'équipe qui compte (currentRoleProvider).
       role: UserRole.admin,
       photo: _decodePhoto(prefs.getString(_profilePhotoKey)),
+      photoAt: prefs.getInt(_profilePhotoAtKey) ?? 0,
     );
   }
 
-  /// Enregistre (ou retire, si [photo] est nul) la photo de profil.
-  Future<void> setPhoto(Uint8List? photo) async {
+  /// Enregistre (ou retire, si [photo] est nul) la photo de profil, datée
+  /// [at] (maintenant par défaut ; date du serveur quand elle vient d'un
+  /// autre appareil du compte).
+  Future<void> setPhoto(Uint8List? photo, {int? at}) async {
     final current = state;
     if (current == null) return;
+    final when = at ?? DateTime.now().millisecondsSinceEpoch;
     final prefs = await SharedPreferences.getInstance();
     if (photo == null) {
       await prefs.remove(_profilePhotoKey);
     } else {
       await prefs.setString(_profilePhotoKey, base64Encode(photo));
     }
-    state = current.copyWith(photo: photo, clearPhoto: photo == null);
+    await prefs.setInt(_profilePhotoAtKey, when);
+    state = current.copyWith(photo: photo, clearPhoto: photo == null, photoAt: when);
   }
 
   /// Crée le profil local (nom, service, téléphone) — une seule fois par
@@ -149,6 +167,7 @@ class ProfileController extends StateNotifier<AppProfile?> {
     await prefs.remove(_profilePhoneKey);
     await prefs.remove(_profileServiceKey);
     await prefs.remove(_profilePhotoKey);
+    await prefs.remove(_profilePhotoAtKey);
     state = null;
   }
 }

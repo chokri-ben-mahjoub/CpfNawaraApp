@@ -53,6 +53,12 @@ class TeamMember {
   final bool pending;
   final DateTime? createdAt;
 
+  /// Photo de profil (JPEG en base64), modifiable par le membre lui-même,
+  /// et sa date de modification (ms) : la plus récente l'emporte entre les
+  /// appareils du compte. Hors de [fields] : l'administrateur n'y touche pas.
+  final String? photo;
+  final int photoAt;
+
   const TeamMember({
     required this.uid,
     required this.email,
@@ -62,9 +68,19 @@ class TeamMember {
     this.service = '',
     this.pending = false,
     this.createdAt,
+    this.photo,
+    this.photoAt = 0,
   });
 
-  TeamMember copyWith({String? name, UserRole? role, bool? active, String? service, bool? pending}) => TeamMember(
+  TeamMember copyWith({
+    String? name,
+    UserRole? role,
+    bool? active,
+    String? service,
+    bool? pending,
+    String? Function()? photo,
+    int? photoAt,
+  }) => TeamMember(
     uid: uid,
     email: email,
     name: name ?? this.name,
@@ -73,6 +89,8 @@ class TeamMember {
     service: service ?? this.service,
     pending: pending ?? this.pending,
     createdAt: createdAt,
+    photo: photo == null ? this.photo : photo(),
+    photoAt: photoAt ?? this.photoAt,
   );
 
   static TeamMember fromDocument(Map<String, Object?> doc) {
@@ -89,6 +107,8 @@ class TeamMember {
     service: '${f['service'] ?? ''}',
     pending: f['demande'] == true,
     createdAt: DateTime.tryParse('${f['createdAt'] ?? ''}')?.toLocal(),
+    photo: f['photo'] is String && (f['photo'] as String).isNotEmpty ? f['photo'] as String : null,
+    photoAt: (f['photoAt'] as num?)?.toInt() ?? int.tryParse('${f['photoAt'] ?? ''}') ?? 0,
   );
 
   /// Champs Firestore modifiables (hors dates, posées par le serveur).
@@ -100,7 +120,7 @@ class TeamMember {
     'service': service,
   };
 
-  Map<String, Object?> toJson() => {'uid': uid, ...fields};
+  Map<String, Object?> toJson() => {'uid': uid, ...fields, 'photo': photo, 'photoAt': photoAt};
 
   static TeamMember? fromJson(Map<String, Object?> json) {
     final uid = json['uid'];
@@ -154,8 +174,7 @@ class Invite {
 const _inviteAlphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
 /// Code d'invitation affiché par groupes de 4 (ABCD-EFGH).
-String formatInviteCode(String code) =>
-    code.length == 8 ? '${code.substring(0, 4)}-${code.substring(4)}' : code;
+String formatInviteCode(String code) => code.length == 8 ? '${code.substring(0, 4)}-${code.substring(4)}' : code;
 
 /// Code saisi (ou lu dans un QR code) ramené à sa forme enregistrée.
 String normalizeInviteCode(String text) {
@@ -380,7 +399,12 @@ class TeamService {
         create: true,
         serverTimes: ['createdAt', 'updatedAt'],
       ),
-      _write('${company.path}/members/${session.uid}', member.fields, create: true, serverTimes: ['createdAt', 'updatedAt']),
+      _write(
+        '${company.path}/members/${session.uid}',
+        member.fields,
+        create: true,
+        serverTimes: ['createdAt', 'updatedAt'],
+      ),
       _write('accounts/${session.uid}', {'companyId': cid, 'email': session.email}, create: true),
       auditWrite(
         config,
@@ -423,10 +447,12 @@ class TeamService {
     final member = TeamMember(uid: session.uid, email: session.email, name: name, role: invite.role, active: true);
     final scope = 'companies/$cid';
     await firestore.commit(session.idToken, [
-      _write('$scope/members/${session.uid}', {
-        ...member.fields,
-        'invite': normalized,
-      }, create: true, serverTimes: ['createdAt', 'updatedAt']),
+      _write(
+        '$scope/members/${session.uid}',
+        {...member.fields, 'invite': normalized},
+        create: true,
+        serverTimes: ['createdAt', 'updatedAt'],
+      ),
       _write(
         '$scope/invites/$normalized',
         {'used': true, 'usedBy': session.uid},
@@ -452,6 +478,17 @@ class TeamService {
     _write('companies/$cid/members/${session.uid}', {'nom': name}, mask: ['nom'], serverTimes: ['updatedAt']),
   ]);
 
+  /// Photo de profil du compte connecté (`null` : retirée), datée [at] (ms).
+  Future<void> setOwnPhoto(AuthSession session, String cid, String? photo, int at) =>
+      firestore.commit(session.idToken, [
+        _write(
+          'companies/$cid/members/${session.uid}',
+          {'photo': photo, 'photoAt': at},
+          mask: ['photo', 'photoAt'],
+          serverTimes: ['updatedAt'],
+        ),
+      ]);
+
   /// Nouveau nom de l'entreprise (administrateur).
   Future<void> renameCompany(AuthSession admin, Company company, String name) => firestore.commit(admin.idToken, [
     _write(company.path, {'name': name, 'ownerUid': company.ownerUid}, mask: ['name'], serverTimes: ['updatedAt']),
@@ -468,7 +505,9 @@ class TeamService {
       'limit': 500,
     });
     return docs.map(TeamMember.fromDocument).toList()..sort(
-      (a, b) => (a.name.isEmpty ? a.email : a.name).toLowerCase().compareTo((b.name.isEmpty ? b.email : b.name).toLowerCase()),
+      (a, b) => (a.name.isEmpty ? a.email : a.name).toLowerCase().compareTo(
+        (b.name.isEmpty ? b.email : b.name).toLowerCase(),
+      ),
     );
   }
 
@@ -560,7 +599,12 @@ class TeamService {
   }) async {
     final scope = 'companies/$cid';
     await firestore.commit(admin.idToken, [
-      _write('$scope/members/${member.uid}', member.fields, mask: member.fields.keys.toList(), serverTimes: ['updatedAt']),
+      _write(
+        '$scope/members/${member.uid}',
+        member.fields,
+        mask: member.fields.keys.toList(),
+        serverTimes: ['updatedAt'],
+      ),
       auditWrite(
         config,
         scope,
@@ -582,7 +626,12 @@ class TeamService {
 
   /// Retire un membre de l'entreprise. Avec les Cloud Functions, son compte
   /// est supprimé ; sinon il n'a simplement plus accès à rien.
-  Future<void> removeMember(AuthSession admin, String cid, {required String adminName, required TeamMember member}) async {
+  Future<void> removeMember(
+    AuthSession admin,
+    String cid, {
+    required String adminName,
+    required TeamMember member,
+  }) async {
     if (await functionsAvailable(admin)) {
       await functions.call(admin.idToken, 'deleteMember', {'companyId': cid, 'uid': member.uid});
       return;
@@ -642,12 +691,12 @@ class TeamService {
       'expiresAt': invite.expiresAt.millisecondsSinceEpoch,
     };
     await firestore.commit(admin.idToken, [
-      _write('${company.path}/invites/$code', {
-        ...fields,
-        'used': false,
-        'usedBy': '',
-        'createdBy': admin.uid,
-      }, create: true, serverTimes: ['createdAt']),
+      _write(
+        '${company.path}/invites/$code',
+        {...fields, 'used': false, 'usedBy': '', 'createdBy': admin.uid},
+        create: true,
+        serverTimes: ['createdAt'],
+      ),
       _write('inviteCodes/$code', fields, create: true),
       auditWrite(
         config,
@@ -671,14 +720,15 @@ class TeamService {
     });
     return [
       for (final doc in docs)
-        Invite.fromFields((doc['name'] as String).split('/').last, decodeFields(doc['fields'] as Map<String, Object?>?)),
+        Invite.fromFields(
+          (doc['name'] as String).split('/').last,
+          decodeFields(doc['fields'] as Map<String, Object?>?),
+        ),
     ]..sort((a, b) => b.expiresAt.compareTo(a.expiresAt));
   }
 
-  Future<void> deleteInvite(AuthSession admin, String cid, String code) => firestore.commit(admin.idToken, [
-    _delete('companies/$cid/invites/$code'),
-    _delete('inviteCodes/$code'),
-  ]);
+  Future<void> deleteInvite(AuthSession admin, String cid, String code) =>
+      firestore.commit(admin.idToken, [_delete('companies/$cid/invites/$code'), _delete('inviteCodes/$code')]);
 
   // ------------------------------------------------------------ Audit
 
