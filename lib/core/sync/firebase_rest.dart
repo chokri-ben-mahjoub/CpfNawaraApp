@@ -187,10 +187,15 @@ class FirestoreRest {
     await _post(idToken, '${config.documentsUrl('')}:commit', {'writes': writes});
   }
 
-  /// Lit un document (ex: `users/<uid>`) ; `null` s'il n'existe pas.
-  Future<Map<String, Object?>?> getDocument(String idToken, String path) async {
+  /// Lit un document (ex: `accounts/<uid>`) ; `null` s'il n'existe pas.
+  /// Sans [idToken] : lecture anonyme (document public, ex: code
+  /// d'invitation).
+  Future<Map<String, Object?>?> getDocument(String? idToken, String path) async {
     final response = await _send(
-      client.get(Uri.parse(config.documentsUrl(path)), headers: {'Authorization': 'Bearer $idToken'}),
+      client.get(
+        Uri.parse(config.documentsUrl(path)),
+        headers: {if (idToken != null) 'Authorization': 'Bearer $idToken'},
+      ),
     );
     final body = response.body.isEmpty ? null : jsonDecode(response.body);
     if (response.statusCode >= 200 && response.statusCode < 300) return Map<String, Object?>.from(body as Map);
@@ -234,6 +239,56 @@ class FirestoreRest {
     throw SyncServerException(
       response.statusCode,
       error is Map ? '${error['status'] ?? ''}' : '',
+      error is Map ? '${error['message'] ?? ''}' : '',
+    );
+  }
+}
+
+/// Fonction serveur absente (Cloud Functions non déployées, ex: forfait
+/// gratuit) : l'app utilise alors la voie sans serveur.
+class FunctionUnavailableException implements Exception {
+  const FunctionUnavailableException();
+}
+
+/// Erreur renvoyée par une Cloud Function (ex: `permission-denied`).
+class FunctionCallException implements Exception {
+  final String status;
+  final String message;
+  const FunctionCallException(this.status, this.message);
+
+  @override
+  String toString() => 'FunctionCallException($status $message)';
+}
+
+/// Cloud Functions « callable » (protocole HTTP : `{"data": ...}` ->
+/// `{"result": ...}`), appelées avec le jeton du compte connecté.
+class FunctionsRest {
+  final FirebaseRestConfig config;
+  final http.Client client;
+
+  FunctionsRest(this.config, {http.Client? client}) : client = client ?? http.Client();
+
+  Future<Object?> call(String idToken, String name, Map<String, Object?> data) async {
+    final response = await _send(
+      client.post(
+        Uri.parse(config.functionUrl(name)),
+        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $idToken'},
+        body: jsonEncode({'data': data}),
+      ),
+    );
+    Object? body;
+    try {
+      body = response.body.isEmpty ? null : jsonDecode(response.body);
+    } catch (_) {
+      body = null;
+    }
+    if (response.statusCode >= 200 && response.statusCode < 300 && body is Map) return body['result'];
+    final error = body is Map ? body['error'] : null;
+    if (response.statusCode == 404 || (error == null && response.statusCode >= 400)) {
+      throw const FunctionUnavailableException();
+    }
+    throw FunctionCallException(
+      error is Map ? '${error['status'] ?? ''}' : '${response.statusCode}',
       error is Map ? '${error['message'] ?? ''}' : '',
     );
   }

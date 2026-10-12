@@ -18,6 +18,7 @@ import 'package:puitstrack/features/admin/presentation/users_screen.dart';
 import 'package:puitstrack/features/admin/presentation/wells_manage_screen.dart';
 import 'package:puitstrack/features/alerts/presentation/alerts_screen.dart';
 import 'package:puitstrack/features/setup/presentation/setup_screen.dart';
+import 'package:puitstrack/features/setup/presentation/widgets/firebase_project_picker.dart';
 import 'package:puitstrack/core/widgets/app_loader.dart';
 import 'package:puitstrack/features/home/presentation/home_shell.dart';
 import 'package:puitstrack/features/splash/splash_screen.dart';
@@ -45,6 +46,7 @@ import 'package:puitstrack/core/plant/plant_catalog.dart';
 import 'package:puitstrack/core/plant/plant_repository.dart';
 import 'package:puitstrack/features/plant/presentation/plant_entry_screen.dart';
 import 'package:puitstrack/features/plant/presentation/plant_point_screen.dart';
+import 'package:puitstrack/features/plant/presentation/plant_schema_screens.dart';
 import 'package:puitstrack/features/plant/presentation/plant_screen.dart';
 import 'package:puitstrack/features/plant/presentation/plant_trend_screen.dart';
 import 'package:puitstrack/core/notifications/reminder_service.dart';
@@ -223,6 +225,16 @@ PlantController _seedPlant() {
         'pp_g3': {'h2s': PlantThreshold(max: 4)},
       },
       circuits: circuitsById.values.toList(),
+      schemas: [
+        PlantSchema.builtIn,
+        PlantSchema(
+          id: 'ps_1',
+          name: 'Unité de déshydratation',
+          kind: PlantSchemaKind.blank,
+          positions: const {'pp_c1': Offset(0.3, 0.4), 'pp_g3': Offset(0.7, 0.2)},
+          sortOrder: 2,
+        ),
+      ],
     ),
   );
 }
@@ -323,6 +335,24 @@ void main() {
     'usine : schéma (sombre)',
     (t) => _render(t, const Scaffold(body: SafeArea(child: PlantScreen())), height: 1100, dark: true),
   );
+  testWidgets(
+    'usine : courbes',
+    (t) => _render(
+      t,
+      const Scaffold(body: SafeArea(child: PlantScreen())),
+      height: 3600,
+      plantView: PlantView.trends,
+    ),
+  );
+  testWidgets(
+    'usine : configuration du schéma intégré',
+    (t) => _render(t, const PlantSchemaEditorScreen(schemaId: 'pfd'), height: 900),
+  );
+  testWidgets(
+    'usine : configuration d\'un schéma vierge',
+    (t) => _render(t, const PlantSchemaEditorScreen(schemaId: 'ps_1'), height: 900, width: 1200),
+  );
+  testWidgets('administration : schémas', (t) => _render(t, const PlantSchemasScreen()));
   testWidgets('usine : fiche point', (t) => _render(t, const PlantPointScreen(pointId: 'pp_c1'), height: 1600));
   testWidgets('usine : saisie gaz export', (t) => _render(t, const PlantEntryScreen(pointId: 'pp_g3'), height: 1700));
   testWidgets('usine : saisie eau', (t) => _render(t, const PlantEntryScreen(pointId: 'pp_w1'), height: 1500));
@@ -362,15 +392,21 @@ void main() {
     SharedPreferences.setMockInitialValues({'firebase_config': jsonEncode(FirebaseRestConfig.builtIn.toJson())});
     addTearDown(() => SharedPreferences.setMockInitialValues({}));
     await _render(t, const FirebaseProjectScreen(), height: 2000);
-    expect(find.text('Ajouter un appareil'), findsOneWidget);
+    expect(find.text('Fonctions serveur (facultatif)'), findsWidgets);
     expect(find.textContaining('puitstrack'), findsWidgets);
   });
   testWidgets('admin : journal (mode personnel)', (t) => _render(t, const AuditScreen()));
   testWidgets('installation', (t) async {
     await _render(t, const SetupScreen());
-    await t.tap(find.text('Équipe (synchronisé)'));
+    expect(find.text('Rejoindre mon entreprise'), findsOneWidget);
+    await t.tap(find.text('Créer mon entreprise'));
     await t.pumpAndSettle();
-    expect(find.text('Projet PuitsTrack (recommandé)'), findsOneWidget);
+    expect(find.text("Nom de l'entreprise"), findsOneWidget);
+    await t.tap(find.byTooltip('Retour'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Rejoindre mon entreprise'));
+    await t.pumpAndSettle();
+    expect(find.text("Code d'invitation"), findsOneWidget);
     expect(t.takeException(), isNull);
   });
   testWidgets('alertes (heure limite passée)', (t) async {
@@ -470,6 +506,14 @@ void main() {
     await t.pumpAndSettle();
     expect(find.text('page 2'), findsOneWidget);
     expect(t.takeException(), isNull);
+  });
+  testWidgets('installation : édition client sans projet intégré', (t) async {
+    await _render(
+      t,
+      Scaffold(body: FirebaseProjectPicker(onSelected: (_) {}, showBuiltIn: false)),
+    );
+    expect(find.text('Projet PuitsTrack (recommandé)'), findsNothing);
+    expect(find.text('Coller la configuration'), findsOneWidget);
   });
   testWidgets('feuille export', (t) async {
     t.view.physicalSize = const Size(390 * 2.0, 844 * 2.0);

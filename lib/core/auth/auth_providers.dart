@@ -124,8 +124,11 @@ final sessionAuthenticatedProvider = Provider<bool>((ref) => ref.watch(profilePr
 final currentRoleProvider = Provider<UserRole>((ref) {
   final sync = ref.watch(syncControllerProvider);
   if (!sync.isSignedIn) return UserRole.admin;
+  // Pas encore d'entreprise (ou adhésion jamais lue) : données de
+  // l'appareil seulement, rien n'est envoyé — accès complet en local.
+  if (sync.memberStatus == MemberStatus.unknown || sync.memberStatus == MemberStatus.noCompany) return UserRole.admin;
   final member = sync.member;
-  if (member == null) return sync.memberStatus == MemberStatus.unknown ? UserRole.admin : UserRole.reader;
+  if (member == null) return UserRole.reader;
   return member.active ? member.role : UserRole.reader;
 });
 

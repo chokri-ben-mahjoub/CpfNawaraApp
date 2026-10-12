@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/sync/firebase_config.dart';
@@ -37,6 +36,7 @@ class _FirebaseProjectScreenState extends ConsumerState<FirebaseProjectScreen> {
   _Check? _account;
   _Check? _database;
   _Check? _rules;
+  _Check? _functions;
   ProjectProblem? _problem;
   bool _showRules = false;
 
@@ -52,6 +52,7 @@ class _FirebaseProjectScreenState extends ConsumerState<FirebaseProjectScreen> {
       _account = null;
       _database = null;
       _rules = null;
+      _functions = null;
       _problem = null;
     });
     try {
@@ -70,7 +71,11 @@ class _FirebaseProjectScreenState extends ConsumerState<FirebaseProjectScreen> {
           RulesStatus.databaseMissing => ProjectProblem.databaseMissing,
         };
       });
-      if (status == RulesStatus.ok) await controller.refreshMember();
+      if (status == RulesStatus.ok) {
+        final functions = await team.functionsAvailable(session);
+        setState(() => _functions = functions ? _Check.ok : _Check.failed);
+        await controller.refreshMember();
+      }
     } on SyncNetworkException {
       setState(() => _network = _Check.failed);
     } on SyncAuthException {
@@ -156,42 +161,45 @@ class _FirebaseProjectScreenState extends ConsumerState<FirebaseProjectScreen> {
               icon: const Icon(Icons.swap_horiz),
               label: Text(t('setupChangeProject')),
             ),
-            TextButton(
-              onPressed: _forgetProject,
-              style: TextButton.styleFrom(foregroundColor: scheme.error),
-              child: Text(t('projectForget')),
+            TextButton.icon(
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: const JsonEncoder.withIndent('  ').convert(config.toJson())));
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t('projectConfigCopied'))));
+                }
+              },
+              icon: const Icon(Icons.copy_rounded, size: 18),
+              label: Text(t('projectCopyConfig')),
             ),
+            if (ref.watch(firebaseConfigProvider.notifier).isCustom)
+              TextButton(
+                onPressed: _forgetProject,
+                style: TextButton.styleFrom(foregroundColor: scheme.error),
+                child: Text(t('projectForget')),
+              ),
           ],
         ),
       ],
     );
 
-    final qrCard = SectionCard(
-      title: t('projectQrTitle'),
-      icon: Icons.qr_code_2_rounded,
+    final functionsCard = SectionCard(
+      title: t('functionsTitle'),
+      icon: Icons.dns_outlined,
       children: [
-        Text(t('projectQrBody'), style: hint),
-        const SizedBox(height: 12),
-        Center(
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-            child: QrImageView(data: config.qrPayload, size: 220, backgroundColor: Colors.white),
-          ),
+        Text(t('functionsBody'), style: hint),
+        const SizedBox(height: 10),
+        _CheckRow(
+          _functions == null
+              ? t('functionsUnknown')
+              : _functions == _Check.ok
+              ? t('functionsOn')
+              : t('functionsOff'),
+          _functions,
         ),
-        const SizedBox(height: 12),
-        Center(
-          child: TextButton.icon(
-            onPressed: () async {
-              await Clipboard.setData(ClipboardData(text: const JsonEncoder.withIndent('  ').convert(config.toJson())));
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t('projectConfigCopied'))));
-              }
-            },
-            icon: const Icon(Icons.copy_rounded, size: 18),
-            label: Text(t('projectCopyConfig')),
-          ),
-        ),
+        if (_functions == _Check.failed) ...[
+          const SizedBox(height: 6),
+          Text(t('functionsHowTo'), style: hint),
+        ],
       ],
     );
 
@@ -208,6 +216,7 @@ class _FirebaseProjectScreenState extends ConsumerState<FirebaseProjectScreen> {
           _CheckRow(t('projectCheckAccount'), _account),
           _CheckRow(t('projectCheckDatabase'), _database),
           _CheckRow(t('projectCheckRules'), _rules),
+          _CheckRow(t('projectCheckFunctions'), _functions),
           if (_problem != null) ...[const SizedBox(height: 10), ProjectProblemCard(problem: _problem!, config: config)],
           const SizedBox(height: 12),
           FilledButton.icon(
@@ -282,7 +291,7 @@ class _FirebaseProjectScreenState extends ConsumerState<FirebaseProjectScreen> {
             minItemWidth: 420,
             maxColumns: 2,
             spacing: 16,
-            children: [projectCard, qrCard, testCard, rulesCard],
+            children: [projectCard, testCard, functionsCard, rulesCard],
           ),
         ],
       ),

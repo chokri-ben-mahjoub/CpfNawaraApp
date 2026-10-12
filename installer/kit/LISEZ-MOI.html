@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PuitsTrack — Installation</title>
+<style>
+  :root { --accent: #FF7A33; --navy: #0B1E2D; --text: #1f1b18; --muted: #5d5550; --bg: #fff8f5; --card: #ffffff; --line: #eadbd3; }
+  @media (prefers-color-scheme: dark) {
+    :root { --text: #f3ebe6; --muted: #b9aea8; --bg: #14100e; --card: #1f1916; --line: #3a302b; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif; color: var(--text); background: var(--bg); line-height: 1.55; }
+  header { background: radial-gradient(900px 300px at 50% 140%, rgba(255,122,51,.35), transparent 60%), var(--navy); color: #f5ede8; padding: 32px 16px; text-align: center; }
+  header h1 { margin: 0 0 4px; font-size: 28px; }
+  header p { margin: 0; opacity: .75; }
+  main { max-width: 860px; margin: 0 auto; padding: 16px; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 18px 20px; margin: 16px 0; }
+  h2 { margin: 0 0 10px; font-size: 20px; display: flex; align-items: center; gap: 10px; }
+  h2 .n { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 15px; flex: none; }
+  h3 { margin: 16px 0 6px; font-size: 16px; }
+  code, .path { background: rgba(255,122,51,.12); padding: 1px 6px; border-radius: 6px; font-family: Consolas, monospace; font-size: 14px; word-break: break-all; }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  .warn { border-left: 4px solid var(--accent); background: rgba(255,122,51,.08); padding: 10px 14px; border-radius: 10px; margin: 12px 0; }
+  .muted { color: var(--muted); }
+  ol li, ul li { margin: 4px 0; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <h1>PuitsTrack</h1>
+  <p>Suivi des analyses de puits et de l'usine — kit d'installation</p>
+</header>
+<main>
+
+<section>
+  <h2><span class="n">1</span>Contenu de la clé</h2>
+  <table>
+    <tr><th>Dossier</th><th>Fichier</th><th>Pour</th></tr>
+    <tr><td><span class="path">Android</span></td><td><code>PuitsTrack.apk</code></td><td>Téléphones et tablettes Android</td></tr>
+    <tr><td><span class="path">Windows</span></td><td><code>PuitsTrack-Setup.exe</code></td><td>PC Windows 10 / 11</td></tr>
+    <tr><td><span class="path">Web</span></td><td><code>PuitsTrack-web.zip</code></td><td>Mise en ligne sur un serveur web (facultatif)</td></tr>
+  </table>
+  <p class="muted">L'application fonctionne sans Internet. Internet n'est utile que pour travailler en entreprise (partage des données entre appareils).</p>
+</section>
+
+<section>
+  <h2><span class="n">2</span>Installer sur Android</h2>
+  <ol>
+    <li>Copiez <code>Android/PuitsTrack.apk</code> sur le téléphone (câble USB, clé OTG, ou envoi par e-mail / WhatsApp).</li>
+    <li>Sur le téléphone, ouvrez le fichier (application <b>Fichiers</b> › Téléchargements).</li>
+    <li>Si Android bloque : touchez <b>Paramètres</b> › autorisez <b>« Installer des applis inconnues »</b> pour l'application Fichiers, puis revenez.</li>
+    <li>Touchez <b>Installer</b>, puis <b>Ouvrir</b>.</li>
+  </ol>
+  <p class="muted">Android 7 ou plus récent. Pour le scan du QR code, les services Google Play doivent être présents.</p>
+</section>
+
+<section>
+  <h2><span class="n">3</span>Installer sur Windows</h2>
+  <ol>
+    <li>Double-cliquez sur <code>Windows/PuitsTrack-Setup.exe</code>.</li>
+    <li>Si Windows affiche « Windows a protégé votre ordinateur » : cliquez <b>Informations complémentaires</b> › <b>Exécuter quand même</b>.</li>
+    <li>Suivez l'assistant (aucun droit administrateur nécessaire). Un raccourci est créé sur le bureau et dans le menu Démarrer.</li>
+  </ol>
+  <p class="muted">Désinstallation : Paramètres Windows › Applications › PuitsTrack.</p>
+</section>
+
+<section>
+  <h2><span class="n">4</span>Premier lancement : choisir le mode</h2>
+  <h3>Mode « Personnel » (le plus simple)</h3>
+  <p>Aucun compte, aucun réseau : les données restent sur l'appareil. Saisir le nom et le service, puis créer un code à 4 chiffres. Pensez aux sauvegardes (Réglages › Sauvegarde).</p>
+
+  <h3>Mode entreprise (données partagées entre téléphones, PC et web)</h3>
+  <div class="warn">
+    <b>Rien à configurer.</b> Pas de console, pas de fichier à copier : tout se fait dans l'application.
+    Les données de chaque entreprise sont séparées et invisibles pour les autres entreprises.
+  </div>
+  <p><b>Le responsable (une seule fois) :</b></p>
+  <ol>
+    <li>Premier lancement › <b>Créer mon entreprise</b>.</li>
+    <li>Saisir le nom de l'entreprise, son nom, son e-mail et un mot de passe › <b>Créer l'entreprise</b>. Il en devient l'<b>administrateur</b>.</li>
+  </ol>
+  <p><b>Ajouter une personne :</b></p>
+  <ol>
+    <li>L'administrateur ouvre <b>Administration › Utilisateurs</b> › bouton <b>Inviter</b>, choisit le rôle (ingénieur, opérateur, lecteur ou admin) › <b>Créer le code d'invitation</b>.</li>
+    <li>Il envoie le code (ex. <code>ABCD-EFGH</code>) par message avec <b>Partager</b>, ou fait scanner le QR code affiché.</li>
+    <li>La personne installe PuitsTrack › <b>Rejoindre mon entreprise</b> › saisit le code (ou le scanne) › son nom, son e-mail, un mot de passe › <b>Rejoindre</b>.</li>
+  </ol>
+  <p class="muted">Un code sert une seule fois et reste valable 7 jours. L'administrateur peut aussi créer le compte lui-même (Utilisateurs › Ajouter), le désactiver ou le retirer à tout moment.</p>
+  <p><b>Autre appareil de la même personne :</b> premier lancement › <b>J'ai déjà un compte</b> › e-mail et mot de passe : l'entreprise et ses données sont retrouvées automatiquement.</p>
+</section>
+
+<section>
+  <h2><span class="n">5</span>Version web (facultatif)</h2>
+  <p>Le plus simple : ouvrir <a href="https://puitstrack.web.app">puitstrack.web.app</a> dans le navigateur et se connecter avec son compte. Sinon, décompresser <code>Web/PuitsTrack-web.zip</code> sur un hébergement <b>HTTPS</b> de l'entreprise. L'application s'ouvre ensuite dans le navigateur, et aussi hors ligne après la première visite. Le navigateur peut proposer « Installer l'application ».</p>
+</section>
+
+<section>
+  <h2><span class="n">6</span>Mises à jour</h2>
+  <p>Installer simplement la nouvelle version par-dessus l'ancienne (nouvel APK ou nouveau Setup) : les données sont conservées. Faire une sauvegarde avant, par précaution (Réglages › Sauvegarde).</p>
+</section>
+
+<section>
+  <h2><span class="n">7</span>Problèmes fréquents</h2>
+  <table>
+    <tr><th>Message</th><th>Solution</th></tr>
+    <tr><td>« Code inconnu » / « expiré » / « déjà utilisé »</td><td>Demander un nouveau code à l'administrateur (Administration › Utilisateurs › Inviter).</td></tr>
+    <tr><td>« Aucune entreprise »</td><td>Le compte n'est rattaché à aucune entreprise : choisir « Créer mon entreprise » ou « Rejoindre » avec un code.</td></tr>
+    <tr><td>« Compte désactivé »</td><td>L'administrateur réactive le compte dans Administration › Utilisateurs.</td></tr>
+    <tr><td>« Caméra indisponible » (scan)</td><td>Autoriser la caméra : Paramètres Android › Applis › PuitsTrack › Autorisations. Ou saisir le code à la main.</td></tr>
+  </table>
+</section>
+
+<p class="muted" style="text-align:center">PuitsTrack __VERSION__</p>
+</main>
+</body>
+</html>

@@ -111,39 +111,33 @@ class SyncSettingsContent extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(s('syncIntro'), style: hint),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              const Icon(Icons.cloud_done_outlined, size: 18, color: accentColor),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  '${s('setupProject')} : ${config.projectId}',
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-              ),
-              TextButton(onPressed: () => showFirebaseProjectSheet(context), child: Text(s('setupChangeProject'))),
-            ],
-          ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 14),
           SizedBox(
             height: 48,
             child: FilledButton.icon(
               style: FilledButton.styleFrom(backgroundColor: accentColor, foregroundColor: Colors.white),
-              onPressed: () => showSyncAuthSheet(context, createAccount: true),
-              icon: const Icon(Icons.person_add_alt_1_outlined),
-              label: Text(s('syncCreateAccount'), style: const TextStyle(fontWeight: FontWeight.w700)),
+              onPressed: () => showTeamFormSheet(context, TeamFormMode.create),
+              icon: const Icon(Icons.add_business_outlined),
+              label: Text(s('companyCreateTitle'), style: const TextStyle(fontWeight: FontWeight.w700)),
             ),
           ),
           const SizedBox(height: 8),
           SizedBox(
             height: 48,
             child: OutlinedButton.icon(
-              onPressed: () => showSyncAuthSheet(context, createAccount: false),
-              icon: const Icon(Icons.login),
-              label: Text(s('syncSignIn'), style: const TextStyle(fontWeight: FontWeight.w700)),
+              onPressed: () => showTeamFormSheet(context, TeamFormMode.join),
+              icon: const Icon(Icons.group_add_outlined),
+              label: Text(s('companyJoinTitle'), style: const TextStyle(fontWeight: FontWeight.w700)),
             ),
           ),
+          const SizedBox(height: 4),
+          TextButton.icon(
+            onPressed: () => showTeamFormSheet(context, TeamFormMode.signIn),
+            icon: const Icon(Icons.login, size: 18),
+            label: Text(s('setupModeSignIn')),
+          ),
+          if (ref.watch(firebaseConfigProvider.notifier).isCustom)
+            Text('${s('setupProject')} : ${config.projectId}', style: hint, textAlign: TextAlign.center),
         ],
       );
     }
@@ -168,9 +162,12 @@ class SyncSettingsContent extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(sync.email ?? '', style: const TextStyle(fontWeight: FontWeight.w700)),
                   Text(
-                    '${s('setupProject')} : ${config.projectId}',
+                    sync.company?.name.isNotEmpty == true ? sync.company!.name : (sync.email ?? ''),
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  Text(
+                    sync.company?.name.isNotEmpty == true ? (sync.email ?? '') : '',
                     style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
                   ),
                 ],
@@ -181,9 +178,7 @@ class SyncSettingsContent extends ConsumerWidget {
         ),
         const SizedBox(height: 10),
         const MemberStatusBanner(),
-        if (sync.memberStatus != MemberStatus.pending &&
-            sync.memberStatus != MemberStatus.inactive &&
-            sync.memberStatus != MemberStatus.missing)
+        if (sync.memberStatus == MemberStatus.active || sync.memberStatus == MemberStatus.unknown)
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -312,37 +307,64 @@ Future<void> showFirebaseProjectSheet(BuildContext context) {
   );
 }
 
-/// Connexion ou création du compte d'équipe.
-Future<void> showSyncAuthSheet(BuildContext context, {required bool createAccount}) {
+/// Créer mon entreprise, rejoindre avec un code, ou se connecter.
+Future<void> showTeamFormSheet(BuildContext context, TeamFormMode mode) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
+    useSafeArea: true,
+    constraints: const BoxConstraints(maxWidth: 560),
     shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
     builder: (sheetContext) => Consumer(
-      builder: (context, ref, _) => SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + MediaQuery.of(context).viewInsets.bottom),
-          child: TeamAccountForm(
-            createAccount: createAccount,
-            onDone: (status) {
-              final messenger = ScaffoldMessenger.of(context);
-              final locale = ref.read(localeProvider);
-              Navigator.of(sheetContext).pop();
-              messenger.showSnackBar(
-                SnackBar(
-                  content: Text(
-                    tr(locale, switch (status) {
-                      MemberStatus.active => 'syncConnected',
-                      MemberStatus.pending => 'memberPendingTitle',
-                      _ => 'memberMissingTitle',
-                    }),
-                  ),
+      builder: (context, ref, _) {
+        final locale = ref.watch(localeProvider);
+        return Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  tr(locale, switch (mode) {
+                    TeamFormMode.create => 'companyCreateTitle',
+                    TeamFormMode.join => 'companyJoinTitle',
+                    TeamFormMode.signIn => 'syncSignIn',
+                  }),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
                 ),
-              );
-            },
+                const SizedBox(height: 4),
+                Text(
+                  tr(locale, switch (mode) {
+                    TeamFormMode.create => 'companyCreateSubtitle',
+                    TeamFormMode.join => 'companyJoinSubtitle',
+                    TeamFormMode.signIn => 'teamSignInHint',
+                  }),
+                  style: TextStyle(fontSize: 12.5, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                ),
+                const SizedBox(height: 16),
+                TeamAccountForm(
+                  mode: mode,
+                  onDone: (status) {
+                    final messenger = ScaffoldMessenger.of(context);
+                    final sync = ref.read(syncControllerProvider);
+                    Navigator.of(sheetContext).pop();
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          status == MemberStatus.active
+                              ? fill(tr(locale, 'companyWelcome'), {'company': sync.company?.name ?? ''})
+                              : tr(locale, 'noCompanyTitle'),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     ),
   );
 }

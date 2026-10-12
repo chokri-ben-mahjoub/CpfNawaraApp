@@ -7,33 +7,12 @@ import '../../../../core/l10n/app_strings.dart';
 import '../../../../core/plant/plant_catalog.dart';
 import '../../../../core/plant/plant_repository.dart';
 
-/// Dimensions logiques du schéma (mis à l'échelle de l'écran).
-const _canvas = Size(1000, 560);
-
-/// Diamètre des points de prélèvement (unités du schéma).
+/// Diamètre des points de prélèvement (unités du schéma, largeur 1000).
 const _markerSize = 40.0;
 
-/// Circuits dont les tuyaux sont dessinés sur ce schéma fixe (voir
-/// [_PlantPainter.paint]) : un circuit ajouté par un administrateur n'a pas
-/// de tuyaux tracés et n'apparaît donc pas dans la légende ci-dessous.
+/// Circuits dont les tuyaux sont dessinés sur le schéma intégré (voir
+/// [_PlantPainter.paint]).
 const _drawnCircuitIds = {'condensate', 'water', 'gas', 'amine'};
-
-/// Position des points de prélèvement sur le schéma (par code).
-const _markerPositions = <String, Offset>{
-  'C1': Offset(376, 180),
-  'C2': Offset(340, 355),
-  'C3': Offset(510, 355),
-  'C4': Offset(915, 355),
-  'W1': Offset(350, 490),
-  'W2': Offset(200, 245),
-  'W3': Offset(590, 490),
-  'W4': Offset(300, 520),
-  'G1': Offset(340, 255),
-  'G2': Offset(318, 75),
-  'G3': Offset(905, 55),
-  'LA': Offset(720, 175),
-  'RA': Offset(612, 208),
-};
 
 Color plantStatusColor(PlantStatus status, ColorScheme scheme) => switch (status) {
   PlantStatus.ok => Colors.green.shade600,
@@ -41,76 +20,147 @@ Color plantStatusColor(PlantStatus status, ColorScheme scheme) => switch (status
   PlantStatus.missing => scheme.outline,
 };
 
-/// Schéma de procédé de l'usine (PFD simplifié) : circuits gaz, amine,
-/// condensat et eau produite, avec les points de prélèvement colorés selon
-/// leur état du jour (vert / rouge / gris). Zoom et déplacement au doigt ;
-/// toucher un point appelle [onPointTap].
-class PlantDiagram extends ConsumerWidget {
+/// Schéma de l'usine affiché dans l'onglet Usine : points de prélèvement
+/// colorés selon leur état du jour (vert / rouge / gris). Sur téléphone, le
+/// schéma garde une taille lisible et défile horizontalement ; sur grand
+/// écran il remplit la largeur et se zoome au doigt / à la molette.
+class PlantDiagram extends StatelessWidget {
+  final PlantSchema schema;
   final DateTime day;
   final ValueChanged<SamplePoint> onPointTap;
 
-  const PlantDiagram({super.key, required this.day, required this.onPointTap});
+  const PlantDiagram({super.key, required this.schema, required this.day, required this.onPointTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final available = constraints.maxWidth;
+        final narrow = available < 700;
+        final canvas = PlantSchemaCanvas(
+          schema: schema,
+          day: day,
+          width: narrow ? 760.0 : available,
+          onMarkerTap: onPointTap,
+        );
+        if (narrow) {
+          return SingleChildScrollView(scrollDirection: Axis.horizontal, child: canvas);
+        }
+        return ClipRect(child: InteractiveViewer(minScale: 1, maxScale: 4, child: canvas));
+      },
+    );
+  }
+}
+
+/// Dessin d'un schéma à une largeur donnée : fond (dessin intégré, image
+/// importée ou quadrillage) et points de prélèvement placés.
+///
+/// En configuration ([onMarkerMoved] renseigné), les points se déplacent au
+/// doigt / à la souris, et [positions] remplace les positions enregistrées.
+class PlantSchemaCanvas extends ConsumerWidget {
+  final PlantSchema schema;
+  final DateTime day;
+  final double width;
+  final Map<String, Offset?>? positions;
+  final String? selectedId;
+  final ValueChanged<SamplePoint>? onMarkerTap;
+  final void Function(SamplePoint point, Offset position)? onMarkerMoved;
+  final ValueChanged<Offset>? onBackgroundTap;
+
+  const PlantSchemaCanvas({
+    super.key,
+    required this.schema,
+    required this.day,
+    required this.width,
+    this.positions,
+    this.selectedId,
+    this.onMarkerTap,
+    this.onMarkerMoved,
+    this.onBackgroundTap,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     final locale = ref.watch(localeProvider);
-    ref.watch(plantControllerProvider);
+    final state = ref.watch(plantControllerProvider);
     final controller = ref.read(plantControllerProvider.notifier);
     String s(String key) => tr(locale, key);
 
-    final points = ref.watch(plantControllerProvider).points.where((p) => p.active).toList();
+    final logical = schema.canvasSize;
+    final height = width * logical.height / logical.width;
+    final scale = width / logical.width;
+    final marker = math.max(28.0, _markerSize * scale);
+    final shown = schema.copyWith(positions: positions);
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final available = constraints.maxWidth;
-        // Sur téléphone, le schéma garde une taille lisible (points faciles à
-        // toucher) et défile horizontalement ; sur grand écran il remplit la
-        // largeur et se zoome au doigt / à la molette.
-        final narrow = available < 700;
-        final width = narrow ? 760.0 : available;
-        final height = width * _canvas.height / _canvas.width;
-        final diagram = SizedBox(
-          width: width,
-          height: height,
-          child: FittedBox(
-            child: SizedBox.fromSize(
-              size: _canvas,
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: CustomPaint(
-                      painter: _PlantPainter(
-                        s: s,
-                        text: scheme.onSurface,
-                        muted: scheme.onSurfaceVariant,
-                        vessel: scheme.surfaceContainerHighest,
-                        vesselEdge: scheme.outline,
-                        background: scheme.surface,
-                      ),
-                    ),
-                  ),
-                  for (final point in points)
-                    if (_markerPositions[point.code] != null)
-                      Positioned(
-                        left: _markerPositions[point.code]!.dx - _markerSize / 2,
-                        top: _markerPositions[point.code]!.dy - _markerSize / 2,
-                        child: _Marker(
-                          point: point,
-                          status: controller.status(point, day),
-                          onTap: () => onPointTap(point),
-                        ),
-                      ),
-                ],
-              ),
+    final Widget background = switch (schema.kind) {
+      PlantSchemaKind.pfd => FittedBox(
+        child: SizedBox.fromSize(
+          size: pfdCanvasSize,
+          child: CustomPaint(
+            painter: _PlantPainter(
+              s: s,
+              text: scheme.onSurface,
+              muted: scheme.onSurfaceVariant,
+              vessel: scheme.surfaceContainerHighest,
+              vesselEdge: scheme.outline,
+              background: scheme.surface,
             ),
           ),
-        );
-        if (narrow) {
-          return SingleChildScrollView(scrollDirection: Axis.horizontal, child: diagram);
-        }
-        return ClipRect(child: InteractiveViewer(minScale: 1, maxScale: 4, child: diagram));
-      },
+        ),
+      ),
+      PlantSchemaKind.image when schema.imageBytes != null => Image.memory(
+        schema.imageBytes!,
+        fit: BoxFit.fill,
+        gaplessPlayback: true,
+      ),
+      _ => CustomPaint(painter: _GridPainter(scheme.outlineVariant)),
+    };
+
+    return SizedBox(
+      width: width,
+      height: height,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTapUp: onBackgroundTap == null
+                  ? null
+                  : (d) => onBackgroundTap!(Offset(d.localPosition.dx / width, d.localPosition.dy / height)),
+              child: background,
+            ),
+          ),
+          for (final point in state.points.where((p) => p.active))
+            if (shown.positionOf(point) case final pos?)
+              Positioned(
+                left: pos.dx * width - marker / 2,
+                top: pos.dy * height - marker / 2,
+                child: GestureDetector(
+                  onPanUpdate: onMarkerMoved == null
+                      ? null
+                      : (d) {
+                          final current = shown.positionOf(point) ?? pos;
+                          onMarkerMoved!(
+                            point,
+                            Offset(
+                              (current.dx + d.delta.dx / width).clamp(0.0, 1.0),
+                              (current.dy + d.delta.dy / height).clamp(0.0, 1.0),
+                            ),
+                          );
+                        },
+                  child: _Marker(
+                    point: point,
+                    size: marker,
+                    selected: point.id == selectedId,
+                    status: controller.status(point, day),
+                    onTap: onMarkerTap == null ? null : () => onMarkerTap!(point),
+                  ),
+                ),
+              ),
+        ],
+      ),
     );
   }
 }
@@ -118,9 +168,17 @@ class PlantDiagram extends ConsumerWidget {
 class _Marker extends StatelessWidget {
   final SamplePoint point;
   final PlantStatus status;
-  final VoidCallback onTap;
+  final double size;
+  final bool selected;
+  final VoidCallback? onTap;
 
-  const _Marker({required this.point, required this.status, required this.onTap});
+  const _Marker({
+    required this.point,
+    required this.status,
+    required this.size,
+    required this.onTap,
+    this.selected = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -128,23 +186,38 @@ class _Marker extends StatelessWidget {
     final fill = plantStatusColor(status, scheme);
     return Tooltip(
       message: '${point.code} — ${point.name}',
-      child: Material(
-        color: fill,
-        shape: CircleBorder(side: BorderSide(color: point.circuit.color, width: 3.5)),
-        elevation: 2,
-        child: InkWell(
-          customBorder: const CircleBorder(),
-          onTap: onTap,
-          child: SizedBox(
-            width: _markerSize,
-            height: _markerSize,
-            child: Center(
-              child: Text(
-                point.code,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                  color: status == PlantStatus.missing ? scheme.surface : Colors.white,
+      child: Container(
+        decoration: selected
+            ? BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [BoxShadow(color: scheme.primary, blurRadius: 0, spreadRadius: 4)],
+              )
+            : null,
+        child: Material(
+          color: fill,
+          shape: CircleBorder(
+            side: BorderSide(color: point.circuit.color, width: size * 0.09),
+          ),
+          elevation: 2,
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: onTap,
+            child: SizedBox(
+              width: size,
+              height: size,
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(3),
+                  child: FittedBox(
+                    child: Text(
+                      point.code,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: status == PlantStatus.missing ? scheme.surface : Colors.white,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -153,6 +226,34 @@ class _Marker extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Fond quadrillé d'un schéma vierge.
+class _GridPainter extends CustomPainter {
+  final Color color;
+  _GridPainter(this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final minor = Paint()
+      ..color = color.withValues(alpha: 0.35)
+      ..strokeWidth = 0.6;
+    final major = Paint()
+      ..color = color.withValues(alpha: 0.8)
+      ..strokeWidth = 1;
+    final step = size.width / 40;
+    var i = 0;
+    for (var x = 0.0; x <= size.width; x += step, i++) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), i % 5 == 0 ? major : minor);
+    }
+    i = 0;
+    for (var y = 0.0; y <= size.height; y += step, i++) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), i % 5 == 0 ? major : minor);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _GridPainter old) => old.color != color;
 }
 
 class _PlantPainter extends CustomPainter {
@@ -389,18 +490,20 @@ class _PlantPainter extends CustomPainter {
   bool shouldRepaint(covariant _PlantPainter old) => old.text != text || old.vessel != vessel;
 }
 
-/// Légende : couleurs des circuits et des états.
+/// Légende : couleurs des circuits (tuyaux du schéma intégré, ou circuits
+/// des points placés sur un autre schéma) et des états.
 class PlantDiagramLegend extends ConsumerWidget {
-  const PlantDiagramLegend({super.key});
+  final PlantSchema schema;
+  const PlantDiagramLegend({super.key, required this.schema});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     final locale = ref.watch(localeProvider);
-    final circuits = ref.watch(plantControllerProvider).circuits;
+    final plant = ref.watch(plantControllerProvider);
     String s(String key) => tr(locale, key);
 
-    Widget line(Color color, String label, {bool dashed = false}) => Row(
+    Widget line(Color color, String label) => Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
@@ -425,15 +528,19 @@ class PlantDiagramLegend extends ConsumerWidget {
       ],
     );
 
+    final pfd = schema.kind == PlantSchemaKind.pfd;
+    final placed = {
+      for (final p in plant.points)
+        if (p.active && schema.positionOf(p) != null) p.circuit.id,
+    };
+    final circuits = plant.circuits.where((c) => pfd ? _drawnCircuitIds.contains(c.id) : placed.contains(c.id));
+
     return Wrap(
       spacing: 16,
       runSpacing: 8,
       children: [
-        // Seuls les 4 circuits intégrés ont des tuyaux dessinés ci-dessus ;
-        // un circuit ajouté par un administrateur n'apparaît que dans la vue
-        // Liste (voir plant_screen.dart), pas sur ce schéma fixe.
-        for (final c in circuits.where((c) => _drawnCircuitIds.contains(c.id))) line(c.color, s(c.labelKey)),
-        line(const Color(0xFF8E24AA), s('plantEqRichAmine')),
+        for (final c in circuits) line(c.color, s(c.labelKey)),
+        if (pfd) line(const Color(0xFF8E24AA), s('plantEqRichAmine')),
         dot(Colors.green.shade600, s('plantStatusOk')),
         dot(scheme.error, s('plantStatusOut')),
         dot(scheme.outline, s('plantStatusMissing')),

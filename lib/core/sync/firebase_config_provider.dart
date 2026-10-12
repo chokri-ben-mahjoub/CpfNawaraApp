@@ -39,7 +39,10 @@ class FirebaseConfigController extends StateNotifier<FirebaseRestConfig?> {
         // Configuration illisible : traitée comme absente.
       }
     }
-    if (prefs.getString(_legacySessionKey) != null) state = FirebaseRestConfig.builtIn;
+    // Par défaut : le projet PuitsTrack, où chaque client a son entreprise
+    // (données séparées). Un projet personnalisé reste possible (Options
+    // avancées).
+    state = FirebaseRestConfig.builtIn;
   }
 
   /// Enregistre le projet à utiliser. Changer de projet déconnecte le compte
@@ -52,14 +55,18 @@ class FirebaseConfigController extends StateNotifier<FirebaseRestConfig?> {
     state = config;
   }
 
-  /// Oublie le projet (retour au mode personnel).
+  /// Oublie le projet personnalisé : retour au projet PuitsTrack.
   Future<void> clear() async {
     await _ready;
     final prefs = await SharedPreferences.getInstance();
     await _clearSession(prefs);
     await prefs.remove(_configKey);
-    state = null;
+    state = FirebaseRestConfig.useEmulator ? FirebaseRestConfig.emulator() : FirebaseRestConfig.builtIn;
   }
+
+  /// Vrai si l'appareil utilise un projet Firebase autre que le projet
+  /// PuitsTrack.
+  bool get isCustom => state != null && state != FirebaseRestConfig.builtIn && !FirebaseRestConfig.useEmulator;
 
   static Future<void> _clearSession(SharedPreferences prefs) async {
     await prefs.remove(_legacySessionKey);

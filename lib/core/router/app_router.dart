@@ -23,6 +23,7 @@ import '../../features/home/presentation/home_shell.dart';
 import '../../features/interventions/presentation/interventions_screen.dart';
 import '../../features/plant/presentation/plant_entry_screen.dart';
 import '../../features/plant/presentation/plant_point_screen.dart';
+import '../../features/plant/presentation/plant_schema_screens.dart';
 import '../../features/plant/presentation/plant_trend_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/setup/presentation/setup_screen.dart';
@@ -78,6 +79,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
       if (loc == '/entry' && !role.canEnterData) return '/home';
       if (loc.startsWith('/plant/entry') && !role.canEnterData) return '/home';
+      if (loc.startsWith('/plant/schema') && !role.canConfigure) return '/home';
       // Administration : réservée au rôle admin (écrans masqués et protégés).
       if ((loc == '/admin' || loc.startsWith('/admin/')) && !role.canConfigure) return '/home';
       return null;
@@ -159,6 +161,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/admin/users', builder: (context, state) => const UsersScreen()),
       GoRoute(path: '/admin/points', builder: (context, state) => const SamplePointsScreen()),
       GoRoute(path: '/admin/circuits', builder: (context, state) => const CircuitsScreen()),
+      GoRoute(path: '/admin/schemas', builder: (context, state) => const PlantSchemasScreen()),
+      GoRoute(
+        path: '/plant/schema/:id',
+        builder: (context, state) => PlantSchemaEditorScreen(schemaId: state.pathParameters['id']!),
+      ),
       GoRoute(path: '/admin/thresholds', builder: (context, state) => const ThresholdsScreen()),
       GoRoute(path: '/admin/data', builder: (context, state) => const DataAdminScreen()),
       GoRoute(path: '/admin/firebase', builder: (context, state) => const FirebaseProjectScreen()),

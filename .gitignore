@@ -55,3 +55,9 @@ app.*.map.json
 
 # Journaux des émulateurs Firebase (tests de synchronisation)
 *-debug.log
+
+# Kit d'installation généré (installer\build_kit.ps1)
+/dist/
+
+# Cloud Functions
+/functions/node_modules/
