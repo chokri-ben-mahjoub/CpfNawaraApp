@@ -15,6 +15,7 @@ import '../../../core/models/well.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/responsive.dart';
 import 'widgets/aggregate_trend_chart.dart';
+import '../../../core/widgets/profile_avatar.dart';
 
 enum DashboardPeriod { day, week, month }
 
@@ -92,12 +93,25 @@ class DashboardScreen extends ConsumerWidget {
     return ListView(
       padding: pagePadding(context, top: 8, bottom: 24),
       children: [
-        Text(
-          name == null || name.isEmpty ? s('dashboardGreeting') : '${s('dashboardGreeting')}, $name',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name == null || name.isEmpty ? s('dashboardGreeting') : '${s('dashboardGreeting')}, $name',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(s('dashboardSummary'), style: TextStyle(color: scheme.onSurfaceVariant)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            const ProfileAvatar(radius: 26, editable: true),
+          ],
         ),
-        const SizedBox(height: 4),
-        Text(s('dashboardSummary'), style: TextStyle(color: scheme.onSurfaceVariant)),
         const SizedBox(height: 16),
         SegmentedButton<DashboardPeriod>(
           segments: [

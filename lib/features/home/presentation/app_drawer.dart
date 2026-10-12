@@ -9,6 +9,7 @@ import '../../../core/models/user_role.dart';
 import '../../../core/sync/sync_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../settings/presentation/sync_section.dart';
+import '../../../core/widgets/profile_avatar.dart';
 
 /// Onglets principaux (icône, icône sélectionnée, clé du libellé).
 const homeDestinations = [
@@ -128,15 +129,28 @@ class _DrawerHeader extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 16),
-          Text(
-            name.isEmpty ? s('accountNoName') : name,
-            style: const TextStyle(color: light, fontWeight: FontWeight.w700, fontSize: 15),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            sync.isSignedIn ? (sync.email ?? '') : s('adminLocalMode'),
-            style: TextStyle(color: light.withValues(alpha: 0.7), fontSize: 12.5),
-            overflow: TextOverflow.ellipsis,
+          Row(
+            children: [
+              const ProfileAvatar(radius: 22, color: light),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name.isEmpty ? s('accountNoName') : name,
+                      style: const TextStyle(color: light, fontWeight: FontWeight.w700, fontSize: 15),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      sync.isSignedIn ? (sync.email ?? '') : s('adminLocalMode'),
+                      style: TextStyle(color: light.withValues(alpha: 0.7), fontSize: 12.5),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 10),
           RoleChip(role: role),

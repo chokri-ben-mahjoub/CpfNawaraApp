@@ -45,6 +45,7 @@ import 'package:flutter/material.dart';
 import 'package:puitstrack/core/plant/plant_catalog.dart';
 import 'package:puitstrack/core/plant/plant_repository.dart';
 import 'package:puitstrack/features/plant/presentation/plant_entry_screen.dart';
+import 'package:puitstrack/features/admin/presentation/params_screen.dart';
 import 'package:puitstrack/features/plant/presentation/plant_point_screen.dart';
 import 'package:puitstrack/features/plant/presentation/plant_schema_screens.dart';
 import 'package:puitstrack/features/plant/presentation/plant_screen.dart';
@@ -235,6 +236,7 @@ PlantController _seedPlant() {
           sortOrder: 2,
         ),
       ],
+      customParams: [customPlantParam(key: 'cp_turb', label: 'Turbidité', unit: 'NTU')],
     ),
   );
 }
@@ -353,6 +355,7 @@ void main() {
     (t) => _render(t, const PlantSchemaEditorScreen(schemaId: 'ps_1'), height: 900, width: 1200),
   );
   testWidgets('administration : schémas', (t) => _render(t, const PlantSchemasScreen()));
+  testWidgets('administration : paramètres et modèles', (t) => _render(t, const ParamsScreen(), height: 1600));
   testWidgets('usine : fiche point', (t) => _render(t, const PlantPointScreen(pointId: 'pp_c1'), height: 1600));
   testWidgets('usine : saisie gaz export', (t) => _render(t, const PlantEntryScreen(pointId: 'pp_g3'), height: 1700));
   testWidgets('usine : saisie eau', (t) => _render(t, const PlantEntryScreen(pointId: 'pp_w1'), height: 1500));

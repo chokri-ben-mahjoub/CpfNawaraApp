@@ -61,3 +61,6 @@ app.*.map.json
 
 # Cloud Functions
 /functions/node_modules/
+
+# Cache de déploiement Firebase Hosting
+/.firebase/

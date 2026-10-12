@@ -5,6 +5,7 @@ import '../../features/auth/presentation/onboarding_screen.dart';
 import '../../features/auth/presentation/pin_setup_screen.dart';
 import '../../features/auth/presentation/profile_setup_screen.dart';
 import '../../features/auth/presentation/unlock_screen.dart';
+import '../../features/admin/presentation/params_screen.dart';
 import '../../features/admin/presentation/admin_screen.dart';
 import '../../features/admin/presentation/analysis_types_screen.dart';
 import '../../features/admin/presentation/audit_screen.dart';
@@ -162,6 +163,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/admin/points', builder: (context, state) => const SamplePointsScreen()),
       GoRoute(path: '/admin/circuits', builder: (context, state) => const CircuitsScreen()),
       GoRoute(path: '/admin/schemas', builder: (context, state) => const PlantSchemasScreen()),
+      GoRoute(path: '/admin/params', builder: (context, state) => const ParamsScreen()),
       GoRoute(
         path: '/plant/schema/:id',
         builder: (context, state) => PlantSchemaEditorScreen(schemaId: state.pathParameters['id']!),

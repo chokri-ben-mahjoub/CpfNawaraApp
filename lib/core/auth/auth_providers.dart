@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
@@ -13,6 +16,7 @@ const _profileIdKey = 'profile_id';
 const _profileNameKey = 'profile_name';
 const _profilePhoneKey = 'profile_phone';
 const _profileServiceKey = 'profile_service';
+const _profilePhotoKey = 'profile_photo';
 
 /// Écran d'accueil (carrousel de présentation) déjà vu par l'utilisateur.
 class OnboardingController extends StateNotifier<bool> {
@@ -43,13 +47,37 @@ class AppProfile {
   final String serviceKey;
   final UserRole role;
 
+  /// Photo de profil (JPEG carré, voir `profile_photo.dart`), propre à cet
+  /// appareil.
+  final Uint8List? photo;
+
   const AppProfile({
     required this.id,
     required this.fullName,
     required this.phone,
     required this.serviceKey,
     required this.role,
+    this.photo,
   });
+
+  AppProfile copyWith({String? fullName, String? phone, String? serviceKey, Uint8List? photo, bool clearPhoto = false}) =>
+      AppProfile(
+        id: id,
+        fullName: fullName ?? this.fullName,
+        phone: phone ?? this.phone,
+        serviceKey: serviceKey ?? this.serviceKey,
+        role: role,
+        photo: clearPhoto ? null : (photo ?? this.photo),
+      );
+}
+
+Uint8List? _decodePhoto(String? data) {
+  if (data == null || data.isEmpty) return null;
+  try {
+    return base64Decode(data);
+  } catch (_) {
+    return null;
+  }
 }
 
 class ProfileController extends StateNotifier<AppProfile?> {
@@ -71,7 +99,21 @@ class ProfileController extends StateNotifier<AppProfile?> {
       // Rôle du profil local (mode personnel) ; avec un compte d'équipe,
       // c'est celui de la fiche d'équipe qui compte (currentRoleProvider).
       role: UserRole.admin,
+      photo: _decodePhoto(prefs.getString(_profilePhotoKey)),
     );
+  }
+
+  /// Enregistre (ou retire, si [photo] est nul) la photo de profil.
+  Future<void> setPhoto(Uint8List? photo) async {
+    final current = state;
+    if (current == null) return;
+    final prefs = await SharedPreferences.getInstance();
+    if (photo == null) {
+      await prefs.remove(_profilePhotoKey);
+    } else {
+      await prefs.setString(_profilePhotoKey, base64Encode(photo));
+    }
+    state = current.copyWith(photo: photo, clearPhoto: photo == null);
   }
 
   /// Crée le profil local (nom, service, téléphone) — une seule fois par
@@ -95,7 +137,7 @@ class ProfileController extends StateNotifier<AppProfile?> {
     await prefs.setString(_profileNameKey, fullName);
     await prefs.setString(_profilePhoneKey, phone);
     await prefs.setString(_profileServiceKey, serviceKey);
-    state = AppProfile(id: current.id, fullName: fullName, phone: phone, serviceKey: serviceKey, role: current.role);
+    state = current.copyWith(fullName: fullName, phone: phone, serviceKey: serviceKey);
   }
 
   /// Efface le profil local (ne touche pas aux données des puits) : utile
@@ -106,6 +148,7 @@ class ProfileController extends StateNotifier<AppProfile?> {
     await prefs.remove(_profileNameKey);
     await prefs.remove(_profilePhoneKey);
     await prefs.remove(_profileServiceKey);
+    await prefs.remove(_profilePhotoKey);
     state = null;
   }
 }

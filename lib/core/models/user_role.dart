@@ -48,6 +48,8 @@ extension UserRoleX on UserRole {
       'app_config',
       'plant_circuits',
       'plant_schemas',
+      'plant_params',
+      'plant_profiles',
     },
     UserRole.engineer => const {'analysis_records', 'interventions', 'plant_analyses'},
     UserRole.operator => const {'analysis_records', 'plant_analyses'},
