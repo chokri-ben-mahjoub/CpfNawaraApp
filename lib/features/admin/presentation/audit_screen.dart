@@ -21,6 +21,8 @@ String auditTableKey(String table) => switch (table) {
   'plant_analyses' => 'auditTablePlantAnalyses',
   'plant_thresholds' => 'auditTableThresholds',
   'app_config' => 'auditTableConfig',
+  'plant_circuits' => 'auditTableCircuits',
+  'plant_schemas' => 'auditTableSchemas',
   'users' => 'auditTableUsers',
   _ => table,
 };
@@ -31,6 +33,9 @@ String auditActionKey(String action) => switch (action) {
   'user_create' => 'auditActionUserCreate',
   'user_update' => 'auditActionUserUpdate',
   'setup' => 'auditActionSetup',
+  'user_remove' => 'auditActionUserRemove',
+  'invite_create' => 'auditActionInviteCreate',
+  'invite_use' => 'auditActionInviteUse',
   _ => action,
 };
 
@@ -71,7 +76,9 @@ class _AuditScreenState extends ConsumerState<AuditScreen> {
     });
     try {
       final session = await controller.freshSession();
-      final entries = await controller.team!.audit(session);
+      final cid = ref.read(syncControllerProvider).company?.id;
+      if (cid == null) return;
+      final entries = await controller.team!.audit(session, cid);
       if (mounted) setState(() => _entries = entries);
     } catch (e) {
       if (mounted) setState(() => _error = e);
@@ -89,7 +96,7 @@ class _AuditScreenState extends ConsumerState<AuditScreen> {
     String t(String key) => tr(locale, key);
     final dateFormat = DateFormat('d MMM yyyy HH:mm', locale.languageCode);
 
-    if (controller.team == null || !sync.isSignedIn) {
+    if (controller.team == null || !sync.isSignedIn || sync.company == null) {
       return Scaffold(
         appBar: AppBar(title: Text(t('adminAudit'))),
         body: Center(

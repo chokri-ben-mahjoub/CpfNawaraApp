@@ -29,6 +29,14 @@ class FirebaseRestConfig {
   /// Ex: https://firestore.googleapis.com/v1
   final String firestoreBaseUrl;
 
+  /// Cloud Functions (opérations d'administration), ex:
+  /// `https://europe-west1-PROJET.cloudfunctions.net` ; `null` : région
+  /// [functionsRegion] du projet.
+  final String? functionsBaseUrl;
+
+  /// Région des Cloud Functions de PuitsTrack (voir functions/index.js).
+  static const functionsRegion = 'europe-west1';
+
   const FirebaseRestConfig({
     required this.apiKey,
     required this.projectId,
@@ -39,6 +47,7 @@ class FirebaseRestConfig {
     this.authBaseUrl = 'https://identitytoolkit.googleapis.com/v1',
     this.tokenBaseUrl = 'https://securetoken.googleapis.com/v1',
     this.firestoreBaseUrl = 'https://firestore.googleapis.com/v1',
+    this.functionsBaseUrl,
   });
 
   /// Projet PuitsTrack intégré à l'app (proposé en un clic à l'installation).
@@ -61,6 +70,7 @@ class FirebaseRestConfig {
     String host = '127.0.0.1',
     int authPort = 9099,
     int firestorePort = 8080,
+    int functionsPort = 5001,
     String projectId = 'puitstrack',
   }) => FirebaseRestConfig(
     apiKey: 'emulator-key',
@@ -68,7 +78,12 @@ class FirebaseRestConfig {
     authBaseUrl: 'http://$host:$authPort/identitytoolkit.googleapis.com/v1',
     tokenBaseUrl: 'http://$host:$authPort/securetoken.googleapis.com/v1',
     firestoreBaseUrl: 'http://$host:$firestorePort/v1',
+    functionsBaseUrl: 'http://$host:$functionsPort/$projectId/$functionsRegion',
   );
+
+  /// URL d'une Cloud Function « callable ».
+  String functionUrl(String name) =>
+      '${functionsBaseUrl ?? 'https://$functionsRegion-$projectId.cloudfunctions.net'}/$name';
 
   bool get isEmulator => apiKey == 'emulator-key';
 

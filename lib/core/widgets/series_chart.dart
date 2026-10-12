@@ -24,6 +24,13 @@ class ChartSeries {
   /// ajustée, déjà lisible sur l'axe).
   final bool inTooltip;
 
+  /// Courbe lissée (passe par chaque point sans dépasser les valeurs
+  /// voisines) plutôt que des segments droits.
+  final bool smooth;
+
+  /// Remplissage dégradé sous la courbe.
+  final bool area;
+
   const ChartSeries({
     required this.label,
     required this.color,
@@ -32,6 +39,8 @@ class ChartSeries {
     this.showDots = true,
     this.strokeWidth = 2.4,
     this.inTooltip = true,
+    this.smooth = false,
+    this.area = false,
   });
 
   /// Construit une série temporelle à partir de [SeriesPoint].
@@ -43,16 +52,19 @@ class ChartSeries {
     bool showDots = true,
     double strokeWidth = 2.4,
     bool inTooltip = true,
-  }) =>
-      ChartSeries(
-        label: label,
-        color: color,
-        points: [for (final p in points) ChartPoint(p.t.millisecondsSinceEpoch.toDouble(), p.v)],
-        dashed: dashed,
-        showDots: showDots,
-        strokeWidth: strokeWidth,
-        inTooltip: inTooltip,
-      );
+    bool smooth = false,
+    bool area = false,
+  }) => ChartSeries(
+    label: label,
+    color: color,
+    points: [for (final p in points) ChartPoint(p.t.millisecondsSinceEpoch.toDouble(), p.v)],
+    dashed: dashed,
+    showDots: showDots,
+    strokeWidth: strokeWidth,
+    inTooltip: inTooltip,
+    smooth: smooth,
+    area: area,
+  );
 }
 
 /// Marqueur vertical (ex: intervention sur le puits).
@@ -296,9 +308,21 @@ class _SeriesPainter extends CustomPainter {
           _dashedLine(canvas, pts[i - 1], pts[i], paint);
         }
       } else {
-        final path = Path()..moveTo(pts.first.dx, pts.first.dy);
-        for (final p in pts.skip(1)) {
-          path.lineTo(p.dx, p.dy);
+        final path = s.smooth && pts.length > 2 ? _monotonePath(pts) : _polyline(pts);
+        if (s.area && pts.length > 1) {
+          final fill = Path.from(path)
+            ..lineTo(pts.last.dx, plot.bottom)
+            ..lineTo(pts.first.dx, plot.bottom)
+            ..close();
+          canvas.drawPath(
+            fill,
+            Paint()
+              ..shader = LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [s.color.withValues(alpha: 0.28), s.color.withValues(alpha: 0.02)],
+              ).createShader(plot),
+          );
         }
         canvas.drawPath(path, paint);
       }
@@ -349,6 +373,40 @@ class _SeriesPainter extends CustomPainter {
     }
   }
 
+  static Path _polyline(List<Offset> pts) {
+    final path = Path()..moveTo(pts.first.dx, pts.first.dy);
+    for (final p in pts.skip(1)) {
+      path.lineTo(p.dx, p.dy);
+    }
+    return path;
+  }
+
+  /// Courbe lissée monotone (Fritsch-Carlson) : arrondie comme une vague,
+  /// mais sans creux ni bosse inventés entre deux mesures.
+  static Path _monotonePath(List<Offset> pts) {
+    final n = pts.length;
+    final slopes = List<double>.generate(n - 1, (i) {
+      final dx = pts[i + 1].dx - pts[i].dx;
+      return dx == 0 ? 0 : (pts[i + 1].dy - pts[i].dy) / dx;
+    });
+    final tangents = List<double>.filled(n, 0);
+    tangents[0] = slopes.first;
+    tangents[n - 1] = slopes.last;
+    for (var i = 1; i < n - 1; i++) {
+      final a = slopes[i - 1];
+      final b = slopes[i];
+      tangents[i] = a * b <= 0 ? 0 : 2 / (1 / a + 1 / b);
+    }
+    final path = Path()..moveTo(pts.first.dx, pts.first.dy);
+    for (var i = 0; i < n - 1; i++) {
+      final p0 = pts[i];
+      final p1 = pts[i + 1];
+      final h = (p1.dx - p0.dx) / 3;
+      path.cubicTo(p0.dx + h, p0.dy + tangents[i] * h, p1.dx - h, p1.dy - tangents[i + 1] * h, p1.dx, p1.dy);
+    }
+    return path;
+  }
+
   void _tooltip(Canvas canvas, Rect plot, double anchorX, String title, List<(String, Color)> lines) {
     final painters = [
       _layout(title, size: 10.5, color: tooltipText, bold: true),
@@ -389,8 +447,15 @@ class _SeriesPainter extends CustomPainter {
     return painter;
   }
 
-  void _text(Canvas canvas, String text, Offset at,
-      {required _Align align, required double size, Color? color, double? maxWidth}) {
+  void _text(
+    Canvas canvas,
+    String text,
+    Offset at, {
+    required _Align align,
+    required double size,
+    Color? color,
+    double? maxWidth,
+  }) {
     final painter = _layout(text, size: size, color: color, maxWidth: maxWidth);
     late Offset origin;
     switch (align) {
@@ -443,10 +508,10 @@ class _SeriesPainter extends CustomPainter {
     final nice = fraction <= 1
         ? 1
         : fraction <= 2
-            ? 2
-            : fraction <= 5
-                ? 5
-                : 10;
+        ? 2
+        : fraction <= 5
+        ? 5
+        : 10;
     return nice * math.pow(10, exponent).toDouble();
   }
 
@@ -505,12 +570,12 @@ class ChartLegend extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               dashed
-                  ? SizedBox(
-                      width: 16,
+                  ? SizedBox(width: 16, height: 10, child: CustomPaint(painter: _DashLegendPainter(color)))
+                  : Container(
+                      width: 10,
                       height: 10,
-                      child: CustomPaint(painter: _DashLegendPainter(color)),
-                    )
-                  : Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+                      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                    ),
               const SizedBox(width: 6),
               Text(label, style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
             ],

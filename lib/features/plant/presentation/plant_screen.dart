@@ -14,10 +14,12 @@ import '../../../core/plant/plant_repository.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/responsive.dart';
 import '../plant_report.dart';
+import 'plant_schema_screens.dart';
 import 'widgets/plant_diagram.dart';
+import 'widgets/plant_trends_view.dart';
 import '../../../core/widgets/app_loader.dart';
 
-enum PlantView { diagram, list }
+enum PlantView { diagram, list, trends }
 
 final plantViewProvider = StateProvider<PlantView>((ref) => PlantView.diagram);
 
@@ -190,6 +192,11 @@ class PlantScreen extends ConsumerWidget {
                   icon: const Icon(Icons.view_list_outlined),
                   label: Text(s('plantViewList')),
                 ),
+                ButtonSegment(
+                  value: PlantView.trends,
+                  icon: const Icon(Icons.show_chart),
+                  label: Text(s('plantViewTrends')),
+                ),
               ],
               selected: {view},
               onSelectionChanged: (sel) => ref.read(plantViewProvider.notifier).state = sel.first,
@@ -199,7 +206,7 @@ class PlantScreen extends ConsumerWidget {
               icon: const Icon(Icons.picture_as_pdf_outlined),
               label: Text(s('plantReport')),
             );
-            if (constraints.maxWidth < 560) {
+            if (constraints.maxWidth < 640) {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [viewSelector, const SizedBox(height: 8), report],
@@ -215,19 +222,11 @@ class PlantScreen extends ConsumerWidget {
           },
         ),
         const SizedBox(height: 14),
-        if (view == PlantView.diagram) ...[
-          Card(
-            clipBehavior: Clip.antiAlias,
-            child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: PlantDiagram(day: day, onPointTap: (p) => showPlantPointSheet(context, p)),
-            ),
-          ),
-          const SizedBox(height: 10),
-          const PlantDiagramLegend(),
-          const SizedBox(height: 6),
-          Text(s('plantDiagramHint'), style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
-        ] else
+        if (view == PlantView.diagram)
+          _DiagramSection(day: day)
+        else if (view == PlantView.trends)
+          const PlantTrendsView()
+        else
           for (final circuit in state.circuits) _CircuitSection(circuit: circuit, day: day),
       ],
     );
@@ -292,6 +291,95 @@ class PlantScreen extends ConsumerWidget {
       mimeType: 'application/pdf',
       bytes: bytes,
       shareSubject: '${s('plantReportTitle')} — ${plantDateKey(day)}',
+    );
+  }
+}
+
+/// Vue "Schéma" : choix du schéma (s'il y en a plusieurs), configuration et
+/// ajout pour l'administrateur, schéma interactif et légende.
+class _DiagramSection extends ConsumerWidget {
+  final DateTime day;
+  const _DiagramSection({required this.day});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final locale = ref.watch(localeProvider);
+    final role = ref.watch(currentRoleProvider);
+    final plant = ref.watch(plantControllerProvider);
+    final selectedId = ref.watch(plantSchemaIdProvider);
+    String s(String key) => tr(locale, key);
+    final schemas = plant.visibleSchemas;
+    final schema = schemas.firstWhere((sc) => sc.id == selectedId, orElse: () => schemas.first);
+    final unplaced = plant.points.where((p) => p.active && schema.positionOf(p) == null).length;
+    final admin = role.canConfigure;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (schemas.length > 1 || admin)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 40,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      children: [
+                        for (final sc in schemas)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: ChoiceChip(
+                              showCheckmark: false,
+                              avatar: Icon(plantSchemaIcon(sc.kind), size: 16),
+                              selected: sc.id == schema.id,
+                              label: Text(s(sc.name)),
+                              onSelected: (_) => ref.read(plantSchemaIdProvider.notifier).state = sc.id,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (admin) ...[
+                  IconButton(
+                    tooltip: s('schemaConfigure'),
+                    onPressed: () => context.push('/plant/schema/${schema.id}'),
+                    icon: const Icon(Icons.tune),
+                  ),
+                  IconButton(
+                    tooltip: s('schemaAdd'),
+                    onPressed: () => addPlantSchema(context, ref),
+                    icon: const Icon(Icons.add_photo_alternate_outlined),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        Card(
+          clipBehavior: Clip.antiAlias,
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: PlantDiagram(schema: schema, day: day, onPointTap: (p) => showPlantPointSheet(context, p)),
+          ),
+        ),
+        const SizedBox(height: 10),
+        PlantDiagramLegend(schema: schema),
+        const SizedBox(height: 6),
+        Text(s('plantDiagramHint'), style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
+        if (unplaced > 0 && admin) ...[
+          const SizedBox(height: 4),
+          InkWell(
+            onTap: () => context.push('/plant/schema/${schema.id}'),
+            child: Text(
+              fill(s('schemaUnplacedHint'), {'n': '$unplaced'}),
+              style: TextStyle(fontSize: 12, color: scheme.primary, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }
@@ -617,6 +705,7 @@ class PlantValuesTable extends ConsumerWidget {
       final value = analysis.values[param.key];
       final out = controller.isOut(point.id, param, value);
       final t = controller.threshold(point.id, param.key);
+      final variation = param.isNumeric ? controller.variation(point.id, param.key, at: analysis.date) : null;
       final color = out == true ? scheme.error : (out == false ? Colors.green.shade700 : scheme.onSurface);
       final text = value == null
           ? '—'
@@ -642,9 +731,15 @@ class PlantValuesTable extends ConsumerWidget {
                     padding: const EdgeInsets.only(right: 10),
                     child: Text(t.label(formatNumber), style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
                   ),
-                Text(
-                  text,
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: color),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      text,
+                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: color),
+                    ),
+                    if (variation != null) ...[const SizedBox(height: 2), PlantVariationBadge(variation: variation)],
+                  ],
                 ),
                 if (param.isNumeric) Icon(Icons.chevron_right, size: 16, color: scheme.onSurfaceVariant),
               ],

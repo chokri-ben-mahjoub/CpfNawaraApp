@@ -19,6 +19,8 @@ import 'package:puitstrack/core/plant/plant_repository.dart';
 import 'package:puitstrack/core/sync/firebase_config.dart';
 import 'package:puitstrack/core/team/firestore_rules.dart';
 import 'package:puitstrack/core/team/team_service.dart';
+import 'package:puitstrack/core/data/local_database.dart';
+import 'package:puitstrack/features/setup/presentation/widgets/team_account_form.dart';
 import 'package:puitstrack/core/units/unit_system.dart';
 
 WellsState _wells() => WellsState(
@@ -101,7 +103,51 @@ void main() {
   test('règles : la copie intégrée à l\'app est identique à firestore.rules', () {
     final file = File('firestore.rules').readAsStringSync().replaceAll('\r\n', '\n');
     expect(firestoreRules.replaceAll('\r\n', '\n'), file);
-    expect(firestoreRules, contains('match /config/rules_v2'));
+    expect(firestoreRules, contains('match /config/rules_v3'));
+  });
+
+  test("règles : mêmes tables que la base locale, toutes modifiables par l'admin", () {
+    final match = RegExp(r'function dataTables\(\) \{\s*return \[([^\]]+)\]', multiLine: true).firstMatch(firestoreRules)!;
+    final ruleTables = RegExp("'([a-z_]+)'").allMatches(match.group(1)!).map((m) => m.group(1)).toSet();
+    expect(ruleTables, LocalDatabase.dataTables.toSet(), reason: "nouvelle table : l'ajouter à firestore.rules");
+    expect(UserRole.admin.writableTables, LocalDatabase.dataTables.toSet());
+    for (final role in UserRole.values) {
+      expect(LocalDatabase.dataTables.toSet().containsAll(role.writableTables), isTrue);
+    }
+  });
+
+  group('invitations', () {
+    test('code : saisie libre, affichage', () {
+      expect(normalizeInviteCode(' abcd-efgh '), 'ABCDEFGH');
+      expect(formatInviteCode('ABCDEFGH'), 'ABCD-EFGH');
+      expect(isValidInviteCode('ABCDEFGH'), isTrue);
+      expect(isValidInviteCode('ABCDEFG0'), isFalse, reason: 'pas de 0 (confondu avec O)');
+      expect(isValidInviteCode('ABC'), isFalse);
+    });
+
+    test('QR code : code seul ou avec un projet personnalisé', () {
+      expect(parseInviteQr('ABCD-EFGH').code, 'ABCDEFGH');
+      final plain = parseInviteQr('{"app":"puitstrack","invite":"WXYZ2345"}');
+      expect(plain.code, 'WXYZ2345');
+      expect(plain.config, isNull);
+      final custom = parseInviteQr(
+        '{"app":"puitstrack","invite":"WXYZ2345","apiKey":"AIzaSyAbcdefghijklmnopqrstuvwxyz0123456","projectId":"client-x"}',
+      );
+      expect(custom.config!.projectId, 'client-x');
+    });
+
+    test('expiration et aperçu', () {
+      final invite = Invite.fromFields('ABCDEFGH', {
+        'companyId': 'c1',
+        'companyName': 'Alpha',
+        'role': 'operateur',
+        'email': '',
+        'expiresAt': DateTime.now().add(const Duration(days: 1)).millisecondsSinceEpoch,
+      });
+      expect(invite.expired, isFalse);
+      expect(invite.role, UserRole.operator);
+      expect(invite.displayCode, 'ABCD-EFGH');
+    });
   });
 
   group('configuration Firebase collée', () {

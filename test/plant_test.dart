@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'dart:ui';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:puitstrack/core/plant/plant_catalog.dart';
@@ -96,6 +98,49 @@ void main() {
     // Sans seuil défini, une valeur n'est jamais signalée.
     final density = paramsForProfile('condensate').first;
     expect(plant.isOut('pp_c1', density, 735.0), isNull);
+  });
+
+  test('variation : hausse, baisse, stable par rapport à l\'analyse précédente', () {
+    PlantAnalysis a(DateTime d, double bsw) => PlantAnalysis(
+      id: plantAnalysisId('pp_c1', d),
+      pointId: 'pp_c1',
+      date: d,
+      values: {'bsw': bsw},
+      source: 'plantSourceLab',
+      operatorName: '',
+      recordedAt: d,
+    );
+    final d1 = today.subtract(const Duration(days: 2));
+    final d2 = today.subtract(const Duration(days: 1));
+    final controller = PlantController.seeded(
+      PlantState(
+        points: seededPlant(today).state.points,
+        analyses: [a(today, 0.6), a(d2, 0.5), a(d1, 0.505)],
+        thresholds: const {},
+      ),
+    );
+    final last = controller.variation('pp_c1', 'bsw')!;
+    expect(last.previous, 0.5);
+    expect(last.value, 0.6);
+    expect(last.percent, closeTo(20, 1e-9));
+    expect(last.direction, 1);
+    final before = controller.variation('pp_c1', 'bsw', at: d2)!;
+    expect(before.direction, 0, reason: '-1 % : stable');
+    expect(controller.variation('pp_c1', 'bsw', at: d1), isNull, reason: 'pas d\'analyse précédente');
+    expect(controller.variation('pp_c1', 'density'), isNull);
+  });
+
+  test('schémas : positions par défaut, déplacées, retirées', () {
+    final c1 = seededPlant(today).point('pp_c1')!;
+    final pfd = PlantSchema.builtIn;
+    expect(pfd.positionOf(c1), const Offset(376 / 1000, 180 / 560));
+    expect(pfd.copyWith(positions: {'pp_c1': const Offset(0.1, 0.2)}).positionOf(c1), const Offset(0.1, 0.2));
+    expect(pfd.copyWith(positions: {'pp_c1': null}).positionOf(c1), isNull);
+    final blank = PlantSchema(id: 'x', name: 'x', kind: PlantSchemaKind.blank);
+    expect(blank.positionOf(c1), isNull, reason: 'rien de placé par défaut');
+    final image = PlantSchema(id: 'i', name: 'i', kind: PlantSchemaKind.image, imageWidth: 2000, imageHeight: 1000);
+    expect(image.canvasSize, const Size(1000, 500));
+    expect(const PlantState(points: [], analyses: [], thresholds: {}).visibleSchemas.single.id, 'pfd');
   });
 
   test('une analyse par point et par jour (identifiant naturel)', () {

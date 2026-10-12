@@ -85,7 +85,13 @@ class _PlantTrendScreenState extends ConsumerState<PlantTrendScreen> {
                       children: [
                         SeriesChart(
                           series: [
-                            ChartSeries.fromTime(label: s(param.labelKey), color: point.circuit.color, points: points),
+                            ChartSeries.fromTime(
+                              label: s(param.labelKey),
+                              color: point.circuit.color,
+                              points: points,
+                              smooth: true,
+                              area: true,
+                            ),
                           ],
                           band: t == null || t.isEmpty
                               ? null

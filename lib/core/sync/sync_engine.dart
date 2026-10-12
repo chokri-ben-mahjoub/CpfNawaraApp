@@ -49,8 +49,8 @@ const _pullOverlap = Duration(minutes: 2);
 const _epoch = '1970-01-01T00:00:00Z';
 
 /// Synchronisation bidirectionnelle entre la base locale (SQLite) et
-/// Firestore, où les données de l'équipe sont partagées sous
-/// `<table>/<id>` :
+/// Firestore, où les données de l'entreprise sont partagées sous
+/// `companies/<cid>/<table>/<id>` :
 ///
 /// 1. lecture des documents modifiés depuis la dernière synchronisation
 ///    (`syncedAt` > dernière date connue), fusionnés dans la base locale ;
@@ -73,13 +73,16 @@ class SyncEngine {
 
   final _columns = <String, Set<String>>{};
 
-  String _key(String name, String uid) => 'sync2_${name}_${config.projectId}_$uid';
+  /// Clé de stockage propre au projet, à l'entreprise ([scope]) et au compte.
+  String _key(String scope, String name, String suffix) =>
+      'sync3_${name}_${config.projectId}_${scope.replaceAll('/', '_')}_$suffix';
 
-  /// Première connexion de ce compte sur cet appareil : les données saisies
-  /// ici (hors données de démarrage jamais modifiées) des tables que le rôle
-  /// peut modifier seront envoyées.
-  Future<void> prepareFirstSync(String uid, {Set<String>? writable}) async {
-    final key = _key('initialized', uid);
+  /// Première connexion de ce compte à l'entreprise [scope]
+  /// (`companies/{cid}`) sur cet appareil : les données saisies ici (hors
+  /// données de démarrage jamais modifiées) des tables que le rôle peut
+  /// modifier seront envoyées.
+  Future<void> prepareFirstSync(String scope, String uid, {Set<String>? writable}) async {
+    final key = _key(scope, 'initialized', uid);
     if (await store.read(key) != null) return;
     final db = await openDatabase();
     for (final table in LocalDatabase.dataTables) {
@@ -99,30 +102,51 @@ class SyncEngine {
   /// [writable] : tables que le compte peut modifier (toutes par défaut) ;
   /// les modifications locales des autres tables sont abandonnées au profit
   /// de la version de l'équipe. [actor] : auteur inscrit au journal d'audit.
-  Future<SyncReport> sync(AuthSession session, {Set<String>? writable, AuditActor? actor}) async {
+  ///
+  /// [scope] : chemin des données de l'entreprise (`companies/{cid}`).
+  Future<SyncReport> sync(
+    AuthSession session, {
+    required String scope,
+    Set<String>? writable,
+    AuditActor? actor,
+  }) async {
     final allowed = writable ?? LocalDatabase.dataTables.toSet();
-    await _discardForbidden(session, allowed);
-    final pulled = await _pull(session);
-    final pushed = await _push(session, allowed, actor);
+    await _discardForbidden(scope, session, allowed);
+    final pulled = await _pull(scope, session);
+    final pushed = await _push(scope, session, allowed, actor);
     return SyncReport(pushed: pushed, pulled: pulled);
   }
 
   /// Modifications locales d'une table que le rôle ne permet pas d'envoyer
   /// (ex: puits modifié avant de rejoindre l'équipe en opérateur) : elles
   /// sont abandonnées et la table est relue entièrement depuis Firestore.
-  Future<void> _discardForbidden(AuthSession session, Set<String> allowed) async {
+  Future<void> _discardForbidden(String scope, AuthSession session, Set<String> allowed) async {
     final db = await openDatabase();
     for (final table in LocalDatabase.dataTables) {
       if (allowed.contains(table)) continue;
       final dirty = await db.update(table, {'dirty': 0, 'updated_at': 0}, where: 'dirty = 1');
       final deletions = await db.delete('sync_deletions', where: 'table_name = ?', whereArgs: [table]);
-      if (dirty > 0 || deletions > 0) await store.write(_key('last', '${session.uid}_$table'), null);
+      if (dirty > 0 || deletions > 0) await store.write(_key(scope, 'last', '${session.uid}_$table'), null);
     }
   }
 
   // ------------------------------------------------------------- Envoi
 
-  Future<int> _push(AuthSession session, Set<String> allowed, AuditActor? actor) async {
+  /// Repère de dernière modification, mis à jour à chaque envoi.
+  Map<String, Object?> _metaWrite(String scope, String uid) => {
+    'update': {
+      'name': config.documentName('$scope/meta/sync'),
+      'fields': encodeFields({'lastChangeBy': uid}),
+    },
+    'updateMask': {
+      'fieldPaths': ['lastChangeBy'],
+    },
+    'updateTransforms': [
+      {'fieldPath': 'lastChange', 'setToServerValue': 'REQUEST_TIME'},
+    ],
+  };
+
+  Future<int> _push(String scope, AuthSession session, Set<String> allowed, AuditActor? actor) async {
     final db = await openDatabase();
     final describe = _Describer(db);
     var count = 0;
@@ -135,11 +159,12 @@ class SyncEngine {
         if (rows.isEmpty) break;
         final writes = <Map<String, Object?>>[];
         for (final row in rows) {
-          writes.add(_upsertWrite(table, row));
+          writes.add(_upsertWrite(scope, table, row));
           if (actor != null) {
             writes.add(
               auditWrite(
                 config,
+                scope,
                 actor,
                 action: 'save',
                 table: table,
@@ -150,7 +175,7 @@ class SyncEngine {
             );
           }
         }
-        await firestore.commit(session.idToken, writes);
+        await firestore.commit(session.idToken, [...writes, _metaWrite(scope, session.uid)]);
         for (final row in rows) {
           // Seulement si la ligne n'a pas changé entre-temps (sinon elle
           // reste à envoyer au prochain passage).
@@ -175,11 +200,12 @@ class SyncEngine {
       for (final d in deletions) {
         final table = d['table_name'] as String;
         final id = d['row_id'] as String;
-        writes.add(_write(table, id, {'deleted': true, 'updated_at': d['deleted_at']}));
+        writes.add(_write(scope, table, id, {'deleted': true, 'updated_at': d['deleted_at']}));
         if (actor != null) {
           writes.add(
             auditWrite(
               config,
+              scope,
               actor,
               action: 'delete',
               table: table,
@@ -190,7 +216,7 @@ class SyncEngine {
           );
         }
       }
-      await firestore.commit(session.idToken, writes);
+      await firestore.commit(session.idToken, [...writes, _metaWrite(scope, session.uid)]);
       for (final d in deletions) {
         await db.delete(
           'sync_deletions',
@@ -203,16 +229,16 @@ class SyncEngine {
     return count;
   }
 
-  Map<String, Object?> _upsertWrite(String table, Map<String, Object?> row) {
+  Map<String, Object?> _upsertWrite(String scope, String table, Map<String, Object?> row) {
     final data = Map<String, Object?>.from(row)..remove('dirty');
     data['deleted'] = false;
-    return _write(table, row['id'] as String, data);
+    return _write(scope, table, row['id'] as String, data);
   }
 
   /// Remplace entièrement le document et lui donne l'heure du serveur dans
   /// `syncedAt` (base de la lecture incrémentale des autres appareils).
-  Map<String, Object?> _write(String table, String id, Map<String, Object?> data) => {
-    'update': {'name': config.documentName('$table/$id'), 'fields': encodeFields(data)},
+  Map<String, Object?> _write(String scope, String table, String id, Map<String, Object?> data) => {
+    'update': {'name': config.documentName('$scope/$table/$id'), 'fields': encodeFields(data)},
     'updateTransforms': [
       {'fieldPath': 'syncedAt', 'setToServerValue': 'REQUEST_TIME'},
     ],
@@ -220,17 +246,30 @@ class SyncEngine {
 
   // ------------------------------------------------------------- Lecture
 
-  Future<int> _pull(AuthSession session) async {
+  Future<int> _pull(String scope, AuthSession session) async {
     final db = await openDatabase();
+    // Rien de nouveau depuis la dernière lecture complète : une seule lecture
+    // (le repère) au lieu d'une requête par table.
+    final metaKey = _key(scope, 'meta', session.uid);
+    var complete = true;
+    for (final table in LocalDatabase.dataTables) {
+      if (await store.read(_key(scope, 'last', '${session.uid}_$table')) == null) complete = false;
+    }
+    final meta = await firestore.getDocument(session.idToken, '$scope/meta/sync');
+    final lastChange = meta == null ? null : decodeFields(meta['fields'] as Map<String, Object?>?)['lastChange'] as String?;
+    final seen = await store.read(metaKey);
+    if (complete && (lastChange == null || (seen != null && !DateTime.parse(lastChange).isAfter(DateTime.parse(seen))))) {
+      return 0;
+    }
     var applied = 0;
     for (final table in LocalDatabase.dataTables) {
-      final key = _key('last', '${session.uid}_$table');
+      final key = _key(scope, 'last', '${session.uid}_$table');
       final last = await store.read(key) ?? _epoch;
       final since = DateTime.parse(last).subtract(_pullOverlap).toUtc().toIso8601String();
       var newest = last;
       Map<String, Object?>? cursor;
       for (var guard = 0; guard < 1000; guard++) {
-        final docs = await firestore.runQuery(session.idToken, '', {
+        final docs = await firestore.runQuery(session.idToken, scope, {
           'from': [
             {'collectionId': table},
           ],
@@ -271,6 +310,7 @@ class SyncEngine {
       }
       await store.write(key, newest);
     }
+    if (lastChange != null) await store.write(metaKey, lastChange);
     return applied;
   }
 

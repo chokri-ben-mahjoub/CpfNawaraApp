@@ -21,7 +21,7 @@ class LocalDatabase {
   static final LocalDatabase instance = LocalDatabase._();
 
   /// Version du schéma (voir `onUpgrade`), enregistrée dans les sauvegardes.
-  static const schemaVersion = 10;
+  static const schemaVersion = 11;
 
   /// Tables sauvegardées / restaurées / synchronisées.
   static const dataTables = [
@@ -37,6 +37,8 @@ class LocalDatabase {
     'app_config',
     // Circuits configurables (remplace l'énumération fixe), v9.
     'plant_circuits',
+    // Schémas de l'usine (dessin intégré, image importée ou fond vierge), v11.
+    'plant_schemas',
   ];
 
   /// Tables qui ont reçu les colonnes de synchronisation par migration (v6) ;
@@ -61,6 +63,21 @@ class LocalDatabase {
     'updated_at': DateTime.now().millisecondsSinceEpoch,
     'dirty': 1,
   };
+
+  /// Efface toutes les données de cet appareil et remet les données de
+  /// démarrage : utilisé quand l'appareil passe à une autre entreprise, pour
+  /// que les données d'une entreprise ne partent jamais dans une autre.
+  Future<void> resetToSeed() async {
+    final db = await database;
+    await db.transaction((txn) async {
+      for (final table in dataTables) {
+        await txn.delete(table);
+      }
+      await txn.delete('sync_deletions');
+    });
+    await _seed(db);
+    notifyChange();
+  }
 
   /// Note la suppression d'une ligne pour la propager aux autres appareils.
   static Future<void> recordDeletion(DatabaseExecutor db, String table, String id) => db.insert('sync_deletions', {
@@ -128,6 +145,7 @@ class LocalDatabase {
           await _createPlantTables(db);
           await _migrateV8(db);
           await _createPlantCircuitsTable(db);
+          await _createPlantSchemasTable(db);
           await _seed(db);
         },
         onUpgrade: (db, oldVersion, newVersion) async {
@@ -194,6 +212,12 @@ class LocalDatabase {
             // inverse) ajouté aux données de démarrage.
             await _seedPlantCircuits(db);
             await _seedPlantPoints(db);
+          }
+          if (oldVersion < 11) {
+            // Schémas configurables : plusieurs schémas, points placés par
+            // l'administrateur (Usine › Schéma › Configurer).
+            await _createPlantSchemasTable(db);
+            await _seedPlantSchemas(db);
           }
         },
       ),
@@ -304,6 +328,36 @@ class LocalDatabase {
     ''');
   }
 
+  /// Schémas de l'usine : `kind` = `pfd` (dessin intégré), `image` (photo ou
+  /// scan importé, JPEG en base64 dans `image`) ou `blank` (fond quadrillé).
+  /// `positions_json` : {pointId: [x, y]} en fractions de la largeur et de la
+  /// hauteur (0 à 1), ou {pointId: null} pour retirer un point du schéma.
+  static Future<void> _createPlantSchemasTable(DatabaseExecutor db) async {
+    await db.execute('''
+      create table if not exists plant_schemas (
+        id text primary key,
+        name text not null,
+        kind text not null default 'blank',
+        image text,
+        image_width integer,
+        image_height integer,
+        positions_json text,
+        sort_order integer not null default 0,
+        updated_at integer not null default 0,
+        dirty integer not null default 0
+      )
+    ''');
+  }
+
+  static Future<void> _seedPlantSchemas(DatabaseExecutor db) async {
+    await db.insert('plant_schemas', {
+      'id': 'pfd',
+      'name': 'plantSchemaPfd',
+      'kind': 'pfd',
+      'sort_order': 1,
+    }, conflictAlgorithm: ConflictAlgorithm.ignore);
+  }
+
   static Future<void> _seedPlantCircuits(DatabaseExecutor db) async {
     for (final circuit in plantSeedCircuits) {
       await db.insert('plant_circuits', circuit, conflictAlgorithm: ConflictAlgorithm.ignore);
@@ -352,6 +406,10 @@ class LocalDatabase {
       await _seedPlantCircuits(db);
       await _seedPlantPoints(db);
     }
+    if (fromVersion < 11) {
+      await _createPlantSchemasTable(db);
+      await _seedPlantSchemas(db);
+    }
   }
 
   /// Puits et types d'analyse de démarrage, pour ne pas ouvrir l'app sur un
@@ -367,6 +425,7 @@ class LocalDatabase {
     }
     await _seedPlantCircuits(db);
     await _seedPlantPoints(db);
+    await _seedPlantSchemas(db);
   }
 }
 

@@ -1,91 +1,162 @@
 rules_version = '2';
 
-// PuitsTrack — accès selon le rôle de chaque compte (users/{uid}.role) :
+// PuitsTrack — plusieurs entreprises clientes dans un même projet Firebase.
+// Chaque entreprise a ses données sous companies/{cid}/… ; un compte
+// appartient à une seule entreprise (accounts/{uid}.companyId) avec un rôle
+// (companies/{cid}/members/{uid}.role) :
 //   admin     : tout, y compris les utilisateurs et le paramétrage ;
 //   ingenieur : analyses (puits + usine) et interventions ;
 //   operateur : analyses (puits + usine) ;
 //   lecteur   : lecture seule.
-// Un compte inactif (actif == false) n'a accès à rien.
-// À publier une seule fois : console Firebase › Firestore › Règles (le texte
-// est copiable depuis l'app : Administration › Projet Firebase).
+// Un membre inactif (actif == false) n'a accès à rien.
+// Publication : tool\deploy.ps1 (ou console Firebase › Firestore › Règles).
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() {
       return request.auth != null;
     }
-    function userPath(uid) {
-      return /databases/$(database)/documents/users/$(uid);
+    function companyPath(cid) {
+      return /databases/$(database)/documents/companies/$(cid);
     }
-    function setupPath() {
-      return /databases/$(database)/documents/config/setup;
+    function memberPath(cid, uid) {
+      return /databases/$(database)/documents/companies/$(cid)/members/$(uid);
     }
-    function me() {
-      return get(userPath(request.auth.uid)).data;
+    function invitePath(cid, code) {
+      return /databases/$(database)/documents/companies/$(cid)/invites/$(code);
     }
-    function active() {
-      return signedIn() && exists(userPath(request.auth.uid)) && me().actif == true;
+    function accountPath(uid) {
+      return /databases/$(database)/documents/accounts/$(uid);
     }
-    function hasRole(roles) {
-      return active() && me().role in roles;
+    function me(cid) {
+      return get(memberPath(cid, request.auth.uid)).data;
     }
-    function isAdmin() {
-      return hasRole(['admin']);
+    function isMember(cid) {
+      return signedIn() && exists(memberPath(cid, request.auth.uid));
+    }
+    function active(cid) {
+      return isMember(cid) && me(cid).actif == true;
+    }
+    function hasRole(cid, roles) {
+      return active(cid) && me(cid).role in roles;
+    }
+    function isAdmin(cid) {
+      return hasRole(cid, ['admin']);
+    }
+    function roles() {
+      return ['admin', 'ingenieur', 'operateur', 'lecteur'];
     }
     function dataTables() {
-      return ['wells', 'analysis_types', 'analysis_records', 'interventions',
-              'sample_points', 'plant_analyses', 'plant_thresholds', 'app_config'];
+      return ['wells', 'analysis_types', 'analysis_records', 'interventions', 'sample_points',
+              'plant_analyses', 'plant_thresholds', 'app_config', 'plant_circuits',
+              'plant_schemas'];
+    }
+    function writableBy(cid, table) {
+      return isAdmin(cid)
+        || (hasRole(cid, ['ingenieur']) && table in ['analysis_records', 'plant_analyses', 'interventions'])
+        || (hasRole(cid, ['operateur']) && table in ['analysis_records', 'plant_analyses']);
+    }
+    // Invitation valide pour l'adhésion écrite (code non utilisé, non expiré,
+    // même rôle, e-mail imposé respecté), marquée utilisée dans la même
+    // écriture groupée.
+    function validInvite(cid, uid) {
+      let code = request.resource.data.invite;
+      let invite = get(invitePath(cid, code)).data;
+      return invite.used == false
+        && invite.expiresAt > request.time.toMillis()
+        && invite.role == request.resource.data.role
+        && (invite.email == '' || invite.email == request.auth.token.email)
+        && request.resource.data.actif == true
+        && getAfter(invitePath(cid, code)).data.usedBy == uid;
     }
 
-    // Installation : le premier compte du projet devient administrateur.
-    match /config/setup {
+    // Sonde de version des règles (document jamais créé).
+    match /config/rules_v3 {
       allow get: if signedIn();
+    }
+
+    // Compte -> entreprise (une seule entreprise par compte).
+    match /accounts/{uid} {
+      allow get: if signedIn() && request.auth.uid == uid;
+      allow create: if signedIn() && request.resource.data.companyId is string && (
+        // le compte lui-même, avec son adhésion active créée dans la même écriture
+        (request.auth.uid == uid
+          && getAfter(memberPath(request.resource.data.companyId, uid)).data.actif == true)
+        // un administrateur, pour un compte qu'il vient de créer
+        || isAdmin(request.resource.data.companyId));
+      allow delete: if signedIn() && (request.auth.uid == uid || isAdmin(resource.data.companyId));
+    }
+
+    // Code d'invitation -> entreprise (aperçu avant de créer son compte).
+    match /inviteCodes/{code} {
+      allow get: if true;
+      allow create: if signedIn() && isAdmin(request.resource.data.companyId)
+        && existsAfter(invitePath(request.resource.data.companyId, code));
+      allow delete: if signedIn() && isAdmin(resource.data.companyId);
+    }
+
+    match /companies/{cid} {
+      allow get: if isMember(cid);
+      // Création par son fondateur, qui en devient l'administrateur.
       allow create: if signedIn()
         && request.resource.data.ownerUid == request.auth.uid
-        && getAfter(userPath(request.auth.uid)).data.role == 'admin';
-    }
+        && !exists(accountPath(request.auth.uid))
+        && getAfter(memberPath(cid, request.auth.uid)).data.role == 'admin';
+      allow update: if isAdmin(cid) && request.resource.data.ownerUid == resource.data.ownerUid;
 
-    // Sonde de version des règles (document jamais créé) : l'app vérifie
-    // ainsi que ces règles sont bien publiées.
-    match /config/rules_v2 {
-      allow get: if signedIn();
-    }
-
-    // Membres de l'équipe : email, nom, role, actif.
-    match /users/{uid} {
-      allow get: if signedIn() && (request.auth.uid == uid || isAdmin());
-      allow list: if isAdmin();
-      allow create: if isAdmin()
-        || (signedIn() && request.auth.uid == uid && (
-              // premier administrateur (même écriture groupée que config/setup)
-              (!exists(setupPath())
-                && getAfter(setupPath()).data.ownerUid == uid
-                && request.resource.data.role == 'admin'
-                && request.resource.data.actif == true)
-              // demande d'accès, à valider par un administrateur
-              || (request.resource.data.role == 'lecteur'
-                && request.resource.data.actif == false
-                && request.resource.data.demande == true)));
-      allow update: if isAdmin()
-        || (active() && request.auth.uid == uid
+      match /members/{uid} {
+        allow get: if signedIn() && (request.auth.uid == uid || isAdmin(cid));
+        allow list: if isAdmin(cid);
+        allow create: if signedIn() && request.resource.data.role in roles() && (
+          isAdmin(cid)
+          // fondateur : même écriture groupée que la création de l'entreprise
+          || (request.auth.uid == uid
+            && !exists(companyPath(cid))
+            && getAfter(companyPath(cid)).data.ownerUid == uid
+            && request.resource.data.role == 'admin'
+            && request.resource.data.actif == true)
+          // code d'invitation
+          || (request.auth.uid == uid && validInvite(cid, uid)));
+        allow update: if isAdmin(cid)
+          || (active(cid) && request.auth.uid == uid
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nom', 'updatedAt']));
-      allow delete: if isAdmin();
-    }
+        allow delete: if isAdmin(cid);
+      }
 
-    // Données (une collection par table de la base locale de l'app).
-    match /{table}/{id} {
-      allow read: if active() && table in dataTables();
-      allow write: if table in dataTables() && (
-        isAdmin()
-        || (hasRole(['ingenieur']) && table in ['analysis_records', 'plant_analyses', 'interventions'])
-        || (hasRole(['operateur']) && table in ['analysis_records', 'plant_analyses']));
-    }
+      match /invites/{code} {
+        // Connaître le code suffit à le lire (il est secret).
+        allow get: if signedIn();
+        allow list: if isAdmin(cid);
+        allow create: if isAdmin(cid) && request.resource.data.used == false
+          && request.resource.data.role in roles();
+        allow delete: if isAdmin(cid);
+        // Utilisation par le nouveau membre (une seule fois).
+        allow update: if signedIn() && resource.data.used == false
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['used', 'usedBy', 'usedAt'])
+          && request.resource.data.used == true
+          && request.resource.data.usedBy == request.auth.uid
+          && getAfter(memberPath(cid, request.auth.uid)).data.invite == code;
+      }
 
-    // Journal d'audit : ajout seulement, lu par les administrateurs.
-    match /audit/{id} {
-      allow create: if signedIn()
-        && request.resource.data.uid == request.auth.uid
-        && getAfter(userPath(request.auth.uid)).data.actif == true;
-      allow read: if isAdmin();
+      // Données (une collection par table de la base locale de l'app).
+      match /{table}/{id} {
+        allow read: if active(cid) && table in dataTables();
+        allow write: if table in dataTables() && writableBy(cid, table);
+      }
+
+      // Repère de la dernière modification : évite de relire toutes les
+      // tables quand rien n'a changé.
+      match /meta/sync {
+        allow get: if active(cid);
+        allow write: if hasRole(cid, ['admin', 'ingenieur', 'operateur']);
+      }
+
+      // Journal d'audit : ajout seulement, lu par les administrateurs.
+      match /audit/{id} {
+        allow create: if signedIn()
+          && request.resource.data.uid == request.auth.uid
+          && getAfter(memberPath(cid, request.auth.uid)).data.actif == true;
+        allow read: if isAdmin(cid);
+      }
     }
   }
 }

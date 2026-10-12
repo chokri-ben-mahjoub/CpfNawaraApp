@@ -117,7 +117,10 @@ void main() {
     expect(w1.containsKey('latitude'), isTrue);
     expect((await db.query('sample_points')).first.containsKey('params_json'), isTrue);
     expect(await db.query('app_config'), isEmpty);
-    expect(LocalDatabase.schemaVersion, 10);
+    // v11 : schémas configurables (schéma intégré de démarrage, non envoyé).
+    expect(await db.query('plant_schemas'), hasLength(1));
+    expect(await db.query('plant_schemas', where: 'dirty = 1 or updated_at > 0'), isEmpty);
+    expect(LocalDatabase.schemaVersion, 11);
 
     // Première connexion : tout ce qui a été saisi/modifié part au serveur.
     final engine = SyncEngine(
@@ -127,11 +130,11 @@ void main() {
       store: MemorySyncStore(),
     );
     // Opérateur : seules ses tables (analyses) sont préparées à l'envoi.
-    await engine.prepareFirstSync('uid-op', writable: {'analysis_records', 'plant_analyses'});
+    await engine.prepareFirstSync('companies/c1', 'uid-op', writable: {'analysis_records', 'plant_analyses'});
     expect((await db.query('wells', where: 'dirty = 1')), isEmpty);
     await db.update('analysis_records', {'dirty': 0});
 
-    await engine.prepareFirstSync('uid-test');
+    await engine.prepareFirstSync('companies/c1', 'uid-test');
     final dirty = {
       for (final table in LocalDatabase.dataTables)
         for (final row in await db.query(table, where: 'dirty = 1')) '$table/${row['id']}',

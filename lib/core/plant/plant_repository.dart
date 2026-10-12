@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
+import 'dart:ui' show Offset, Size;
 
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -100,10 +102,139 @@ class PlantThreshold {
 
 enum PlantStatus { ok, outOfRange, missing }
 
+enum PlantSchemaKind { pfd, image, blank }
+
+/// Dimensions logiques du schéma intégré (PFD dessiné).
+const pfdCanvasSize = Size(1000, 560);
+
+/// Position par défaut des points de prélèvement sur le schéma intégré (par
+/// code, unités de [pfdCanvasSize]).
+const pfdDefaultPositions = <String, Offset>{
+  'C1': Offset(376, 180),
+  'C2': Offset(340, 355),
+  'C3': Offset(510, 355),
+  'C4': Offset(915, 355),
+  'W1': Offset(350, 490),
+  'W2': Offset(200, 245),
+  'W3': Offset(590, 490),
+  'W4': Offset(300, 520),
+  'G1': Offset(340, 255),
+  'G2': Offset(318, 75),
+  'G3': Offset(905, 55),
+  'LA': Offset(720, 175),
+  'RA': Offset(612, 208),
+};
+
+/// Un schéma de l'usine (table `plant_schemas`) : le dessin intégré, une
+/// image importée (photo ou scan du PFD) ou un fond quadrillé, sur lequel
+/// l'administrateur place les points de prélèvement.
+class PlantSchema {
+  final String id;
+
+  /// Nom libre, ou clé de traduction pour le schéma intégré.
+  final String name;
+  final PlantSchemaKind kind;
+
+  /// Image JPEG en base64 (schéma de type image).
+  final String? image;
+  final int? imageWidth;
+  final int? imageHeight;
+
+  /// pointId -> position en fractions (0 à 1) de la largeur / hauteur, ou
+  /// `null` : point retiré de ce schéma.
+  final Map<String, Offset?> positions;
+  final int sortOrder;
+
+  PlantSchema({
+    required this.id,
+    required this.name,
+    required this.kind,
+    this.image,
+    this.imageWidth,
+    this.imageHeight,
+    this.positions = const {},
+    this.sortOrder = 0,
+  });
+
+  /// Schéma intégré, utilisé si la table est vide (ancienne sauvegarde).
+  static final builtIn = PlantSchema(id: 'pfd', name: 'plantSchemaPfd', kind: PlantSchemaKind.pfd, sortOrder: 1);
+
+  late final Uint8List? imageBytes = () {
+    final data = image;
+    if (data == null || data.isEmpty) return null;
+    try {
+      return base64Decode(data);
+    } catch (_) {
+      return null;
+    }
+  }();
+
+  /// Dimensions logiques du schéma (largeur 1000).
+  Size get canvasSize => switch (kind) {
+    PlantSchemaKind.pfd => pfdCanvasSize,
+    PlantSchemaKind.image when (imageWidth ?? 0) > 0 && (imageHeight ?? 0) > 0 => Size(
+      1000,
+      (1000 * imageHeight! / imageWidth!).clamp(250, 2000).toDouble(),
+    ),
+    _ => const Size(1000, 600),
+  };
+
+  /// Position d'un point (fractions 0 à 1), ou `null` s'il n'est pas placé.
+  Offset? positionOf(SamplePoint point) {
+    if (positions.containsKey(point.id)) return positions[point.id];
+    if (kind == PlantSchemaKind.pfd) {
+      final p = pfdDefaultPositions[point.code];
+      if (p != null) return Offset(p.dx / pfdCanvasSize.width, p.dy / pfdCanvasSize.height);
+    }
+    return null;
+  }
+
+  PlantSchema copyWith({
+    String? name,
+    Map<String, Offset?>? positions,
+    String? image,
+    int? imageWidth,
+    int? imageHeight,
+  }) => PlantSchema(
+    id: id,
+    name: name ?? this.name,
+    kind: kind,
+    image: image ?? this.image,
+    imageWidth: imageWidth ?? this.imageWidth,
+    imageHeight: imageHeight ?? this.imageHeight,
+    positions: positions ?? this.positions,
+    sortOrder: sortOrder,
+  );
+}
+
+/// Évolution d'un paramètre entre deux analyses consécutives d'un point.
+class PlantVariation {
+  final DateTime date;
+  final double value;
+  final DateTime previousDate;
+  final double previous;
+
+  const PlantVariation({required this.date, required this.value, required this.previousDate, required this.previous});
+
+  double get delta => value - previous;
+
+  /// Variation en %, ou `null` si la valeur précédente est nulle.
+  double? get percent => previous == 0 ? null : delta / previous.abs() * 100;
+
+  /// 1 hausse, -1 baisse, 0 stable (moins de 1 % d'écart).
+  int get direction {
+    final pct = percent;
+    if (pct == null) return delta == 0 ? 0 : delta.sign.toInt();
+    if (pct.abs() < 1) return 0;
+    return pct.sign.toInt();
+  }
+}
+
 class PlantState {
   final List<SamplePoint> points;
   final List<PlantAnalysis> analyses;
   final List<PlantCircuit> circuits;
+  final List<PlantSchema> schemas;
 
   /// pointId -> paramètre -> seuil.
   final Map<String, Map<String, PlantThreshold>> thresholds;
@@ -116,10 +247,14 @@ class PlantState {
     required this.analyses,
     required this.thresholds,
     this.circuits = const [],
+    this.schemas = const [],
     this.ready = true,
   });
 
   static const empty = PlantState(points: [], analyses: [], thresholds: {}, circuits: [], ready: false);
+
+  /// Schémas à afficher (le schéma intégré si aucun n'est enregistré).
+  List<PlantSchema> get visibleSchemas => schemas.isEmpty ? [PlantSchema.builtIn] : schemas;
 }
 
 DateTime _day(DateTime t) => DateTime(t.year, t.month, t.day);
@@ -147,9 +282,10 @@ class PlantController extends StateNotifier<PlantState> {
     final db = await LocalDatabase.instance.database;
     final circuits = (await db.query('plant_circuits', orderBy: 'sort_order')).map(_circuitFromRow).toList();
     final circuitsById = {for (final c in circuits) c.id: c};
-    final points = (await db.query('sample_points', orderBy: 'sort_order, code'))
-        .map((row) => _pointFromRow(row, circuitsById))
-        .toList();
+    final points = (await db.query(
+      'sample_points',
+      orderBy: 'sort_order, code',
+    )).map((row) => _pointFromRow(row, circuitsById)).toList();
     final byId = {for (final p in points) p.id: p};
     // Valeurs et seuils convertis dans le système d'unités choisi (base en SI).
     PlantParam? paramOf(String pointId, String key) {
@@ -191,7 +327,14 @@ class PlantController extends StateNotifier<PlantState> {
       final t = PlantThreshold(min: min, max: max, alertEnabled: (row['alert_enabled'] as num?) != 0);
       if (!t.isEmpty || !t.alertEnabled) (thresholds[pointId] ??= {})[key] = t;
     }
-    state = PlantState(points: points, analyses: analyses, thresholds: thresholds, circuits: circuits);
+    final schemas = (await db.query('plant_schemas', orderBy: 'sort_order, name')).map(_schemaFromRow).toList();
+    state = PlantState(
+      points: points,
+      analyses: analyses,
+      thresholds: thresholds,
+      circuits: circuits,
+      schemas: schemas,
+    );
   }
 
   // ------------------------------------------------------------- Lecture
@@ -261,6 +404,27 @@ class PlantController extends StateNotifier<PlantState> {
         if (a.number(param) != null) (a.date, a.number(param)!),
     ]..sort((a, b) => a.$1.compareTo(b.$1));
     return list;
+  }
+
+  /// Évolution d'un paramètre : analyse du jour [at] (ou la dernière) par
+  /// rapport à l'analyse précédente qui a une valeur.
+  PlantVariation? variation(String pointId, String param, {DateTime? at}) {
+    final list = series(pointId, param);
+    var i = list.length - 1;
+    if (at != null) {
+      final day = _day(at);
+      i = list.lastIndexWhere((e) => !e.$1.isAfter(day));
+      if (i < 0 || list[i].$1 != day) return null;
+    }
+    if (i < 1) return null;
+    return PlantVariation(date: list[i].$1, value: list[i].$2, previousDate: list[i - 1].$1, previous: list[i - 1].$2);
+  }
+
+  PlantSchema? schema(String id) {
+    for (final sc in state.visibleSchemas) {
+      if (sc.id == id) return sc;
+    }
+    return null;
   }
 
   // ------------------------------------------------------------- Écriture
@@ -419,6 +583,46 @@ class PlantController extends StateNotifier<PlantState> {
   /// Prochain numéro d'ordre (nouveau circuit affiché en fin de liste).
   int get nextCircuitSortOrder => state.circuits.fold<int>(0, (m, c) => c.sortOrder > m ? c.sortOrder : m) + 1;
 
+  /// Crée ou modifie un schéma (id vide = nouveau schéma).
+  Future<String> saveSchema(PlantSchema schema) async {
+    final db = await LocalDatabase.instance.database;
+    final id = schema.id.isEmpty ? 'ps_${_uuid.v4().substring(0, 8)}' : schema.id;
+    final sortOrder = schema.id.isEmpty
+        ? state.schemas.fold<int>(0, (m, sc) => sc.sortOrder > m ? sc.sortOrder : m) + 1
+        : schema.sortOrder;
+    await db.insert(
+      'plant_schemas',
+      LocalDatabase.stamp({
+        'id': id,
+        'name': schema.name,
+        'kind': schema.kind.name,
+        'image': schema.image,
+        'image_width': schema.imageWidth,
+        'image_height': schema.imageHeight,
+        'positions_json': jsonEncode({
+          for (final e in schema.positions.entries)
+            e.key: e.value == null ? null : [_round(e.value!.dx), _round(e.value!.dy)],
+        }),
+        'sort_order': sortOrder,
+      }),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+    await _afterWrite();
+    return id;
+  }
+
+  /// Supprime un schéma ; refusé (retourne `false`) pour le dernier.
+  Future<bool> deleteSchema(String id) async {
+    if (state.visibleSchemas.length <= 1) return false;
+    final db = await LocalDatabase.instance.database;
+    await LocalDatabase.recordDeletion(db, 'plant_schemas', id);
+    await db.delete('plant_schemas', where: 'id = ?', whereArgs: [id]);
+    await _afterWrite();
+    return true;
+  }
+
+  static double _round(double v) => (v.clamp(0.0, 1.0) * 10000).roundToDouble() / 10000;
+
   Future<void> _afterWrite() async {
     await _load();
     LocalDatabase.instance.notifyChange();
@@ -457,6 +661,33 @@ SamplePoint _pointFromRow(Map<String, Object?> row, Map<String, PlantCircuit> ci
   paramKeys: _decodeKeys(row['params_json'] as String?),
 );
 
+PlantSchema _schemaFromRow(Map<String, Object?> row) {
+  final positions = <String, Offset?>{};
+  try {
+    final decoded = jsonDecode(row['positions_json'] as String? ?? '{}');
+    if (decoded is Map) {
+      for (final e in decoded.entries) {
+        final v = e.value;
+        positions['${e.key}'] = v is List && v.length == 2
+            ? Offset((v[0] as num).toDouble(), (v[1] as num).toDouble())
+            : null;
+      }
+    }
+  } catch (_) {
+    // Positions illisibles : schéma affiché sans points placés.
+  }
+  return PlantSchema(
+    id: row['id'] as String,
+    name: row['name'] as String? ?? '',
+    kind: PlantSchemaKind.values.asNameMap()[row['kind']] ?? PlantSchemaKind.blank,
+    image: row['image'] as String?,
+    imageWidth: (row['image_width'] as num?)?.toInt(),
+    imageHeight: (row['image_height'] as num?)?.toInt(),
+    positions: positions,
+    sortOrder: (row['sort_order'] as num?)?.toInt() ?? 0,
+  );
+}
+
 List<String>? _decodeKeys(String? json) {
   if (json == null || json.isEmpty) return null;
   try {
@@ -489,6 +720,9 @@ PlantAnalysis? _analysisFromRow(Map<String, Object?> row) {
 }
 
 final plantControllerProvider = StateNotifierProvider<PlantController, PlantState>((ref) => PlantController());
+
+/// Schéma affiché dans l'onglet Usine (`null` : le premier).
+final plantSchemaIdProvider = StateProvider<String?>((ref) => null);
 
 /// Jour consulté dans le module Usine (aujourd'hui par défaut).
 final plantDayProvider = StateProvider<DateTime>((ref) => _day(DateTime.now()));

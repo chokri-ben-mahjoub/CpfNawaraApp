@@ -6,6 +6,7 @@
 #    le dossier Release : l'app tourne sur un PC neuf sans "VC++ Redistributable"
 # 3. compile installer\puitstrack.iss avec Inno Setup 6
 
+
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root

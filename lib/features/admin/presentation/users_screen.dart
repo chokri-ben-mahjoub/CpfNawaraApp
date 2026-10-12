@@ -1,21 +1,26 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/user_role.dart';
+import '../../../core/sync/firebase_config_provider.dart';
 import '../../../core/sync/firebase_rest.dart';
 import '../../../core/sync/sync_service.dart';
 import '../../../core/team/team_service.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/app_loader.dart';
 import '../../../core/widgets/responsive.dart';
 import '../../settings/presentation/sync_section.dart';
 import '../../setup/presentation/widgets/team_account_form.dart';
 import 'widgets/admin_widgets.dart';
-import '../../../core/widgets/app_loader.dart';
 
 /// Mot de passe provisoire lisible (sans caractères ambigus).
 String generateTempPassword([int length = 10]) {
@@ -24,7 +29,8 @@ String generateTempPassword([int length = 10]) {
   return List.generate(length, (_) => chars[random.nextInt(chars.length)]).join();
 }
 
-/// Utilisateurs et rôles de l'équipe (documents `users/{uid}`).
+/// Utilisateurs de l'entreprise : membres et rôles, invitations par code
+/// (ou QR code), comptes créés directement, désactivation, retrait.
 class UsersScreen extends ConsumerStatefulWidget {
   const UsersScreen({super.key});
 
@@ -34,6 +40,8 @@ class UsersScreen extends ConsumerStatefulWidget {
 
 class _UsersScreenState extends ConsumerState<UsersScreen> {
   List<TeamMember>? _members;
+  List<Invite>? _invites;
+  bool _functions = false;
   Object? _error;
   bool _loading = false;
 
@@ -46,16 +54,27 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
   }
 
   Future<void> _load() async {
-    final sync = ref.read(syncControllerProvider.notifier);
-    if (sync.team == null || !ref.read(syncControllerProvider).isSignedIn) return;
+    final controller = ref.read(syncControllerProvider.notifier);
+    final company = ref.read(syncControllerProvider).company;
+    if (controller.team == null || company == null) return;
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
-      final session = await sync.freshSession();
-      final members = await sync.team!.listMembers(session);
-      if (mounted) setState(() => _members = members);
+      final session = await controller.freshSession();
+      final team = controller.team!;
+      final results = await Future.wait([
+        team.listMembers(session, company.id),
+        team.listInvites(session, company.id),
+        team.functionsAvailable(session),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _members = results[0] as List<TeamMember>;
+        _invites = (results[1] as List<Invite>).where((i) => !i.used && !i.expired).toList();
+        _functions = results[2] as bool;
+      });
     } catch (e) {
       if (mounted) setState(() => _error = e);
     } finally {
@@ -63,12 +82,57 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     }
   }
 
-  Future<void> _openEditor({TeamMember? member, bool approve = false}) async {
+  Future<void> _openEditor({TeamMember? member}) async {
     final changed = await showAdminSheet<bool>(
       context,
-      builder: (sheetContext) => _MemberForm(existing: member, approve: approve),
+      builder: (sheetContext) => _MemberForm(existing: member, functions: _functions),
     );
     if (changed == true) await _load();
+  }
+
+  Future<void> _invite() async {
+    final invite = await showAdminSheet<Invite>(context, builder: (_) => const _InviteForm());
+    if (invite == null || !mounted) return;
+    await _load();
+    if (mounted) await showInviteDialog(context, invite);
+  }
+
+  Future<void> _deleteInvite(Invite invite) async {
+    final controller = ref.read(syncControllerProvider.notifier);
+    final company = ref.read(syncControllerProvider).company!;
+    try {
+      final session = await controller.freshSession();
+      await controller.team!.deleteInvite(session, company.id, invite.code);
+      await _load();
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s(teamErrorKey(e)))));
+    }
+  }
+
+  Future<void> _renameCompany(Company company) async {
+    final text = TextEditingController(text: company.name);
+    final name = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(s('companyRename')),
+        content: TextField(controller: text, autofocus: true, decoration: InputDecoration(labelText: s('companyNameLabel'))),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: Text(s('cancel'))),
+          FilledButton(onPressed: () => Navigator.of(dialogContext).pop(text.text.trim()), child: Text(s('wellsManageSave'))),
+        ],
+      ),
+    );
+    text.dispose();
+    if (name == null || name.length < 2) return;
+    final controller = ref.read(syncControllerProvider.notifier);
+    try {
+      final session = await controller.freshSession();
+      await controller.team!.renameCompany(session, company, name);
+      await controller.refreshMember();
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s(teamErrorKey(e)))));
+    }
   }
 
   @override
@@ -78,8 +142,9 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     final sync = ref.watch(syncControllerProvider);
     final controller = ref.read(syncControllerProvider.notifier);
     String t(String key) => tr(locale, key);
+    final company = sync.company;
 
-    if (controller.team == null || !sync.isSignedIn) {
+    if (controller.team == null || !sync.isSignedIn || company == null) {
       return Scaffold(
         appBar: AppBar(title: Text(t('adminUsers'))),
         body: Center(
@@ -94,11 +159,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                   const SizedBox(height: 16),
                   Text(t('usersLocalTitle'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
                   const SizedBox(height: 8),
-                  Text(
-                    t('usersLocalBody'),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: scheme.onSurfaceVariant),
-                  ),
+                  Text(t('usersLocalBody'), textAlign: TextAlign.center, style: TextStyle(color: scheme.onSurfaceVariant)),
                   const SizedBox(height: 16),
                   FilledButton.icon(
                     onPressed: () => context.push('/settings'),
@@ -114,30 +175,44 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     }
 
     final members = _members ?? const <TeamMember>[];
-    final pending = members.where((m) => m.pending && !m.active).toList();
-    final others = members.where((m) => !(m.pending && !m.active)).toList();
+    final invites = _invites ?? const <Invite>[];
     final problem = _error == null ? null : projectProblemOf(_error!);
+    final dateFormat = DateFormat('d MMM', locale.languageCode);
 
     return Scaffold(
       appBar: AppBar(
         title: Text(t('adminUsers')),
-        actions: [
-          IconButton(tooltip: t('refresh'), onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
-        ],
+        actions: [IconButton(tooltip: t('refresh'), onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh))],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openEditor(),
+        onPressed: _invite,
         icon: const Icon(Icons.person_add_alt_1_outlined),
-        label: Text(t('usersAdd')),
+        label: Text(t('inviteAction')),
       ),
       body: RefreshIndicator(
         onRefresh: _load,
         child: ListView(
           padding: pagePadding(context, top: 8, bottom: 120),
           children: [
-            if (_loading && _members == null)
-              const SkeletonList(),
+            Card(
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                leading: const IconBadge(Icons.business_outlined),
+                title: Text(company.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                subtitle: Text(
+                  _functions ? t('usersFunctionsOn') : t('usersFunctionsOff'),
+                  style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+                ),
+                trailing: IconButton(
+                  tooltip: t('companyRename'),
+                  icon: const Icon(Icons.edit_outlined),
+                  onPressed: () => _renameCompany(company),
+                ),
+              ),
+            ),
+            if (_loading && _members == null) ...[const SizedBox(height: 16), const SkeletonList()],
             if (_error != null) ...[
+              const SizedBox(height: 12),
               if (problem != null && controller.config != null)
                 ProjectProblemCard(problem: problem, config: controller.config!)
               else
@@ -146,26 +221,45 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                   style: TextStyle(color: scheme.error, fontWeight: FontWeight.w600),
                 ),
             ],
-            if (pending.isNotEmpty) ...[
-              AdminSectionTitle('${t('usersPending')} (${pending.length})'),
-              for (final m in pending) ...[
+            if (invites.isNotEmpty) ...[
+              AdminSectionTitle('${t('invitesPending')} (${invites.length})'),
+              for (final invite in invites) ...[
                 AdminCard(
-                  leading: const IconBadge(Icons.hourglass_top_rounded),
-                  title: m.name.isEmpty ? m.email : m.name,
-                  subtitle: m.email,
-                  trailing: FilledButton(
-                    style: FilledButton.styleFrom(backgroundColor: accentColor, foregroundColor: Colors.white),
-                    onPressed: () => _openEditor(member: m, approve: true),
-                    child: Text(t('usersApprove')),
+                  leading: const IconBadge(Icons.vpn_key_outlined),
+                  title: invite.displayCode,
+                  subtitle:
+                      '${t(invite.role.labelKey)} · ${invite.email.isEmpty ? t('inviteAnyEmail') : invite.email} · '
+                      '${fill(t('inviteUntil'), {'date': dateFormat.format(invite.expiresAt)})}',
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        tooltip: t('inviteShow'),
+                        icon: const Icon(Icons.qr_code_2_rounded),
+                        onPressed: () => showInviteDialog(context, invite),
+                      ),
+                      IconButton(
+                        tooltip: t('inviteDelete'),
+                        icon: Icon(Icons.delete_outline, color: scheme.error),
+                        onPressed: () => _deleteInvite(invite),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 8),
               ],
             ],
             if (_members != null) ...[
-              AdminSectionTitle('${t('usersMembers')} (${others.length})'),
+              AdminSectionTitle(
+                '${t('usersMembers')} (${members.length})',
+                trailing: TextButton.icon(
+                  onPressed: () => _openEditor(),
+                  icon: const Icon(Icons.person_add_outlined, size: 18),
+                  label: Text(t('usersAdd')),
+                ),
+              ),
               AdminTable<TeamMember>(
-                items: others,
+                items: members,
                 onTap: (m) => _openEditor(member: m),
                 columns: [
                   AdminColumn(
@@ -218,11 +312,216 @@ class _StatusText extends ConsumerWidget {
   }
 }
 
-/// Création, modification ou validation d'un membre.
+/// Texte d'invitation à envoyer (WhatsApp, e-mail...).
+String inviteMessage(Locale locale, Invite invite) =>
+    fill(tr(locale, 'inviteMessage'), {'company': invite.companyName, 'code': invite.displayCode});
+
+/// Contenu du QR code d'invitation (le code, et le projet Firebase s'il
+/// n'est pas le projet PuitsTrack).
+String inviteQrPayload(WidgetRef ref, Invite invite) {
+  final notifier = ref.read(firebaseConfigProvider.notifier);
+  final config = ref.read(firebaseConfigProvider);
+  return jsonEncode({
+    'app': 'puitstrack',
+    'invite': invite.code,
+    if (notifier.isCustom && config != null) ...config.toJson(),
+  });
+}
+
+/// Code d'invitation à transmettre : en grand, en QR code, à copier ou
+/// partager.
+Future<void> showInviteDialog(BuildContext context, Invite invite) => showDialog<void>(
+  context: context,
+  builder: (dialogContext) => Consumer(
+    builder: (context, ref, _) {
+      final locale = ref.watch(localeProvider);
+      String t(String key) => tr(locale, key);
+      final message = inviteMessage(locale, invite);
+      return AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        title: Text(t('inviteReadyTitle')),
+        content: SizedBox(
+          width: 320,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  fill(t('inviteReadyBody'), {'role': t(invite.role.labelKey)}),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 13),
+                ),
+                const SizedBox(height: 14),
+                SelectableText(
+                  invite.displayCode,
+                  style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w800, letterSpacing: 3, color: accentColor),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+                  child: QrImageView(data: inviteQrPayload(ref, invite), size: 180, backgroundColor: Colors.white),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  fill(t('inviteUntil'), {'date': DateFormat('d MMM yyyy', locale.languageCode).format(invite.expiresAt)}),
+                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton.icon(
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: message));
+              if (dialogContext.mounted) {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(SnackBar(content: Text(t('inviteCopied'))));
+              }
+            },
+            icon: const Icon(Icons.copy_rounded, size: 18),
+            label: Text(t('usersCopyCredentials')),
+          ),
+          TextButton.icon(
+            onPressed: () => Share.share(message),
+            icon: const Icon(Icons.share_outlined, size: 18),
+            label: Text(t('exportActionShare')),
+          ),
+          FilledButton(onPressed: () => Navigator.of(dialogContext).pop(), child: Text(t('ok'))),
+        ],
+      );
+    },
+  ),
+);
+
+/// Nouvelle invitation : rôle, e-mail imposé (facultatif).
+class _InviteForm extends ConsumerStatefulWidget {
+  const _InviteForm();
+
+  @override
+  ConsumerState<_InviteForm> createState() => _InviteFormState();
+}
+
+class _InviteFormState extends ConsumerState<_InviteForm> {
+  final _email = TextEditingController();
+  UserRole _role = UserRole.operator;
+  bool _busy = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _email.dispose();
+    super.dispose();
+  }
+
+  Future<void> _create() async {
+    final controller = ref.read(syncControllerProvider.notifier);
+    final sync = ref.read(syncControllerProvider);
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final session = await controller.freshSession();
+      final invite = await controller.team!.createInvite(
+        session,
+        sync.company!,
+        adminName: controller.displayName,
+        role: _role,
+        email: _email.text,
+      );
+      if (mounted) Navigator.of(context).pop(invite);
+    } catch (e) {
+      setState(() => _error = tr(ref.read(localeProvider), teamErrorKey(e)));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final locale = ref.watch(localeProvider);
+    String t(String key) => tr(locale, key);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(t('inviteAction'), style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+        const SizedBox(height: 4),
+        Text(t('inviteFormHint'), style: TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant)),
+        const SizedBox(height: 16),
+        Text(t('usersRole'), style: const TextStyle(fontWeight: FontWeight.w800)),
+        RoleRadioList(value: _role, onChanged: (r) => setState(() => _role = r)),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _email,
+          keyboardType: TextInputType.emailAddress,
+          decoration: InputDecoration(
+            labelText: t('inviteEmailLabel'),
+            helperText: t('inviteEmailHint'),
+            prefixIcon: const Icon(Icons.alternate_email),
+          ),
+        ),
+        if (_error != null) ...[
+          const SizedBox(height: 8),
+          Text(_error!, style: TextStyle(color: scheme.error, fontWeight: FontWeight.w600)),
+        ],
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 50,
+          child: FilledButton.icon(
+            style: FilledButton.styleFrom(backgroundColor: accentColor, foregroundColor: Colors.white),
+            onPressed: _busy ? null : _create,
+            icon: _busy
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.vpn_key_outlined),
+            label: Text(t('inviteCreate'), style: const TextStyle(fontWeight: FontWeight.w700)),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Choix du rôle (avec description).
+class RoleRadioList extends ConsumerWidget {
+  final UserRole value;
+  final ValueChanged<UserRole> onChanged;
+  final bool enabled;
+  const RoleRadioList({super.key, required this.value, required this.onChanged, this.enabled = true});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final locale = ref.watch(localeProvider);
+    String t(String key) => tr(locale, key);
+    return RadioGroup<UserRole>(
+      groupValue: value,
+      onChanged: (v) {
+        if (enabled && v != null) onChanged(v);
+      },
+      child: Column(
+        children: [
+          for (final role in UserRole.values)
+            RadioListTile<UserRole>(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              value: role,
+              enabled: enabled,
+              title: Text(t(role.labelKey), style: const TextStyle(fontWeight: FontWeight.w700)),
+              subtitle: Text(t(role.descriptionKey)),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Création (compte direct) ou modification d'un membre.
 class _MemberForm extends ConsumerStatefulWidget {
   final TeamMember? existing;
-  final bool approve;
-  const _MemberForm({this.existing, this.approve = false});
+  final bool functions;
+  const _MemberForm({this.existing, required this.functions});
 
   @override
   ConsumerState<_MemberForm> createState() => _MemberFormState();
@@ -248,8 +547,8 @@ class _MemberFormState extends ConsumerState<_MemberForm> {
     _name = TextEditingController(text: m?.name ?? '');
     _email = TextEditingController(text: m?.email ?? '');
     _password = TextEditingController(text: generateTempPassword());
-    _role = widget.approve ? UserRole.operator : (m?.role ?? UserRole.operator);
-    _active = widget.approve ? true : (m?.active ?? true);
+    _role = m?.role ?? UserRole.operator;
+    _active = m?.active ?? true;
     _service = m?.service ?? '';
   }
 
@@ -265,20 +564,31 @@ class _MemberFormState extends ConsumerState<_MemberForm> {
 
   bool get _isSelf => widget.existing?.uid == ref.read(syncControllerProvider).member?.uid;
 
-  Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
+  Future<T?> _run<T>(Future<T> Function(AuthSession session, TeamService team, String cid) action) async {
     setState(() {
       _busy = true;
       _error = null;
     });
     final controller = ref.read(syncControllerProvider.notifier);
-    final team = controller.team!;
-    final adminName = ref.read(syncControllerProvider).member?.name ?? '';
     try {
       final session = await controller.freshSession();
+      return await action(session, controller.team!, ref.read(syncControllerProvider).company!.id);
+    } catch (e) {
+      setState(() => _error = s(teamErrorKey(e)));
+      return null;
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    final adminName = ref.read(syncControllerProvider.notifier).displayName;
+    final done = await _run((session, team, cid) async {
       if (_isNew) {
         final member = await team.createMember(
           session,
+          cid,
           adminName: adminName,
           email: _email.text.trim(),
           password: _password.text,
@@ -286,12 +596,13 @@ class _MemberFormState extends ConsumerState<_MemberForm> {
           role: _role,
           service: _service,
         );
-        if (!mounted) return;
-        await _showCredentials(member.email, _password.text);
+        if (mounted) await _showCredentials(member.email, _password.text);
       } else {
         await team.updateMember(
           session,
+          cid,
           adminName: adminName,
+          previousActive: widget.existing!.active,
           member: widget.existing!.copyWith(
             name: _name.text.trim(),
             role: _role,
@@ -301,16 +612,36 @@ class _MemberFormState extends ConsumerState<_MemberForm> {
           ),
         );
       }
-      if (mounted) Navigator.of(context).pop(true);
-    } on SyncAuthException catch (e) {
-      setState(() => _error = s(authErrorKey(e.code)));
-    } on SyncNetworkException {
-      setState(() => _error = s('syncOffline'));
-    } catch (_) {
-      setState(() => _error = s('syncErrorServer'));
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
+      return true;
+    });
+    if (done == true && mounted) Navigator.of(context).pop(true);
+  }
+
+  Future<void> _remove() async {
+    final member = widget.existing!;
+    final ok = await confirmDanger(
+      context,
+      title: s('usersRemoveTitle'),
+      body: fill(s(widget.functions ? 'usersRemoveBodyFull' : 'usersRemoveBody'), {'email': member.email}),
+      confirm: s('usersRemove'),
+      cancel: s('cancel'),
+    );
+    if (!ok) return;
+    final adminName = ref.read(syncControllerProvider.notifier).displayName;
+    final done = await _run((session, team, cid) async {
+      await team.removeMember(session, cid, adminName: adminName, member: member);
+      return true;
+    });
+    if (done == true && mounted) Navigator.of(context).pop(true);
+  }
+
+  Future<void> _setPassword() async {
+    final password = generateTempPassword();
+    final done = await _run((session, team, cid) async {
+      await team.setMemberPassword(session, cid, uid: widget.existing!.uid, password: password);
+      return true;
+    });
+    if (done == true && mounted) await _showCredentials(widget.existing!.email, password);
   }
 
   Future<void> _showCredentials(String email, String password) async {
@@ -336,7 +667,7 @@ class _MemberFormState extends ConsumerState<_MemberForm> {
   Future<void> _resetPassword() async {
     final messenger = ScaffoldMessenger.of(context);
     try {
-      await ref.read(syncControllerProvider.notifier).team!.sendPasswordReset(widget.existing!.email);
+      await ref.read(syncControllerProvider.notifier).sendPasswordReset(widget.existing!.email);
       messenger.showSnackBar(SnackBar(content: Text(fill(s('usersResetSent'), {'email': widget.existing!.email}))));
     } catch (_) {
       messenger.showSnackBar(SnackBar(content: Text(s('syncErrorServer'))));
@@ -348,7 +679,6 @@ class _MemberFormState extends ConsumerState<_MemberForm> {
     final scheme = Theme.of(context).colorScheme;
     final locale = ref.watch(localeProvider);
     String t(String key) => tr(locale, key);
-    final title = _isNew ? t('usersAdd') : (widget.approve ? t('usersApproveTitle') : t('usersEdit'));
 
     return Form(
       key: _formKey,
@@ -356,7 +686,10 @@ class _MemberFormState extends ConsumerState<_MemberForm> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+          Text(
+            _isNew ? t('usersAdd') : t('usersEdit'),
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+          ),
           if (!_isNew) ...[
             const SizedBox(height: 2),
             Text(widget.existing!.email, style: TextStyle(color: scheme.onSurfaceVariant)),
@@ -394,67 +727,60 @@ class _MemberFormState extends ConsumerState<_MemberForm> {
           ],
           const SizedBox(height: 16),
           Text(t('usersRole'), style: const TextStyle(fontWeight: FontWeight.w800)),
-          const SizedBox(height: 8),
-          RadioGroup<UserRole>(
-            groupValue: _role,
-            onChanged: (v) {
-              if (!_isSelf) setState(() => _role = v ?? _role);
-            },
-            child: Column(
-              children: [
-                for (final role in UserRole.values)
-                  RadioListTile<UserRole>(
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                    value: role,
-                    enabled: !_isSelf,
-                    title: Text(t(role.labelKey), style: const TextStyle(fontWeight: FontWeight.w700)),
-                    subtitle: Text(t(role.descriptionKey)),
-                  ),
-              ],
-            ),
-          ),
+          RoleRadioList(value: _role, enabled: !_isSelf, onChanged: (r) => setState(() => _role = r)),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
             isExpanded: true,
             initialValue: serviceKeys.contains(_service) ? _service : '',
-            decoration: InputDecoration(
-              labelText: t('signupServiceLabel'),
-              prefixIcon: const Icon(Icons.groups_outlined),
-            ),
+            decoration: InputDecoration(labelText: t('signupServiceLabel'), prefixIcon: const Icon(Icons.groups_outlined)),
             items: [
               DropdownMenuItem(value: '', child: Text(t('settingsServiceNone'))),
               for (final key in serviceKeys) DropdownMenuItem(value: key, child: Text(t(key))),
             ],
             onChanged: (v) => setState(() => _service = v ?? ''),
           ),
-          if (!_isNew && !widget.approve) ...[
+          if (!_isNew) ...[
             const SizedBox(height: 8),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: Text(t('usersActive')),
-              subtitle: Text(t(_active ? 'usersActiveHint' : 'usersInactiveHint')),
+              subtitle: Text(
+                t(_active ? 'usersActiveHint' : (widget.functions ? 'usersInactiveHintFull' : 'usersInactiveHint')),
+              ),
               value: _active,
               activeTrackColor: accentColor,
               onChanged: _isSelf ? null : (v) => setState(() => _active = v),
             ),
             if (_isSelf) Text(t('usersSelfHint'), style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
             const SizedBox(height: 4),
-            Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: TextButton.icon(
-                onPressed: _busy ? null : _resetPassword,
-                icon: const Icon(Icons.lock_reset_rounded, size: 18),
-                label: Text(t('usersResetPassword')),
-              ),
+            Wrap(
+              spacing: 4,
+              runSpacing: 4,
+              children: [
+                TextButton.icon(
+                  onPressed: _busy ? null : _resetPassword,
+                  icon: const Icon(Icons.lock_reset_rounded, size: 18),
+                  label: Text(t('usersResetPassword')),
+                ),
+                if (widget.functions && !_isSelf)
+                  TextButton.icon(
+                    onPressed: _busy ? null : _setPassword,
+                    icon: const Icon(Icons.password_rounded, size: 18),
+                    label: Text(t('usersSetPassword')),
+                  ),
+                if (!_isSelf)
+                  TextButton.icon(
+                    onPressed: _busy ? null : _remove,
+                    style: TextButton.styleFrom(foregroundColor: scheme.error),
+                    icon: const Icon(Icons.person_remove_outlined, size: 18),
+                    label: Text(t('usersRemove')),
+                  ),
+              ],
             ),
           ],
           if (_error != null) ...[
             const SizedBox(height: 8),
-            Text(
-              _error!,
-              style: TextStyle(color: scheme.error, fontWeight: FontWeight.w600),
-            ),
+            Text(_error!, style: TextStyle(color: scheme.error, fontWeight: FontWeight.w600)),
           ],
           const SizedBox(height: 16),
           SizedBox(
@@ -464,36 +790,9 @@ class _MemberFormState extends ConsumerState<_MemberForm> {
               onPressed: _busy ? null : _save,
               child: _busy
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : Text(
-                      t(_isNew ? 'usersCreate' : (widget.approve ? 'usersApprove' : 'wellsManageSave')),
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
+                  : Text(t(_isNew ? 'usersCreate' : 'wellsManageSave'), style: const TextStyle(fontWeight: FontWeight.w700)),
             ),
           ),
-          if (widget.approve) ...[
-            const SizedBox(height: 8),
-            TextButton(
-              onPressed: _busy
-                  ? null
-                  : () async {
-                      setState(() => _active = false);
-                      final controller = ref.read(syncControllerProvider.notifier);
-                      try {
-                        final session = await controller.freshSession();
-                        await controller.team!.updateMember(
-                          session,
-                          adminName: ref.read(syncControllerProvider).member?.name ?? '',
-                          member: widget.existing!.copyWith(active: false, pending: false, role: UserRole.reader),
-                        );
-                        if (context.mounted) Navigator.of(context).pop(true);
-                      } catch (_) {
-                        setState(() => _error = s('syncErrorServer'));
-                      }
-                    },
-              style: TextButton.styleFrom(foregroundColor: scheme.error),
-              child: Text(t('usersRefuse')),
-            ),
-          ],
         ],
       ),
     );

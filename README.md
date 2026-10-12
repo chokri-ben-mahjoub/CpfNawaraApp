@@ -86,32 +86,59 @@ gaz, par circuit (`lib/core/plant/`, `lib/features/plant/`).
   seuil et non analysés du jour), rapport journalier PDF par circuit ou
   complet (`plant_report.dart`, paquet `pdf`), export Excel/CSV de toutes
   les analyses (une feuille par circuit).
+- **Schémas configurables** (table `plant_schemas`, v11,
+  `plant_schema_screens.dart`) : schéma de procédé intégré, **image
+  importée** (photo, scan ou capture du PFD, réduite et compressée en JPEG
+  < 700 Ko pour tenir dans un document Firestore, `schema_image.dart`) ou
+  fond quadrillé. L'admin ajoute un schéma (Usine › Schéma › icône image, ou
+  Administration › Schémas de l'usine), puis place les points en les faisant
+  glisser ; positions en fractions de la largeur / hauteur
+  (`positions_json`).
+- **Vue « Courbes »** (`plant_trends_view.dart`) : plus fortes variations
+  entre les deux dernières analyses, puis par circuit (groupe de points) les
+  courbes lissées d'un paramètre pour tous les points ; hausse en orange,
+  baisse en bleu (pastille ▲/▼ en %, aussi dans le tableau des valeurs).
 - Aucun seuil n'est prédéfini : à régler par point (icône réglages de la
   fiche point), selon les spécifications de l'usine.
 
-## Équipe, synchronisation et Administration (Firebase)
+## Entreprises, synchronisation et Administration (Firebase)
 
-Tout se configure depuis l'app, sans fichier à modifier.
+Tout se gère dans l'app : aucun fichier à modifier, aucune console pour les
+clients. Un seul projet Firebase (`puitstrack`, intégré) héberge toutes les
+entreprises, chacune isolée par les règles Firestore.
 
 ### Installation (premier lancement)
 
-1. **Mode** : « Équipe (synchronisé) » ou « Personnel (sur cet appareil) »
-   (local, sans compte, comme avant).
-2. **Projet Firebase** : projet PuitsTrack intégré (un clic), **coller** la
-   configuration (objet `firebaseConfig` de la console ou
-   `google-services.json`), ou **scanner le QR code** affiché par
-   l'administrateur (Administration › Projet Firebase). Enregistré sur
-   l'appareil (`lib/core/sync/firebase_config_provider.dart`).
-3. **Compte** : le **premier compte créé devient administrateur** ; les
-   suivants envoient une demande d'accès validée par l'administrateur (ou
-   l'administrateur crée les comptes lui-même).
+- **Créer mon entreprise** : nom de l'entreprise + e-mail + mot de passe ;
+  le créateur devient **admin**.
+- **Rejoindre mon entreprise** : code d'invitation `ABCD-EFGH` (ou QR code)
+  créé par l'admin dans Administration › Utilisateurs › **Inviter** (usage
+  unique, 7 jours, e-mail imposé facultatif, rôle fixé par l'admin).
+- **J'ai déjà un compte** : l'entreprise et ses données sont retrouvées.
+- **Personnel (sur cet appareil)** : local, sans compte.
+- *Options avancées* : projet Firebase personnalisé (coller la configuration
+  ou scanner un QR) ; il faut alors y publier `firestore.rules`.
 
-Une seule fois dans la console Firebase (l'app détecte ce qui manque et
-ouvre la bonne page) : activer *Authentication › E-mail/Mot de passe*,
-créer *Firestore Database*, publier les **règles** (`firestore.rules`,
-copiables depuis Administration › Projet Firebase).
+Un appareil est lié à une entreprise : s'il passe à une autre, une
+sauvegarde JSON est faite puis la base locale est remise à zéro.
 
-### Rôles (`users/{uid}` : email, nom, role, actif)
+### Mise en ligne (propriétaire du projet, une fois par version)
+
+```
+firebase login
+powershell -ExecutionPolicy Bypass -File tool\deploy.ps1            # règles + site web
+powershell -ExecutionPolicy Bypass -File tool\deploy.ps1 -Functions # + Cloud Functions (forfait Blaze)
+```
+
+Les **Cloud Functions** (`functions/index.js`, Admin SDK, europe-west1 :
+`createMember`, `setMemberActive`, `deleteMember`, `setMemberPassword`) sont
+facultatives. Sans elles (forfait Spark gratuit), l'app passe en « mode
+simple » : comptes créés par inscription REST, désactivation par
+`actif: false` (plus aucun accès aux données, mais la connexion reste
+possible). Chaque fonction vérifie que l'appelant est admin actif de la même
+entreprise que le compte visé.
+
+### Rôles (`companies/{cid}/members/{uid}` : email, nom, role, actif)
 
 | Rôle | Droits |
 |---|---|
@@ -121,7 +148,7 @@ copiables depuis Administration › Projet Firebase).
 | `lecteur` | consultation |
 
 Compte `actif: false` : plus aucun accès. Les règles Firestore lisent le
-rôle (`users/{uid}.role`) ; l'app masque et bloque aussi les écrans
+rôle (`companies/{cid}/members/{uid}.role`) ; l'app masque et bloque aussi les écrans
 (`/admin/*` réservé à l'admin, saisie masquée au lecteur, interventions
 réservées à l'ingénieur et à l'admin). Sans compte d'équipe, l'utilisateur
 de l'appareil est administrateur de ses données locales.
@@ -129,33 +156,31 @@ de l'appareil est administrateur de ses données locales.
 ### Modèle Firestore
 
 ```
-config/setup                 { ownerUid, ownerEmail, createdAt }   premier admin (une seule fois)
-users/{uid}                  { email, nom, role, actif, service, demande, createdAt, updatedAt }
-wells/{id}                   { code, name, group_name, well_type, status, latitude, longitude,
-                               reservoir_pressure, active, updated_at, deleted, syncedAt }
-analysis_types/{id}          { label, unit, min_value, max_value, frequency, ... }
-analysis_records/{id}        { well_id, type_id, value, service_key, operator_name, recorded_at, ... }
-interventions/{id}           { well_id, intervention_date, type_key, cost, currency, result_key, ... }
-sample_points/{id}           { code, circuit, name, equipment, profile, params_json, active, ... }
-plant_analyses/{point_date}  { point_id, analysis_date, values_json, source, operator_name, ... }
-plant_thresholds/{point_param} { point_id, param_key, min_value, max_value, alert_enabled, ... }
-app_config/{clé}             { value }   ex: missing_deadline = "10:00"
-audit/{id}                   { uid, email, nom, action, table, docId, label, changedAt, at }
+accounts/{uid}                         { companyId }            une entreprise par compte
+inviteCodes/{code}                     { companyId, companyName, role, expiresAt }   aperçu public
+config/rules_v3                        sonde de version des règles
+companies/{cid}                        { name, ownerUid, createdAt }
+companies/{cid}/members/{uid}          { email, nom, role, actif, service, invite, updatedAt }
+companies/{cid}/invites/{code}         { role, email, expiresAt, used, usedBy, usedAt, createdBy }
+companies/{cid}/meta/sync              { lastChange }   repère : une seule lecture si rien n'a changé
+companies/{cid}/audit/{id}             { uid, email, nom, action, table, docId, label, at }
+companies/{cid}/{table}/{id}           données : wells, analysis_types, analysis_records,
+                                       interventions, sample_points, plant_circuits,
+                                       plant_analyses, plant_thresholds, app_config
 ```
 
-Une collection par table de la base locale (données partagées par
-l'équipe). Valeurs toujours en SI ; l'affichage SI/API se règle par
+Une collection par table de la base locale, sous l'entreprise. Valeurs toujours en SI ; l'affichage SI/API se règle par
 appareil.
 
 ### Administration (icône bouclier en haut, ou Réglages › Administration)
 
 `lib/features/admin/presentation/` :
 
-- **Utilisateurs et rôles** (`users_screen.dart`) : liste (tableau sur
-  grand écran), ajout avec mot de passe provisoire **sans déconnecter
-  l'admin** (inscription REST dont la session n'est pas conservée),
-  modification du rôle, désactivation, e-mail de réinitialisation du mot
-  de passe, validation des demandes d'accès.
+- **Utilisateurs et rôles** (`users_screen.dart`) : entreprise (renommer,
+  état des fonctions serveur), invitations en attente, membres ; **Inviter**
+  (code + QR + partage), ajout direct avec mot de passe provisoire,
+  rôle, désactivation, retrait, nouveau mot de passe (fonctions) ou e-mail
+  de réinitialisation.
 - **Puits** (`wells_manage_screen.dart`) : nom, code, champ, type, statut,
   latitude/longitude (lien carte), Pr.
 - **Points de prélèvement** (`sample_points_screen.dart`) : code, circuit,
@@ -167,9 +192,9 @@ appareil.
 - **Données** (`data_admin_screen.dart`) : import CSV/Excel (formats long,
   large et usine, aperçu, doublons ignorés, modèles téléchargeables ; les
   exports de l'app se réimportent), export complet, sauvegarde JSON.
-- **Projet Firebase** (`firebase_project_screen.dart`) : configuration, QR
-  code pour les autres appareils, test réseau / compte / base / règles,
-  règles à copier.
+- **Projet Firebase** (`firebase_project_screen.dart`) : projet utilisé,
+  test réseau / compte / base / règles / fonctions, règles à copier
+  (projet personnalisé).
 - **Journal d'audit** (`audit_screen.dart`) : chaque envoi à l'équipe est
   enregistré (qui, quoi, quand), filtres par utilisateur et par donnée.
 
@@ -190,9 +215,10 @@ connexion et de la synchronisation.
   premier plan.
 - **Sans SDK natif** : API REST Firebase (Identity Toolkit + Firestore) en
   pur Dart → même code sur Android, Windows et web.
-- **Tests** : `test/sync_emulator_test.dart` (premier admin, demande
-  d'accès, rôles, désactivation, audit, deux appareils, conflit) contre les
-  émulateurs : `firebase emulators:start --only auth,firestore --project
+- **Tests** : `test/sync_emulator_test.dart` (entreprise, invitations,
+  isolation entre entreprises, rôles, Cloud Functions, deux appareils,
+  conflit, repère) contre les émulateurs : `cd functions && npm install`,
+  puis `firebase emulators:start --only auth,firestore,functions --project
   puitstrack` (Java requis), puis `flutter test`. App branchée sur les
   émulateurs : `--dart-define=SYNC_EMULATOR=true`. Après modification de
   `firestore.rules` : `python tool/gen_rules_dart.py`.
@@ -252,7 +278,7 @@ python tool/serve_web.py        # test local : http://localhost:8765
   comme une app (PWA, `web/manifest.json`).
 - Mise en ligne sur Firebase Hosting (projet `puitstrack`, `firebase.json`
   déjà prêt) : `npm install -g firebase-tools`, `firebase login`, puis
-  `firebase deploy --only hosting`.
+  `tool\deploy.ps1` (voir « Mise en ligne »).
 
 ## Ce qui est inclus
 
