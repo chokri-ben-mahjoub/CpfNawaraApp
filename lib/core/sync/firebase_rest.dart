@@ -155,6 +155,23 @@ class FirebaseAuthRest {
     });
   }
 
+  /// E-mail de vérification de l'adresse du compte connecté.
+  Future<void> sendEmailVerification(AuthSession session) async {
+    await _post('${config.authBaseUrl}/accounts:sendOobCode?key=${config.apiKey}', {
+      'requestType': 'VERIFY_EMAIL',
+      'idToken': session.idToken,
+    });
+  }
+
+  /// L'adresse du compte a-t-elle été vérifiée (lien de l'e-mail ouvert) ?
+  Future<bool> emailVerified(AuthSession session) async {
+    final body = await _post('${config.authBaseUrl}/accounts:lookup?key=${config.apiKey}', {
+      'idToken': session.idToken,
+    });
+    final users = body['users'];
+    return users is List && users.isNotEmpty && (users.first as Map)['emailVerified'] == true;
+  }
+
   Future<Map<String, Object?>> _post(String url, Map<String, Object?> payload) async {
     final response = await _send(
       client.post(Uri.parse(url), headers: {'Content-Type': 'application/json'}, body: jsonEncode(payload)),

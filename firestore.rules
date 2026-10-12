@@ -27,6 +27,25 @@ service cloud.firestore {
     function accountPath(uid) {
       return /databases/$(database)/documents/accounts/$(uid);
     }
+    function activationPath(code) {
+      return /databases/$(database)/documents/activationCodes/$(code);
+    }
+    // Propriétaire de PuitsTrack (vend les codes d'activation) : son
+    // adresse, vérifiée par e-mail. Voir platformOwnerEmail (app_info.dart).
+    function isOwner() {
+      return signedIn() && request.auth.token.email == 'chokribenmahjoub@gmail.com'
+        && request.auth.token.email_verified == true;
+    }
+    // Code d'activation valide pour créer l'entreprise cid : non utilisé,
+    // marqué utilisé par ce compte pour cette entreprise dans la même
+    // écriture groupée.
+    function validActivation(cid) {
+      let code = request.resource.data.get('activation', '');
+      return code is string && code != ''
+        && get(activationPath(code)).data.used == false
+        && getAfter(activationPath(code)).data.usedBy == request.auth.uid
+        && getAfter(activationPath(code)).data.companyId == cid;
+    }
     function me(cid) {
       return get(memberPath(cid, request.auth.uid)).data;
     }
@@ -70,7 +89,7 @@ service cloud.firestore {
     }
 
     // Sonde de version des règles (document jamais créé).
-    match /config/rules_v3 {
+    match /config/rules_v4 {
       allow get: if signedIn();
     }
 
@@ -94,13 +113,31 @@ service cloud.firestore {
       allow delete: if signedIn() && isAdmin(resource.data.companyId);
     }
 
+    // Codes d'activation : créés par le propriétaire pour chaque client ;
+    // nécessaires pour créer une entreprise (usage unique).
+    match /activationCodes/{code} {
+      // Connaître le code suffit à le lire (il est secret).
+      allow get: if true;
+      allow list, delete: if isOwner();
+      allow create: if isOwner() && request.resource.data.used == false;
+      // Utilisation par le client, dans l'écriture qui crée son entreprise.
+      allow update: if signedIn() && resource.data.used == false
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['used', 'usedBy', 'usedAt', 'companyId'])
+        && request.resource.data.used == true
+        && request.resource.data.usedBy == request.auth.uid
+        && getAfter(companyPath(request.resource.data.companyId)).data.activation == code;
+    }
+
     match /companies/{cid} {
-      allow get: if isMember(cid);
-      // Création par son fondateur, qui en devient l'administrateur.
+      allow get: if isMember(cid) || isOwner();
+      allow list: if isOwner();
+      // Création par son fondateur, qui en devient l'administrateur, avec
+      // un code d'activation (sauf le propriétaire).
       allow create: if signedIn()
         && request.resource.data.ownerUid == request.auth.uid
         && !exists(accountPath(request.auth.uid))
-        && getAfter(memberPath(cid, request.auth.uid)).data.role == 'admin';
+        && getAfter(memberPath(cid, request.auth.uid)).data.role == 'admin'
+        && (isOwner() || validActivation(cid));
       allow update: if isAdmin(cid) && request.resource.data.ownerUid == resource.data.ownerUid;
 
       match /members/{uid} {

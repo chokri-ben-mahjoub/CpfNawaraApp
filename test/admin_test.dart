@@ -5,6 +5,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:puitstrack/core/app_info.dart';
 import 'package:puitstrack/core/config/shared_config.dart';
 import 'package:puitstrack/core/data/wells_repository.dart';
 import 'package:puitstrack/core/export/excel_exporter.dart';
@@ -103,11 +104,19 @@ void main() {
   test('règles : la copie intégrée à l\'app est identique à firestore.rules', () {
     final file = File('firestore.rules').readAsStringSync().replaceAll('\r\n', '\n');
     expect(firestoreRules.replaceAll('\r\n', '\n'), file);
-    expect(firestoreRules, contains('match /config/rules_v3'));
+    expect(firestoreRules, contains('match /config/rules_v4'));
+    expect(
+      firestoreRules,
+      contains("request.auth.token.email == '$platformOwnerEmail'"),
+      reason: 'propriétaire identique dans app_info.dart et firestore.rules',
+    );
   });
 
   test("règles : mêmes tables que la base locale, toutes modifiables par l'admin", () {
-    final match = RegExp(r'function dataTables\(\) \{\s*return \[([^\]]+)\]', multiLine: true).firstMatch(firestoreRules)!;
+    final match = RegExp(
+      r'function dataTables\(\) \{\s*return \[([^\]]+)\]',
+      multiLine: true,
+    ).firstMatch(firestoreRules)!;
     final ruleTables = RegExp("'([a-z_]+)'").allMatches(match.group(1)!).map((m) => m.group(1)).toSet();
     expect(ruleTables, LocalDatabase.dataTables.toSet(), reason: "nouvelle table : l'ajouter à firestore.rules");
     expect(UserRole.admin.writableTables, LocalDatabase.dataTables.toSet());

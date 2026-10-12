@@ -6,6 +6,10 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
+
+import 'dart:convert';
+
+import 'package:puitstrack/core/app_info.dart';
 import 'package:puitstrack/core/data/local_database.dart';
 import 'package:puitstrack/core/models/user_role.dart';
 import 'package:puitstrack/core/sync/firebase_config.dart';
@@ -87,6 +91,36 @@ void main() {
   late AuthSession adminA;
   late Company alpha;
   late AuthSession operatorA;
+  late AuthSession owner;
+
+  /// Compte propriétaire de l'émulateur, adresse vérifiée (lien de l'e-mail
+  /// lu dans l'émulateur Auth).
+  Future<AuthSession> ownerSession() async {
+    AuthSession session;
+    try {
+      session = await auth.signUp(platformOwnerEmail, 'secret123');
+    } on SyncAuthException {
+      session = await auth.signIn(platformOwnerEmail, 'secret123');
+    }
+    if (await auth.emailVerified(session)) return auth.refresh(session);
+    await auth.sendEmailVerification(session);
+    final codes = jsonDecode(
+      (await http.get(Uri.parse('http://127.0.0.1:9099/emulator/v1/projects/puitstrack/oobCodes'))).body,
+    ) as Map<String, Object?>;
+    final code = (codes['oobCodes'] as List).cast<Map>().lastWhere(
+      (c) => c['email'] == platformOwnerEmail && c['requestType'] == 'VERIFY_EMAIL',
+    )['oobCode'];
+    await http.post(
+      Uri.parse('http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:update?key=${_config.apiKey}'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'oobCode': code}),
+    );
+    expect(await auth.emailVerified(session), isTrue);
+    return auth.refresh(session);
+  }
+
+  /// Nouveau code d'activation (créé par le propriétaire).
+  Future<String> newActivation(String label) async => (await team.createActivationCode(owner, label)).code;
 
   setUpAll(() async {
     sqfliteFfiInit();
@@ -95,7 +129,10 @@ void main() {
     dir = await Directory.systemTemp.createTemp('puitstrack_sync_');
     if (running) {
       // Repart d'un Firestore vide.
-      await http.delete(Uri.parse('http://127.0.0.1:8080/emulator/v1/projects/puitstrack/databases/(default)/documents'));
+      await http.delete(
+        Uri.parse('http://127.0.0.1:8080/emulator/v1/projects/puitstrack/databases/(default)/documents'),
+      );
+      owner = await ownerSession();
     }
   });
 
@@ -130,7 +167,19 @@ void main() {
     adminA = await auth.signUp('admin.a$stamp@example.com', 'secret123');
     expect(await team.probeRules(adminA), RulesStatus.ok, reason: 'règles publiées (émulateur)');
     expect(await team.companyIdOf(adminA), isNull);
-    final (company, member) = await team.createCompany(adminA, companyName: 'Alpha', name: 'Admin A');
+    // Sans code d'activation : refusé (seul le propriétaire s'en passe).
+    await expectLater(team.createCompany(adminA, companyName: 'Alpha', name: 'Admin A'), _denied());
+    await expectLater(
+      team.createCompany(adminA, companyName: 'Alpha', name: 'Admin A', activation: 'ZZZZ-ZZZZ'),
+      throwsA(isA<ActivationException>().having((e) => e.reason, 'reason', 'unknown')),
+    );
+    final activation = await newActivation('Client Alpha');
+    final (company, member) = await team.createCompany(
+      adminA,
+      companyName: 'Alpha',
+      name: 'Admin A',
+      activation: formatInviteCode(activation),
+    );
     alpha = company;
     expect(member.role, UserRole.admin);
     expect(await team.companyIdOf(adminA), alpha.id);
@@ -138,6 +187,15 @@ void main() {
     await expectLater(
       team.createCompany(adminA, companyName: 'Alpha bis', name: 'A'),
       throwsA(isA<AlreadyInCompanyException>()),
+    );
+    // Code utilisé une seule fois, rattaché à l'entreprise.
+    final used = (await team.previewActivation(activation))!;
+    expect(used.used, isTrue);
+    expect(used.companyId, alpha.id);
+    final other = await auth.signUp('other$stamp@example.com', 'secret123');
+    await expectLater(
+      team.createCompany(other, companyName: 'Copie', name: 'X', activation: activation),
+      throwsA(isA<ActivationException>().having((e) => e.reason, 'reason', 'used')),
     );
 
     // Un autre compte ne peut ni s'ajouter à l'entreprise, ni la lire.
@@ -249,7 +307,12 @@ void main() {
   test('isolation entre entreprises', () async {
     if (!running) return markTestSkipped('Émulateurs Firebase non démarrés');
     final adminB = await auth.signUp('admin.b$stamp@example.com', 'secret123');
-    final (beta, _) = await team.createCompany(adminB, companyName: 'Beta', name: 'Admin B');
+    final (beta, _) = await team.createCompany(
+      adminB,
+      companyName: 'Beta',
+      name: 'Admin B',
+      activation: await newActivation('Client Beta'),
+    );
     // Données d'Alpha.
     await firestore.commit(adminA.idToken, [
       write('${alpha.path}/wells/wa', {'code': 'A-1', 'name': 'Puits Alpha', 'updated_at': 1}),
@@ -265,6 +328,36 @@ void main() {
     );
     expect(await list(adminB, beta.path, 'wells'), isEmpty);
     expect((await list(adminA, alpha.path, 'wells')).length, 1);
+  });
+
+  test('codes d\'activation : propriétaire seul, liste des clients', () async {
+    if (!running) return markTestSkipped('Émulateurs Firebase non démarrés');
+    // Un client ne crée ni ne liste de codes, ni ne voit les autres entreprises.
+    await expectLater(team.createActivationCode(adminA, 'Pirate'), _denied());
+    await expectLater(team.listActivationCodes(adminA), _denied());
+    await expectLater(team.listCompanies(adminA), _denied());
+    // Ne peut pas « utiliser » un code sans créer d'entreprise avec.
+    final code = await newActivation('Client Delta');
+    await expectLater(
+      firestore.commit(adminA.idToken, [
+        {
+          'update': {
+            'name': _config.documentName('activationCodes/$code'),
+            'fields': encodeFields({'used': true, 'usedBy': adminA.uid, 'companyId': alpha.id}),
+          },
+          'updateMask': {
+            'fieldPaths': ['used', 'usedBy', 'companyId'],
+          },
+        },
+      ]),
+      _denied(),
+    );
+    // Le propriétaire voit les codes et les entreprises, et supprime un code.
+    final codes = await team.listActivationCodes(owner);
+    expect(codes.firstWhere((c) => c.label == 'Client Alpha').companyId, alpha.id);
+    expect((await team.listCompanies(owner)).map((c) => c.name), contains('Alpha'));
+    await team.deleteActivationCode(owner, code);
+    expect(await team.previewActivation(code), isNull);
   });
 
   test('photo de profil : sur la fiche du membre, par lui seul, conservée par l\'admin', () async {
@@ -295,7 +388,12 @@ void main() {
     // Photo trop lourde refusée.
     await expectLater(team.setOwnPhoto(operatorA, alpha.id, 'A' * 200000, 2000), _denied());
     // L'administrateur modifie la fiche : la photo reste.
-    await team.updateMember(adminA, alpha.id, adminName: 'Admin A', member: member.copyWith(service: 'serviceLab'));
+    await team.updateMember(
+      adminA,
+      alpha.id,
+      adminName: 'Admin A',
+      member: member.copyWith(service: 'serviceLab'),
+    );
     member = (await team.member(operatorA, alpha.id))!;
     expect(member.photo, photo);
     expect(member.service, 'serviceLab');
@@ -392,7 +490,12 @@ void main() {
 
     // Un administrateur d'une autre entreprise ne peut rien sur ce compte.
     final adminC = await auth.signUp('admin.c$stamp@example.com', 'secret123');
-    final (gamma, _) = await team.createCompany(adminC, companyName: 'Gamma', name: 'Admin C');
+    final (gamma, _) = await team.createCompany(
+      adminC,
+      companyName: 'Gamma',
+      name: 'Admin C',
+      activation: await newActivation('Client Gamma'),
+    );
     await expectLater(
       team.functions.call(adminC.idToken, 'setMemberPassword', {
         'companyId': gamma.id,
@@ -417,16 +520,32 @@ void main() {
       ..session = adminA
       ..scope = alpha.path;
     await a.upsert('wells', {
-      'id': 'w1', 'code': 'PN-01', 'name': 'Puits Nord 1 renommé', 'active': 1, 'group_name': 'Zone Nord',
-      'well_type': 'oil_producer', 'status': 'producing', 'latitude': 32.5, 'longitude': 9.1,
+      'id': 'w1',
+      'code': 'PN-01',
+      'name': 'Puits Nord 1 renommé',
+      'active': 1,
+      'group_name': 'Zone Nord',
+      'well_type': 'oil_producer',
+      'status': 'producing',
+      'latitude': 32.5,
+      'longitude': 9.1,
     });
     await a.upsert('analysis_records', {
-      'id': 'r1', 'well_id': 'w1', 'type_id': 't_oil_flow', 'value': 123.5, 'service_key': 'serviceProduction',
-      'operator_name': 'Ahmed', 'recorded_at': '2026-10-09T08:00:00.000',
+      'id': 'r1',
+      'well_id': 'w1',
+      'type_id': 't_oil_flow',
+      'value': 123.5,
+      'service_key': 'serviceProduction',
+      'operator_name': 'Ahmed',
+      'recorded_at': '2026-10-09T08:00:00.000',
     });
     await a.upsert('plant_circuits', {
-      'id': 'water_treatment', 'label_key': 'Traitement eau (modifié)', 'color': 0xFF00897B, 'icon': 'water',
-      'default_profile': 'water', 'sort_order': 5,
+      'id': 'water_treatment',
+      'label_key': 'Traitement eau (modifié)',
+      'color': 0xFF00897B,
+      'icon': 'water',
+      'default_profile': 'water',
+      'sort_order': 5,
     });
     await a.engine.prepareFirstSync(a.scope, a.session.uid);
     await a.sync();
@@ -447,9 +566,16 @@ void main() {
 
     await b.delete('analysis_records', 'r1');
     await b.upsert('interventions', {
-      'id': 'i1', 'well_id': 'w1', 'intervention_date': '2026-10-01T00:00:00.000', 'type_key': 'interventionTypeWorkover',
-      'cost': 45000.0, 'currency': 'TND', 'result_key': 'interventionResultSuccess', 'description': null,
-      'operator_name': 'Ahmed', 'created_at': '2026-10-01T10:00:00.000',
+      'id': 'i1',
+      'well_id': 'w1',
+      'intervention_date': '2026-10-01T00:00:00.000',
+      'type_key': 'interventionTypeWorkover',
+      'cost': 45000.0,
+      'currency': 'TND',
+      'result_key': 'interventionResultSuccess',
+      'description': null,
+      'operator_name': 'Ahmed',
+      'created_at': '2026-10-01T10:00:00.000',
     });
     await b.sync();
     await a.sync();
@@ -471,10 +597,21 @@ void main() {
       ..scope = alpha.path
       ..role = UserRole.operator;
     await op.upsert('analysis_records', {
-      'id': 'r_op2', 'well_id': 'w1', 'type_id': 't_bsw', 'value': 0.5, 'service_key': 'serviceLaboratoire',
-      'operator_name': 'Opérateur 1', 'recorded_at': '2026-10-10T08:00:00.000',
+      'id': 'r_op2',
+      'well_id': 'w1',
+      'type_id': 't_bsw',
+      'value': 0.5,
+      'service_key': 'serviceLaboratoire',
+      'operator_name': 'Opérateur 1',
+      'recorded_at': '2026-10-10T08:00:00.000',
     });
-    await op.upsert('wells', {'id': 'w1', 'code': 'PN-01', 'name': 'Modifié par opérateur', 'active': 1, 'group_name': ''});
+    await op.upsert('wells', {
+      'id': 'w1',
+      'code': 'PN-01',
+      'name': 'Modifié par opérateur',
+      'active': 1,
+      'group_name': '',
+    });
     await op.sync();
     expect((await op.row('analysis_records', 'r_op2'))!['dirty'], 0);
     expect((await op.row('wells', 'w1'))!['name'], 'Puits Nord 1 renommé', reason: 'version de l\'entreprise');
