@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/auth/app_lock.dart';
 import '../../../core/auth/auth_providers.dart';
 import '../../../core/backup/backup_service.dart';
+import '../../../core/data/stock_repository.dart';
 import '../../../core/data/wells_repository.dart';
 import '../../../core/export/excel_exporter.dart';
 import '../../../core/export/export_service.dart';
@@ -100,6 +101,7 @@ class _DataAdminScreenState extends ConsumerState<DataAdminScreen> {
         await AnalysisImporter.apply(plan);
         await ref.read(wellsControllerProvider.notifier).reload();
         await ref.read(plantControllerProvider.notifier).reload();
+        await ref.read(stockControllerProvider.notifier).reload();
       });
       messenger.showSnackBar(SnackBar(content: Text(fill(s('importDone'), {'n': '${plan.total}'}))));
       setState(() {

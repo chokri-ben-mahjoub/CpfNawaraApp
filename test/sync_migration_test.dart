@@ -123,7 +123,10 @@ void main() {
     // v12 : paramètres personnalisés et modèles modifiables (vides).
     expect(await db.query('plant_params'), isEmpty);
     expect(await db.query('plant_profiles'), isEmpty);
-    expect(LocalDatabase.schemaVersion, 12);
+    // v13 : stock (articles et mouvements, vides).
+    expect(await db.query('stock_items'), isEmpty);
+    expect(await db.query('stock_movements'), isEmpty);
+    expect(LocalDatabase.schemaVersion, 13);
 
     // Première connexion : tout ce qui a été saisi/modifié part au serveur.
     final engine = SyncEngine(

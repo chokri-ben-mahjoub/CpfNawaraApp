@@ -22,7 +22,11 @@ import 'package:puitstrack/features/setup/presentation/widgets/firebase_project_
 import 'package:puitstrack/core/widgets/app_loader.dart';
 import 'package:puitstrack/features/home/presentation/home_shell.dart';
 import 'package:puitstrack/features/splash/splash_screen.dart';
+import 'package:puitstrack/core/data/stock_repository.dart';
 import 'package:puitstrack/core/data/wells_repository.dart';
+import 'package:puitstrack/core/models/stock_item.dart';
+import 'package:puitstrack/features/stock/presentation/stock_item_detail_screen.dart';
+import 'package:puitstrack/features/stock/presentation/stock_screen.dart';
 import 'package:puitstrack/core/export/download_saver.dart';
 import 'package:puitstrack/core/export/export_format_sheet.dart';
 import 'package:puitstrack/core/l10n/app_strings.dart';
@@ -241,6 +245,31 @@ PlantController _seedPlant() {
   );
 }
 
+/// Stock : un article en rupture, un en alerte, un correct, avec quelques
+/// mouvements d'historique.
+StockController _seedStock() {
+  final now = DateTime.now();
+  const items = [
+    StockItem(id: 's1', name: 'Antitartre', unit: 'L', quantity: 0, threshold: 20, category: 'Chimie'),
+    StockItem(id: 's2', name: 'Joint torique', unit: 'u', quantity: 8, threshold: 10, category: 'Pièces'),
+    StockItem(id: 's3', name: 'Gants nitrile', unit: 'u', quantity: 240, threshold: 50, category: 'EPI'),
+  ];
+  final movements = [
+    StockMovement(id: 'm1', itemId: 's1', delta: 200, operatorName: 'Ahmed', dateTime: now.subtract(const Duration(days: 10))),
+    StockMovement(
+      id: 'm2',
+      itemId: 's1',
+      delta: -200,
+      wellId: 'w1',
+      reason: 'Traitement anti-dépôt',
+      operatorName: 'Ahmed',
+      dateTime: now.subtract(const Duration(days: 2)),
+    ),
+    StockMovement(id: 'm3', itemId: 's2', delta: -2, wellId: 'w2', operatorName: 'Sami', dateTime: now.subtract(const Duration(days: 1))),
+  ];
+  return StockController.seeded(StockState(items: items, movements: movements));
+}
+
 class _AdminProfile extends ProfileController {
   _AdminProfile() {
     state = const AppProfile(
@@ -258,6 +287,7 @@ Widget _app(Widget home, WellsState data, {bool dark = false, PlantView plantVie
       overrides: [
         wellsControllerProvider.overrideWith((ref) => WellsController.seeded(data)),
         plantControllerProvider.overrideWith((ref) => _seedPlant()),
+        stockControllerProvider.overrideWith((ref) => _seedStock()),
         plantViewProvider.overrideWith((ref) => plantView),
         profileProvider.overrideWith((ref) => _AdminProfile()),
         sharedConfigProvider.overrideWith(
@@ -316,6 +346,9 @@ void main() {
   testWidgets('PI', (t) => _render(t, const RatioTrendScreen(wellId: 'w1', ratio: DerivedRatio.pi), height: 1100));
   testWidgets('interventions', (t) => _render(t, const InterventionsScreen(wellId: 'w1')));
   testWidgets('liste puits', (t) => _render(t, const Scaffold(body: SafeArea(child: WellsListScreen()))));
+  testWidgets('stock', (t) => _render(t, const StockScreen(), height: 1700));
+  testWidgets('stock : article en rupture', (t) => _render(t, const StockItemDetailScreen(itemId: 's1'), height: 1500));
+  testWidgets('stock : article correct', (t) => _render(t, const StockItemDetailScreen(itemId: 's3'), height: 1200));
   testWidgets('stats', (t) => _render(t, const Scaffold(body: SafeArea(child: StatsScreen())), height: 1100));
   testWidgets('réglages', (t) => _render(t, const SettingsScreen(), height: 2900));
   testWidgets('réglages (sombre)', (t) => _render(t, const SettingsScreen(), height: 2900, dark: true));

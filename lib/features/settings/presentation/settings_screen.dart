@@ -13,6 +13,7 @@ import '../../../core/auth/app_lock.dart';
 import '../../../core/auth/auth_providers.dart';
 import '../../../core/backup/backup_service.dart';
 import '../../../core/data/local_database.dart';
+import '../../../core/data/stock_repository.dart';
 import '../../../core/data/wells_repository.dart';
 import '../../../core/export/download_saver.dart';
 import '../../../core/export/share_files.dart';
@@ -614,6 +615,7 @@ class _BackupSectionState extends ConsumerState<_BackupSection> {
         await BackupService.restore(payload);
         await ref.read(wellsControllerProvider.notifier).reload();
         await ref.read(plantControllerProvider.notifier).reload();
+        await ref.read(stockControllerProvider.notifier).reload();
         await refreshReminders(ref);
         messenger.showSnackBar(SnackBar(content: Text(s('backupRestored'))));
       } catch (_) {

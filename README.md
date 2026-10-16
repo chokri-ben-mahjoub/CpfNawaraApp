@@ -429,6 +429,27 @@ python tool/serve_web.py        # test local : http://localhost:8765
   historique de démonstration n'est inventé. Renommables/supprimables à tout
   moment depuis **Compte → Gestion des puits**.
 
+### Stock (`lib/features/stock/`, `lib/core/data/stock_repository.dart`, Compte › Stock)
+- **Articles** (produits chimiques, pièces détachées, EPI, consommables...) :
+  nom, unité libre, catégorie libre (suggestions rapides), **seuil d'alerte**.
+  La quantité se saisit une seule fois à la création, puis uniquement via des
+  mouvements (pour garder un historique fiable)
+- **Mouvements** : **Entrée** (réapprovisionnement) ou **Sortie**
+  (consommation), avec motif libre et **puits concerné** en option (une
+  sortie peut être liée au puits qui a consommé l'article) ; historique
+  complet sur la fiche de l'article
+- **Alerte de stock bas** : l'écran Stock met en avant les articles à leur
+  seuil ou en dessous (section « En alerte », pastille Bas/Rupture) ; une
+  **notification locale** est aussi envoyée dès qu'un article franchit son
+  seuil à la baisse (`stock_notification_service.dart`, même mécanisme que le
+  rappel quotidien de saisie, affichée tout de suite au lieu d'être
+  programmée)
+- Aucun article de démarrage : chacun saisit les siens. Tables `stock_items`
+  et `stock_movements` (migration de base v13), incluses dans les
+  sauvegardes/restaurations et la synchronisation d'équipe (droits d'écriture
+  sur les mouvements ouverts aux ingénieurs/opérateurs, articles réservés à
+  l'administrateur — voir `UserRole.writableTables`)
+
 ### Réglages (`lib/features/settings/`, icône ⚙ en haut à droite ou Compte › Réglages)
 Inspirés de l'app de référence `E:\mobile-locations`, stockés sur l'appareil
 (`lib/core/settings/app_settings.dart`, SharedPreferences) :

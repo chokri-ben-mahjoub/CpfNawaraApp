@@ -21,7 +21,7 @@ class LocalDatabase {
   static final LocalDatabase instance = LocalDatabase._();
 
   /// Version du schéma (voir `onUpgrade`), enregistrée dans les sauvegardes.
-  static const schemaVersion = 12;
+  static const schemaVersion = 13;
 
   /// Tables sauvegardées / restaurées / synchronisées.
   static const dataTables = [
@@ -42,6 +42,9 @@ class LocalDatabase {
     // Paramètres personnalisés et modèles de paramètres modifiables, v12.
     'plant_params',
     'plant_profiles',
+    // Gestion de stock (articles + mouvements), v13.
+    'stock_items',
+    'stock_movements',
   ];
 
   /// Tables qui ont reçu les colonnes de synchronisation par migration (v6) ;
@@ -150,6 +153,7 @@ class LocalDatabase {
           await _createPlantCircuitsTable(db);
           await _createPlantSchemasTable(db);
           await _createPlantParamTables(db);
+          await _createStockTables(db);
           await _seed(db);
         },
         onUpgrade: (db, oldVersion, newVersion) async {
@@ -227,6 +231,11 @@ class LocalDatabase {
             // Paramètres personnalisés et modèles modifiables
             // (Administration > Paramètres et modèles).
             await _createPlantParamTables(db);
+          }
+          if (oldVersion < 13) {
+            // Gestion de stock : articles (chimie, pièces, consommables...)
+            // et mouvements (entrées/sorties), avec alerte de seuil bas.
+            await _createStockTables(db);
           }
         },
       ),
@@ -389,6 +398,40 @@ class LocalDatabase {
     ''');
   }
 
+  /// Stock : `stock_items` (quantité dénormalisée pour un affichage
+  /// instantané, voir `StockItem`) et `stock_movements` (historique des
+  /// entrées/sorties, chacune pouvant être liée à un puits consommateur).
+  /// Aucune donnée de démarrage : les articles sont propres à chaque
+  /// installation.
+  static Future<void> _createStockTables(DatabaseExecutor db) async {
+    await db.execute('''
+      create table if not exists stock_items (
+        id text primary key,
+        name text not null,
+        unit text not null default '',
+        quantity real not null default 0,
+        threshold real not null default 0,
+        category text not null default '',
+        notes text,
+        updated_at integer not null default 0,
+        dirty integer not null default 0
+      )
+    ''');
+    await db.execute('''
+      create table if not exists stock_movements (
+        id text primary key,
+        item_id text not null,
+        delta real not null,
+        reason text,
+        well_id text,
+        operator_name text not null default '',
+        recorded_at text not null,
+        updated_at integer not null default 0,
+        dirty integer not null default 0
+      )
+    ''');
+  }
+
   static Future<void> _seedPlantSchemas(DatabaseExecutor db) async {
     await db.insert('plant_schemas', {
       'id': 'pfd',
@@ -452,6 +495,9 @@ class LocalDatabase {
     }
     if (fromVersion < 12) {
       await _createPlantParamTables(db);
+    }
+    if (fromVersion < 13) {
+      await _createStockTables(db);
     }
   }
 

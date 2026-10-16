@@ -50,9 +50,11 @@ extension UserRoleX on UserRole {
       'plant_schemas',
       'plant_params',
       'plant_profiles',
+      'stock_items',
+      'stock_movements',
     },
-    UserRole.engineer => const {'analysis_records', 'interventions', 'plant_analyses'},
-    UserRole.operator => const {'analysis_records', 'plant_analyses'},
+    UserRole.engineer => const {'analysis_records', 'interventions', 'plant_analyses', 'stock_movements'},
+    UserRole.operator => const {'analysis_records', 'plant_analyses', 'stock_movements'},
     UserRole.reader => const <String>{},
   };
 

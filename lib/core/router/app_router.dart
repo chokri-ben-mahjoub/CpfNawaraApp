@@ -29,6 +29,8 @@ import '../../features/plant/presentation/plant_schema_screens.dart';
 import '../../features/plant/presentation/plant_trend_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/setup/presentation/setup_screen.dart';
+import '../../features/stock/presentation/stock_item_detail_screen.dart';
+import '../../features/stock/presentation/stock_screen.dart';
 import '../../features/wells/presentation/trend_screen.dart';
 import '../../features/wells/presentation/well_detail_screen.dart';
 import '../../features/wells/presentation/well_history_screen.dart';
@@ -142,6 +144,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(path: '/settings', builder: (context, state) => const SettingsScreen()),
+      GoRoute(path: '/stock', builder: (context, state) => const StockScreen()),
+      GoRoute(
+        path: '/stock/:id',
+        builder: (context, state) => StockItemDetailScreen(itemId: state.pathParameters['id']!),
+      ),
       GoRoute(
         path: '/compare',
         builder: (context, state) {

@@ -9,6 +9,7 @@ import '../auth/auth_providers.dart';
 import '../backup/backup_service.dart';
 import '../config/shared_config.dart';
 import '../data/local_database.dart';
+import '../data/stock_repository.dart';
 import '../data/wells_repository.dart';
 import '../export/download_saver.dart';
 import '../models/user_role.dart';
@@ -501,6 +502,7 @@ class SyncController extends StateNotifier<SyncState> {
     await _ref.read(wellsControllerProvider.notifier).reload();
     await _ref.read(plantControllerProvider.notifier).reload();
     await _ref.read(sharedConfigProvider.notifier).reload();
+    await _ref.read(stockControllerProvider.notifier).reload();
   }
 
   /// Vérifie l'adhésion du compte, puis récupère les modifications de

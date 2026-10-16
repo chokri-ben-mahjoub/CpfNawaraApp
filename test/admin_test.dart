@@ -222,7 +222,7 @@ const firebaseConfig = {
     expect(UserRole.operator.canManageInterventions, isFalse);
     expect(UserRole.operator.canEnterData, isTrue);
     expect(UserRole.reader.canEnterData, isFalse);
-    expect(UserRole.operator.writableTables, {'analysis_records', 'plant_analyses'});
+    expect(UserRole.operator.writableTables, {'analysis_records', 'plant_analyses', 'stock_movements'});
     expect(UserRole.reader.writableTables, isEmpty);
     for (final role in UserRole.values) {
       expect(UserRoleX.fromStorageKey(role.storageKey), role);
