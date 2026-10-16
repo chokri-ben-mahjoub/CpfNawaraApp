@@ -15,6 +15,7 @@ import '../../dashboard/presentation/dashboard_screen.dart';
 import '../../plant/presentation/plant_screen.dart';
 import '../../settings/presentation/sync_section.dart';
 import 'app_drawer.dart';
+import 'widgets/notification_bell.dart';
 import '../../stats/presentation/stats_screen.dart';
 import '../../wells/presentation/wells_list_screen.dart';
 
@@ -64,6 +65,7 @@ class HomeShell extends ConsumerWidget {
       title: Text(s(_tabTitleKeys[index])),
       actions: [
         ?_exportAction(context, ref, index),
+        const NotificationBell(),
         SyncStatusIcon(onTap: () => context.push('/settings')),
         if (role.canConfigure)
           IconButton(

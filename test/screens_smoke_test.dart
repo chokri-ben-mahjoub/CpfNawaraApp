@@ -21,6 +21,7 @@ import 'package:puitstrack/features/setup/presentation/setup_screen.dart';
 import 'package:puitstrack/features/setup/presentation/widgets/firebase_project_picker.dart';
 import 'package:puitstrack/core/widgets/app_loader.dart';
 import 'package:puitstrack/features/home/presentation/home_shell.dart';
+import 'package:puitstrack/features/home/presentation/widgets/notification_bell.dart';
 import 'package:puitstrack/features/splash/splash_screen.dart';
 import 'package:puitstrack/core/data/stock_repository.dart';
 import 'package:puitstrack/core/data/wells_repository.dart';
@@ -575,5 +576,26 @@ void main() {
     expect(find.text('Télécharger'), findsOneWidget);
     expect(find.text('Partager'), findsOneWidget);
     expect(t.takeException(), isNull);
+  });
+  testWidgets('cloche de notifications : articles en alerte', (t) async {
+    t.view.physicalSize = const Size(390 * 2.0, 844 * 2.0);
+    t.view.devicePixelRatio = 2.0;
+    addTearDown(t.view.reset);
+    await t.pumpWidget(
+      _app(
+        Scaffold(appBar: AppBar(actions: const [NotificationBell()]), body: const SizedBox()),
+        _seed(),
+      ),
+    );
+    await t.pump(const Duration(milliseconds: 500));
+    expect(find.byIcon(Icons.notifications_active_rounded), findsOneWidget, reason: 'badge visible : 2 articles en alerte');
+    await t.tap(find.byIcon(Icons.notifications_active_rounded));
+    await t.pump(const Duration(milliseconds: 500));
+    expect(find.textContaining('Stock bas'), findsNWidgets(2));
+    expect(find.text('Voir tout'), findsOneWidget);
+    expect(t.takeException(), isNull);
+    // Laisse le clignotement borné (2.7 s) se terminer pour ne pas finir le
+    // test avec un minuteur encore en attente.
+    await t.pump(const Duration(seconds: 3));
   });
 }
