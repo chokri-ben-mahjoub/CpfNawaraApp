@@ -322,7 +322,13 @@ class _TeamAccountFormState extends ConsumerState<TeamAccountForm> {
       final problem = projectProblemOf(e);
       setState(() {
         _problem = problem;
-        _error = problem != null ? null : s(teamErrorKey(e));
+        _error = problem != null
+            ? null
+            // Propriétaire : le code est facultatif, le plus simple est de
+            // le laisser vide.
+            : e is ActivationException && _create && isOwnerEmail(_email.text)
+            ? s('activationOwnerHint')
+            : s(teamErrorKey(e));
       });
     } finally {
       if (mounted) setState(() => _busy = false);
