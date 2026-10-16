@@ -444,6 +444,14 @@ python tool/serve_web.py        # test local : http://localhost:8765
   seuil à la baisse (`stock_notification_service.dart`, même mécanisme que le
   rappel quotidien de saisie, affichée tout de suite au lieu d'être
   programmée)
+- **Bandeau sur le tableau de bord** : dès qu'un ou plusieurs articles sont en
+  alerte, un bandeau apparaît en haut de l'onglet Aujourd'hui (nombre
+  d'articles concernés + bouton « Voir les produits » vers l'écran Stock)
+- **Export** (icône de téléchargement de l'écran Stock, visible dès qu'il y a
+  au moins un article) : tous les articles (catégorie, quantité, seuil,
+  statut), au choix en Excel, CSV ou **PDF** — ce troisième format est
+  disponible partout où l'app propose un export (`export_format_sheet.dart`,
+  `pdf_table_exporter.dart`), pas seulement pour le stock
 - Aucun article de démarrage : chacun saisit les siens. Tables `stock_items`
   et `stock_movements` (migration de base v13), incluses dans les
   sauvegardes/restaurations et la synchronisation d'équipe (droits d'écriture

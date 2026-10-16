@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/auth/auth_providers.dart';
 import '../../../core/data/stock_repository.dart';
+import '../../../core/export/export_service.dart';
+import '../../../core/export/export_table.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/stock_item.dart';
 import '../../../core/models/user_role.dart';
@@ -11,6 +13,48 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/responsive.dart';
 import '../../admin/presentation/widgets/admin_widgets.dart';
 import 'widgets/stock_item_form_sheet.dart';
+
+/// Exporte tous les articles de stock (nom, catégorie, quantité, seuil,
+/// statut), par exemple pour un inventaire imprimable.
+Future<void> exportStock(WidgetRef ref, BuildContext context) async {
+  final locale = ref.read(localeProvider);
+  String s(String key) => tr(locale, key);
+  final items = [...ref.read(stockControllerProvider).items]
+    ..sort((a, b) {
+      final byCategory = a.category.compareTo(b.category);
+      return byCategory != 0 ? byCategory : a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    });
+
+  await runExport(
+    context: context,
+    locale: locale,
+    baseName: 'stock',
+    tables: [
+      ExportTable(
+        name: s('stockTitle'),
+        headers: [
+          s('stockCategoryLabel'),
+          s('stockNameLabel'),
+          s('stockQuantityLabel'),
+          s('stockUnitLabel'),
+          s('stockThresholdLabel'),
+          s('stockStatusLabel'),
+        ],
+        rows: [
+          for (final item in items)
+            [
+              item.category.isEmpty ? s('stockUncategorized') : item.category,
+              item.name,
+              item.quantity,
+              item.unit,
+              item.threshold,
+              stockStatusLabel(item, s),
+            ],
+        ],
+      ),
+    ],
+  );
+}
 
 Color stockStatusColor(StockItem item, ColorScheme scheme) {
   if (item.isOut) return scheme.error;
@@ -48,7 +92,17 @@ class StockScreen extends ConsumerWidget {
     final categories = byCategory.keys.toList()..sort();
 
     return Scaffold(
-      appBar: AppBar(title: Text(s('stockTitle'))),
+      appBar: AppBar(
+        title: Text(s('stockTitle')),
+        actions: [
+          if (stock.items.isNotEmpty)
+            IconButton(
+              tooltip: s('stockExportTooltip'),
+              icon: const Icon(Icons.download_outlined),
+              onPressed: () => exportStock(ref, context),
+            ),
+        ],
+      ),
       floatingActionButton: role.canEnterData
           ? FloatingActionButton.extended(
               onPressed: () => showAdminSheet<void>(context, builder: (_) => const StockItemFormSheet()),

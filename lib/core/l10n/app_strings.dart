@@ -406,12 +406,24 @@ final _strings = <String, Map<String, String>>{
   'stockUsedByWellNone': {'fr': 'Aucun puits en particulier', 'en': 'No specific well'},
   'stockHistory': {'fr': 'Historique des mouvements', 'en': 'Movement history'},
   'stockHistoryEmpty': {'fr': 'Aucun mouvement pour le moment.', 'en': 'No movements yet.'},
-  'stockAlertChannelName': {'fr': 'Alertes de stock', 'en': 'Stock alerts'},
-  'stockAlertTitle': {'fr': 'Stock bas', 'en': 'Low stock'},
+  'stockAlertChannelName': {'fr': 'Gestion de stock', 'en': 'Stock management'},
+  'stockAlertTitle': {'fr': 'Stock bas : {name}', 'en': 'Low stock: {name}'},
   'stockAlertBody': {
-    'fr': '{name} : il ne reste que {qty} {unit}.',
-    'en': '{name}: only {qty} {unit} left.',
+    'fr': 'Il reste {qty} {unit}, sous le seuil de {threshold} {unit}. Pensez à réapprovisionner.',
+    'en': 'Only {qty} {unit} left, below the {threshold} {unit} threshold. Time to restock.',
   },
+  'stockBannerMessageOne': {
+    'fr': '1 produit est passé sous son seuil de stock minimum.',
+    'en': '1 product has dropped below its minimum stock threshold.',
+  },
+  'stockBannerMessageMany': {
+    'fr': '{n} produits sont passés sous leur seuil de stock minimum.',
+    'en': '{n} products have dropped below their minimum stock threshold.',
+  },
+  'stockBannerAction': {'fr': 'Voir les produits', 'en': 'View products'},
+  'stockExportTooltip': {'fr': 'Exporter le stock', 'en': 'Export stock'},
+  'exportFormatPdf': {'fr': 'PDF', 'en': 'PDF'},
+  'exportFormatPdfHint': {'fr': 'Document prêt à imprimer', 'en': 'Ready-to-print document'},
 
   // Statistiques
   'statsTitle': {'fr': 'Statistiques', 'en': 'Statistics'},

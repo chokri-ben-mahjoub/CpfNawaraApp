@@ -6,7 +6,7 @@ import '../platform/app_platform.dart';
 import '../theme/app_theme.dart';
 import 'download_saver.dart';
 
-enum ExportFormat { excel, csv }
+enum ExportFormat { excel, csv, pdf }
 
 /// Télécharger = enregistrer directement sur le téléphone (dossier
 /// Téléchargements) ; Partager = volet de partage natif (WhatsApp, mail...).
@@ -23,9 +23,12 @@ const _lastFormatKey = 'export_last_format';
 /// Demande le format (Excel ou CSV) et l'action (télécharger ou partager).
 /// Le dernier format choisi est pré-sélectionné. Retourne `null` si
 /// l'utilisateur ferme la feuille sans choisir.
+const _formatKeys = {ExportFormat.excel: 'excel', ExportFormat.csv: 'csv', ExportFormat.pdf: 'pdf'};
+
 Future<ExportChoice?> chooseExport(BuildContext context, Locale locale) async {
   final prefs = await SharedPreferences.getInstance();
-  final initial = prefs.getString(_lastFormatKey) == 'csv' ? ExportFormat.csv : ExportFormat.excel;
+  final savedKey = prefs.getString(_lastFormatKey);
+  final initial = _formatKeys.entries.firstWhere((e) => e.value == savedKey, orElse: () => _formatKeys.entries.first).key;
   if (!context.mounted) return null;
 
   final choice = await showModalBottomSheet<ExportChoice>(
@@ -35,7 +38,7 @@ Future<ExportChoice?> chooseExport(BuildContext context, Locale locale) async {
     builder: (sheetContext) => _ExportSheet(locale: locale, initialFormat: initial),
   );
   if (choice != null) {
-    await prefs.setString(_lastFormatKey, choice.format == ExportFormat.csv ? 'csv' : 'excel');
+    await prefs.setString(_lastFormatKey, _formatKeys[choice.format]!);
   }
   return choice;
 }
@@ -90,6 +93,16 @@ class _ExportSheetState extends State<_ExportSheet> {
                     hint: s('exportFormatCsvHint'),
                     selected: _format == ExportFormat.csv,
                     onTap: () => setState(() => _format = ExportFormat.csv),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _FormatCard(
+                    icon: Icons.picture_as_pdf_outlined,
+                    title: s('exportFormatPdf'),
+                    hint: s('exportFormatPdfHint'),
+                    selected: _format == ExportFormat.pdf,
+                    onTap: () => setState(() => _format = ExportFormat.pdf),
                   ),
                 ),
               ],

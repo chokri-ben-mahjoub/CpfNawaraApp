@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/auth/auth_providers.dart';
+import '../../../core/data/stock_repository.dart';
 import '../../../core/data/wells_repository.dart';
 import '../../../core/export/export_service.dart';
 import '../../../core/export/report_tables.dart';
@@ -112,6 +113,7 @@ class DashboardScreen extends ConsumerWidget {
             const ProfileAvatar(radius: 26, editable: true),
           ],
         ),
+        const _LowStockBanner(),
         const SizedBox(height: 16),
         SegmentedButton<DashboardPeriod>(
           segments: [
@@ -136,6 +138,52 @@ class DashboardScreen extends ConsumerWidget {
             end: today,
           ),
       ],
+    );
+  }
+}
+
+/// Bandeau d'alerte si un ou plusieurs articles de stock sont passés sous
+/// leur seuil (voir `stock_repository.dart`) — mène directement à l'écran
+/// Stock, où ils sont mis en avant dans la section "En alerte".
+class _LowStockBanner extends ConsumerWidget {
+  const _LowStockBanner();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final locale = ref.watch(localeProvider);
+    final lowCount = ref.watch(stockControllerProvider.select((s) => s.lowStockItems.length));
+    String s(String key) => tr(locale, key);
+    if (lowCount == 0) return const SizedBox.shrink();
+
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: scheme.error.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: scheme.error.withValues(alpha: 0.25)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: scheme.error),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                lowCount == 1 ? s('stockBannerMessageOne') : fill(s('stockBannerMessageMany'), {'n': '$lowCount'}),
+                style: TextStyle(color: scheme.error, fontWeight: FontWeight.w600, fontSize: 13),
+              ),
+            ),
+            const SizedBox(width: 8),
+            TextButton(
+              onPressed: () => context.push('/stock'),
+              style: TextButton.styleFrom(foregroundColor: scheme.error),
+              child: Text(s('stockBannerAction'), style: const TextStyle(fontWeight: FontWeight.w700)),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

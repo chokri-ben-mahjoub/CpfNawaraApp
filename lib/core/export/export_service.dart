@@ -9,10 +9,12 @@ import 'download_saver.dart';
 import 'excel_exporter.dart';
 import 'export_format_sheet.dart';
 import 'export_table.dart';
+import 'pdf_table_exporter.dart';
 import 'share_files.dart';
 
 const _xlsxMime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const _csvMime = 'text/csv';
+const _pdfMime = 'application/pdf';
 
 class _GeneratedFile {
   final String name;
@@ -53,17 +55,21 @@ Future<void> runExport({
 
   try {
     final files = <_GeneratedFile>[];
-    if (choice.format == ExportFormat.excel) {
-      final bytes = ExcelExporter.encode(nonEmpty);
-      if (bytes == null) throw StateError('excel encode failed');
-      files.add(_GeneratedFile('${safeBase}_$suffix.xlsx', _xlsxMime, bytes));
-    } else {
-      for (final table in nonEmpty) {
-        final name = nonEmpty.length == 1
-            ? '${safeBase}_$suffix.csv'
-            : '${safeBase}_${_safeFileName(table.name)}_$suffix.csv';
-        files.add(_GeneratedFile(name, _csvMime, CsvExporter.encode(table)));
-      }
+    switch (choice.format) {
+      case ExportFormat.excel:
+        final bytes = ExcelExporter.encode(nonEmpty);
+        if (bytes == null) throw StateError('excel encode failed');
+        files.add(_GeneratedFile('${safeBase}_$suffix.xlsx', _xlsxMime, bytes));
+      case ExportFormat.csv:
+        for (final table in nonEmpty) {
+          final name = nonEmpty.length == 1
+              ? '${safeBase}_$suffix.csv'
+              : '${safeBase}_${_safeFileName(table.name)}_$suffix.csv';
+          files.add(_GeneratedFile(name, _csvMime, CsvExporter.encode(table)));
+        }
+      case ExportFormat.pdf:
+        final bytes = await PdfTableExporter.encode(nonEmpty, title: baseName);
+        files.add(_GeneratedFile('${safeBase}_$suffix.pdf', _pdfMime, bytes));
     }
 
     if (choice.action == ExportAction.download && DownloadSaver.isSupported) {

@@ -188,14 +188,12 @@ class StockController extends StateNotifier<StockState> {
     if (!wasLow && isLowNow && _ref != null) {
       final locale = _ref.read(localeProvider);
       String s(String key) => tr(locale, key);
-      final qtyText = newQuantity == newQuantity.roundToDouble()
-          ? newQuantity.toInt().toString()
-          : newQuantity.toStringAsFixed(2);
+      String fmt(double v) => v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(2);
       await StockNotificationService.notifyLowStock(
         itemId: item.id,
         channelName: s('stockAlertChannelName'),
-        title: s('stockAlertTitle'),
-        body: fill(s('stockAlertBody'), {'name': item.name, 'qty': qtyText, 'unit': item.unit}),
+        title: fill(s('stockAlertTitle'), {'name': item.name}),
+        body: fill(s('stockAlertBody'), {'qty': fmt(newQuantity), 'threshold': fmt(item.threshold), 'unit': item.unit}),
       );
     }
   }
