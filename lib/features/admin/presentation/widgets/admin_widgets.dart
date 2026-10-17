@@ -93,6 +93,45 @@ class AdminCard extends StatelessWidget {
   }
 }
 
+/// Puce de sélection (paramètre, type...) : coche/décoche sa présence dans
+/// une liste. Si [onEdit] est fourni (élément personnalisé, modifiable),
+/// affiche un petit crayon pour le renommer, changer son unité ou le
+/// supprimer directement depuis cette liste, sans quitter l'écran.
+class SelectableEditableChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final ValueChanged<bool> onSelected;
+  final Future<void> Function()? onEdit;
+
+  const SelectableEditableChip({
+    super.key,
+    required this.label,
+    required this.selected,
+    required this.onSelected,
+    this.onEdit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (onEdit == null) {
+      return FilterChip(
+        label: Text(label),
+        selected: selected,
+        selectedColor: accentColor.withValues(alpha: 0.18),
+        onSelected: onSelected,
+      );
+    }
+    return InputChip(
+      label: Text(label),
+      selected: selected,
+      selectedColor: accentColor.withValues(alpha: 0.18),
+      onSelected: onSelected,
+      deleteIcon: const Icon(Icons.edit_outlined, size: 16),
+      onDeleted: onEdit,
+    );
+  }
+}
+
 /// Pastille d'icône colorée (début de ligne).
 class IconBadge extends StatelessWidget {
   final IconData icon;

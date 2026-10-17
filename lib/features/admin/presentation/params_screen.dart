@@ -511,14 +511,21 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
             runSpacing: 8,
             children: [
               for (final p in plantParamCatalog)
-                FilterChip(
-                  label: Text('${s(p.labelKey)}${p.unit.isEmpty ? '' : ' (${p.displayed().unit})'}'),
+                SelectableEditableChip(
+                  label: '${s(p.labelKey)}${p.unit.isEmpty ? '' : ' (${p.displayed().unit})'}',
                   selected: _keys.contains(p.key),
-                  selectedColor: accentColor.withValues(alpha: 0.18),
                   onSelected: (on) => setState(() {
                     _error = null;
                     on ? _keys.add(p.key) : _keys.remove(p.key);
                   }),
+                  onEdit: !isCustomPlantParam(p.key)
+                      ? null
+                      : () async {
+                          await showPlantParamForm(context, existing: p);
+                          if (!mounted) return;
+                          final validKeys = plantParamCatalog.map((e) => e.key).toSet();
+                          setState(() => _keys.removeWhere((k) => !validKeys.contains(k)));
+                        },
                 ),
             ],
           ),
