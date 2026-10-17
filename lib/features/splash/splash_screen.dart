@@ -7,9 +7,12 @@ import '../../core/theme/app_theme.dart';
 /// de l'app : même présentation que l'écran natif d'Android et que celui de
 /// la version web (fond bleu nuit, logo, nom, barre de progression).
 class SplashScreen extends StatefulWidget {
+  /// Nom affiché (lu par l'appelant, pour refléter un nom personnalisé).
+  final String appName;
+
   /// Libellé sous le nom de l'app (traduit par l'appelant).
   final String tagline;
-  const SplashScreen({super.key, this.tagline = 'Suivi des analyses de puits'});
+  const SplashScreen({super.key, this.appName = appDisplayName, this.tagline = 'Suivi des analyses de puits'});
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -78,7 +81,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                   child: Column(
                     children: [
                       Text(
-                        appDisplayName,
+                        widget.appName,
                         style: const TextStyle(color: Color(0xFFF5EDE8), fontSize: 26, fontWeight: FontWeight.w800, letterSpacing: 0.3),
                       ),
                       const SizedBox(height: 4),

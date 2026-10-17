@@ -217,6 +217,7 @@ final authServiceProvider = Provider<AuthService>((ref) => AuthService(ref));
 final authReadyProvider = FutureProvider<void>((ref) async {
   await ref.read(onboardingDoneProvider.notifier).load();
   await ref.read(localeProvider.notifier).load();
+  await ref.read(appNameProvider.notifier).load();
   // Projet Firebase configuré, et système d'unités (lu par les contrôleurs
   // de données dès leur premier chargement).
   await ref.read(firebaseConfigProvider.notifier).ready;

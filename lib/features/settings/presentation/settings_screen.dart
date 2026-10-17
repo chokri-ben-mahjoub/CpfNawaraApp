@@ -266,6 +266,12 @@ class _AppearanceSection extends ConsumerWidget {
       title: s('settingsAppearance'),
       icon: Icons.palette_outlined,
       children: [
+        _Label(s('settingsAppNameLabel')),
+        const SizedBox(height: 8),
+        const _AppNameField(),
+        const SizedBox(height: 6),
+        _Hint(s('settingsAppNameHint')),
+        const SizedBox(height: 16),
         _Label(s('settingsTheme')),
         const SizedBox(height: 8),
         SizedBox(
@@ -329,6 +335,65 @@ class _AppearanceSection extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Champ de saisie du nom personnalisé de l'app (Réglages › Apparence) :
+/// enregistré sur Entrée ou en quittant le champ, pris en compte
+/// immédiatement partout où le nom est affiché.
+class _AppNameField extends ConsumerStatefulWidget {
+  const _AppNameField();
+
+  @override
+  ConsumerState<_AppNameField> createState() => _AppNameFieldState();
+}
+
+class _AppNameFieldState extends ConsumerState<_AppNameField> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: ref.read(appNameProvider));
+    _focusNode = FocusNode()..addListener(() {
+      if (!_focusNode.hasFocus) _save();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    final locale = ref.read(localeProvider);
+    ref.read(appNameProvider.notifier).setName(_controller.text);
+    // Champ vide : redescend sur le nom par défaut, affiché pour confirmer.
+    _controller.text = ref.read(appNameProvider);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr(locale, 'settingsAppNameSaved'))));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final locale = ref.watch(localeProvider);
+    return TextField(
+      controller: _controller,
+      focusNode: _focusNode,
+      textInputAction: TextInputAction.done,
+      onSubmitted: (_) => _save(),
+      decoration: InputDecoration(
+        hintText: appDisplayName,
+        prefixIcon: const Icon(Icons.badge_outlined),
+        suffixIcon: IconButton(
+          tooltip: tr(locale, 'adminSave'),
+          icon: const Icon(Icons.check),
+          onPressed: _save,
+        ),
+      ),
     );
   }
 }

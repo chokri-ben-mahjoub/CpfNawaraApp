@@ -22,9 +22,9 @@ const serviceKeys = [
 ];
 
 final _strings = <String, Map<String, String>>{
-  'appName': {'fr': appDisplayName, 'en': appDisplayName},
+  'appName': {'fr': '{appName}', 'en': '{appName}'},
   'appTagline': {'fr': 'Suivi quotidien des analyses de puits', 'en': 'Daily well analysis tracking'},
-  'onboardingTitle': {'fr': 'Bienvenue sur $appDisplayName', 'en': 'Welcome to $appDisplayName'},
+  'onboardingTitle': {'fr': 'Bienvenue sur {appName}', 'en': 'Welcome to {appName}'},
   'onboardingBody': {
     'fr':
         'Suivez les analyses quotidiennes de chaque puits (BSW, salinité, '
@@ -86,7 +86,7 @@ final _strings = <String, Map<String, String>>{
   },
   'unlockTitle': {'fr': 'Bon retour', 'en': 'Welcome back'},
   'unlockSubtitle': {'fr': 'Entrez votre code pour continuer', 'en': 'Enter your code to continue'},
-  'unlockBiometricReason': {'fr': 'Déverrouillez $appDisplayName', 'en': 'Unlock $appDisplayName'},
+  'unlockBiometricReason': {'fr': 'Déverrouillez {appName}', 'en': 'Unlock {appName}'},
   'unlockWrongPin': {'fr': 'Code incorrect, réessayez.', 'en': 'Incorrect code, try again.'},
   'unlockForgotPin': {'fr': 'Code oublié ? En créer un nouveau', 'en': 'Forgot your code? Create a new one'},
   'unlockForgotPinConfirmTitle': {'fr': 'Créer un nouveau code ?', 'en': 'Create a new code?'},
@@ -461,18 +461,18 @@ final _strings = <String, Map<String, String>>{
   },
   'exportActionDownload': {'fr': 'Télécharger', 'en': 'Download'},
   'exportActionDownloadHint': {
-    'fr': 'Enregistré dans Téléchargements › $appDisplayName',
-    'en': 'Saved to Downloads › $appDisplayName',
+    'fr': 'Enregistré dans Téléchargements › {appName}',
+    'en': 'Saved to Downloads › {appName}',
   },
   'exportActionShare': {'fr': 'Partager', 'en': 'Share'},
   'exportActionShareHint': {'fr': 'WhatsApp, e-mail, Drive...', 'en': 'WhatsApp, email, Drive...'},
   'exportSavedOne': {
-    'fr': 'Fichier enregistré dans Téléchargements › $appDisplayName :',
-    'en': 'File saved to Downloads › $appDisplayName:',
+    'fr': 'Fichier enregistré dans Téléchargements › {appName} :',
+    'en': 'File saved to Downloads › {appName}:',
   },
   'exportSavedMany': {
-    'fr': 'fichiers enregistrés dans Téléchargements › $appDisplayName',
-    'en': 'files saved to Downloads › $appDisplayName',
+    'fr': 'fichiers enregistrés dans Téléchargements › {appName}',
+    'en': 'files saved to Downloads › {appName}',
   },
   'exportOpen': {'fr': 'Ouvrir', 'en': 'Open'},
   'exportDownloadedOne': {'fr': 'Fichier téléchargé :', 'en': 'File downloaded:'},
@@ -783,6 +783,14 @@ final _strings = <String, Map<String, String>>{
   'settingsProfile': {'fr': 'Profil', 'en': 'Profile'},
   'settingsEditProfile': {'fr': 'Modifier le profil', 'en': 'Edit profile'},
   'settingsAppearance': {'fr': 'Apparence', 'en': 'Appearance'},
+  'settingsAppNameLabel': {'fr': "Nom de l'app", 'en': 'App name'},
+  'settingsAppNameHint': {
+    'fr': 'Personnalisez le nom affiché dans l\'app (connexion, écran de démarrage, PDF...). '
+        'Laissez vide pour revenir à "$appDisplayName".',
+    'en': 'Customize the name shown in the app (login, splash screen, PDFs...). '
+        'Leave empty to go back to "$appDisplayName".',
+  },
+  'settingsAppNameSaved': {'fr': 'Nom enregistré.', 'en': 'Name saved.'},
   'settingsTheme': {'fr': 'Thème', 'en': 'Theme'},
   'themeLight': {'fr': 'Clair', 'en': 'Light'},
   'themeAuto': {'fr': 'Auto', 'en': 'Auto'},
@@ -830,11 +838,11 @@ final _strings = <String, Map<String, String>>{
   'backupDownload': {'fr': 'Télécharger la sauvegarde', 'en': 'Download the backup'},
   'backupDownloaded': {'fr': 'Sauvegarde téléchargée :', 'en': 'Backup downloaded:'},
   'backupShare': {'fr': 'Envoyer (Drive, e-mail, WhatsApp...)', 'en': 'Send (Drive, email, WhatsApp...)'},
-  'backupShareSubject': {'fr': 'Sauvegarde $appDisplayName', 'en': '$appDisplayName backup'},
+  'backupShareSubject': {'fr': 'Sauvegarde {appName}', 'en': '{appName} backup'},
   'backupRestore': {'fr': 'Restaurer une sauvegarde', 'en': 'Restore a backup'},
   'backupSaved': {
-    'fr': 'Sauvegarde enregistrée dans Téléchargements › $appDisplayName › Sauvegardes :',
-    'en': 'Backup saved to Downloads › $appDisplayName › Sauvegardes:',
+    'fr': 'Sauvegarde enregistrée dans Téléchargements › {appName} › Sauvegardes :',
+    'en': 'Backup saved to Downloads › {appName} › Sauvegardes:',
   },
   'backupFailed': {'fr': 'La sauvegarde a échoué. Réessayez.', 'en': 'The backup failed. Try again.'},
   'backupRestoreConfirmTitle': {'fr': 'Restaurer cette sauvegarde ?', 'en': 'Restore this backup?'},
@@ -842,11 +850,11 @@ final _strings = <String, Map<String, String>>{
     'fr':
         'Sauvegarde du {date} : {wells} puits, {records} analyses, {interventions} interventions.\n\n'
         'Toutes les données actuelles seront remplacées. Une copie de sécurité des données actuelles est '
-        'd\'abord enregistrée dans Téléchargements › $appDisplayName › Sauvegardes.',
+        'd\'abord enregistrée dans Téléchargements › {appName} › Sauvegardes.',
     'en':
         'Backup from {date}: {wells} wells, {records} analyses, {interventions} interventions.\n\n'
         'All current data will be replaced. A safety copy of the current data is saved first in '
-        'Downloads › $appDisplayName › Sauvegardes.',
+        'Downloads › {appName} › Sauvegardes.',
   },
   'backupRestoreConfirm': {'fr': 'Restaurer', 'en': 'Restore'},
   'backupRestored': {'fr': 'Sauvegarde restaurée.', 'en': 'Backup restored.'},
@@ -859,8 +867,8 @@ final _strings = <String, Map<String, String>>{
     'en': 'This file is not a valid backup.',
   },
   'backupErrorNotPuitsTrack': {
-    'fr': 'Ce fichier n\'est pas une sauvegarde $appDisplayName.',
-    'en': 'This file is not a $appDisplayName backup.',
+    'fr': 'Ce fichier n\'est pas une sauvegarde {appName}.',
+    'en': 'This file is not a {appName} backup.',
   },
   'backupErrorTooRecent': {
     'fr': 'Sauvegarde créée par une version plus récente de l\'app : mettez d\'abord l\'app à jour.',
@@ -874,9 +882,9 @@ final _strings = <String, Map<String, String>>{
   'autoBackupTitle': {'fr': 'Sauvegarde automatique', 'en': 'Automatic backup'},
   'autoBackupHint': {
     'fr':
-        'À l\'ouverture de l\'app, dans Téléchargements › $appDisplayName › Sauvegardes '
+        'À l\'ouverture de l\'app, dans Téléchargements › {appName} › Sauvegardes '
         '(2 fichiers utilisés à tour de rôle).',
-    'en': 'When the app opens, in Downloads › $appDisplayName › Sauvegardes (2 files used in turn).',
+    'en': 'When the app opens, in Downloads › {appName} › Sauvegardes (2 files used in turn).',
   },
   'autoBackupOff': {'fr': 'Désactivée', 'en': 'Off'},
   'autoBackupDaily': {'fr': 'Chaque jour', 'en': 'Daily'},
@@ -1204,7 +1212,7 @@ final _strings = <String, Map<String, String>>{
     'en': 'This account has no team access yet.',
   },
   'setupTitle': {'fr': 'Installation', 'en': 'Setup'},
-  'setupSubtitle': {'fr': 'Comment voulez-vous utiliser $appDisplayName ?', 'en': 'How do you want to use $appDisplayName?'},
+  'setupSubtitle': {'fr': 'Comment voulez-vous utiliser {appName} ?', 'en': 'How do you want to use {appName}?'},
   'setupModeTeam': {'fr': 'Équipe (synchronisé)', 'en': 'Team (synced)'},
   'setupModeTeamBody': {
     'fr': 'Données partagées entre téléphones, PC et web, avec des rôles (admin, ingénieur, opérateur, lecteur). Le premier compte devient administrateur.',
@@ -1219,7 +1227,7 @@ final _strings = <String, Map<String, String>>{
   'setupProjectSubtitle': {'fr': 'Projet Firebase personnalisé : collez sa configuration ou scannez un QR code.', 'en': 'Custom Firebase project: paste its configuration or scan a QR code.'},
   'setupProject': {'fr': 'Projet', 'en': 'Project'},
   'setupChangeProject': {'fr': 'Changer', 'en': 'Change'},
-  'setupBuiltInTitle': {'fr': 'Projet $appDisplayName (recommandé)', 'en': '$appDisplayName project (recommended)'},
+  'setupBuiltInTitle': {'fr': 'Projet {appName} (recommandé)', 'en': '{appName} project (recommended)'},
   'setupBuiltInBody': {
     'fr': 'Déjà prêt : « {project} ». Rien à configurer.',
     'en': 'Ready to use: "{project}". Nothing to configure.',
@@ -1398,8 +1406,8 @@ final _strings = <String, Map<String, String>>{
   'usersGenerate': {'fr': 'Générer', 'en': 'Generate'},
   'usersCreatedTitle': {'fr': 'Compte créé', 'en': 'Account created'},
   'usersCredentialsText': {
-    'fr': '$appDisplayName — vos identifiants\nE-mail : {email}\nMot de passe provisoire : {password}\nInstallez l\'app, choisissez « Équipe », puis « Se connecter ».',
-    'en': '$appDisplayName — your credentials\nEmail: {email}\nTemporary password: {password}\nInstall the app, choose "Team", then "Sign in".',
+    'fr': '{appName} — vos identifiants\nE-mail : {email}\nMot de passe provisoire : {password}\nInstallez l\'app, choisissez « Équipe », puis « Se connecter ».',
+    'en': '{appName} — your credentials\nEmail: {email}\nTemporary password: {password}\nInstall the app, choose "Team", then "Sign in".',
   },
   'usersCopyCredentials': {'fr': 'Copier', 'en': 'Copy'},
   'usersResetPassword': {
@@ -1675,7 +1683,7 @@ final _strings = <String, Map<String, String>>{
   'companyRename': {'fr': 'Renommer l\'entreprise', 'en': 'Rename the company'},
   'companyWelcome': {'fr': 'Bienvenue dans {company} !', 'en': 'Welcome to {company}!'},
   'companyWelcomeAdmin': {'fr': 'Entreprise {company} créée : vous en êtes l\'administrateur.', 'en': 'Company {company} created: you are its administrator.'},
-  'teamExistingAccount': {'fr': 'J\'ai déjà un compte $appDisplayName', 'en': 'I already have a $appDisplayName account'},
+  'teamExistingAccount': {'fr': 'J\'ai déjà un compte {appName}', 'en': 'I already have a {appName} account'},
   'teamExistingAccountHint': {'fr': 'Utiliser mon e-mail et mon mot de passe actuels.', 'en': 'Use my current email and password.'},
   'teamErrorAlreadyInCompany': {'fr': 'Ce compte appartient déjà à une entreprise : connectez-vous simplement.', 'en': 'This account already belongs to a company: just sign in.'},
   'noCompanyTitle': {'fr': 'Aucune entreprise', 'en': 'No company yet'},
@@ -1690,15 +1698,15 @@ final _strings = <String, Map<String, String>>{
   'setupStatusTitle': {'fr': 'Votre entreprise', 'en': 'Your company'},
   'setupStatusSubtitle': {'fr': 'Choisissez votre entreprise pour retrouver vos données.', 'en': 'Choose your company to get your data.'},
   'setupAdvanced': {'fr': 'Options avancées', 'en': 'Advanced options'},
-  'setupAdvancedBody': {'fr': 'Par défaut, $appDisplayName range les données de chaque entreprise séparément dans son propre service en ligne : rien à configurer. Vous pouvez aussi utiliser votre propre projet Firebase.', 'en': 'By default, $appDisplayName keeps each company\'s data separate in its own online service: nothing to configure. You can also use your own Firebase project.'},
+  'setupAdvancedBody': {'fr': 'Par défaut, {appName} range les données de chaque entreprise séparément dans son propre service en ligne : rien à configurer. Vous pouvez aussi utiliser votre propre projet Firebase.', 'en': 'By default, {appName} keeps each company\'s data separate in its own online service: nothing to configure. You can also use your own Firebase project.'},
   'inviteAction': {'fr': 'Inviter', 'en': 'Invite'},
   'inviteFormHint': {'fr': 'Un code à usage unique, valable 7 jours, à transmettre à la personne (message ou QR code).', 'en': 'A single-use code, valid for 7 days, to send to the person (message or QR code).'},
   'inviteCreate': {'fr': 'Créer le code d\'invitation', 'en': 'Create the invitation code'},
   'inviteEmailLabel': {'fr': 'E-mail de la personne (facultatif)', 'en': 'Person\'s email (optional)'},
   'inviteEmailHint': {'fr': 'Si renseigné, seul cet e-mail pourra utiliser le code.', 'en': 'If set, only this email can use the code.'},
   'inviteReadyTitle': {'fr': 'Invitation prête', 'en': 'Invitation ready'},
-  'inviteReadyBody': {'fr': 'Rôle : {role}. La personne installe $appDisplayName, choisit « Rejoindre mon entreprise » et saisit ce code (ou scanne le QR code).', 'en': 'Role: {role}. The person installs $appDisplayName, chooses "Join my company" and enters this code (or scans the QR code).'},
-  'inviteMessage': {'fr': 'Rejoignez {company} sur $appDisplayName : installez l\'app, choisissez « Rejoindre mon entreprise » et saisissez le code {code}.', 'en': 'Join {company} on $appDisplayName: install the app, choose "Join my company" and enter the code {code}.'},
+  'inviteReadyBody': {'fr': 'Rôle : {role}. La personne installe {appName}, choisit « Rejoindre mon entreprise » et saisit ce code (ou scanne le QR code).', 'en': 'Role: {role}. The person installs {appName}, chooses "Join my company" and enters this code (or scans the QR code).'},
+  'inviteMessage': {'fr': 'Rejoignez {company} sur {appName} : installez l\'app, choisissez « Rejoindre mon entreprise » et saisissez le code {code}.', 'en': 'Join {company} on {appName}: install the app, choose "Join my company" and enter the code {code}.'},
   'inviteCopied': {'fr': 'Invitation copiée.', 'en': 'Invitation copied.'},
   'inviteUntil': {'fr': 'valable jusqu\'au {date}', 'en': 'valid until {date}'},
   'inviteAnyEmail': {'fr': 'tout e-mail', 'en': 'any email'},
@@ -1837,11 +1845,11 @@ final _strings = <String, Map<String, String>>{
   'profilePhotoError': {'fr': 'Photo impossible à lire (ou caméra non autorisée).', 'en': 'Could not read the photo (or camera not allowed).'},
   // Codes d'activation (propriétaire)
   'activationCodeLabel': {'fr': 'Code d\'activation', 'en': 'Activation code'},
-  'activationCodeHint': {'fr': 'Fourni avec votre achat de $appDisplayName.', 'en': 'Provided with your $appDisplayName purchase.'},
+  'activationCodeHint': {'fr': 'Fourni avec votre achat de {appName}.', 'en': 'Provided with your {appName} purchase.'},
   'activationErrorUnknown': {'fr': 'Code d\'activation inconnu : vérifiez-le auprès de votre fournisseur.', 'en': 'Unknown activation code: check it with your supplier.'},
   'activationOwnerHint': {
-    'fr': 'Vous êtes le propriétaire de $appDisplayName : laissez le code d\'activation vide.',
-    'en': 'You are the $appDisplayName owner: leave the activation code empty.',
+    'fr': 'Vous êtes le propriétaire de {appName} : laissez le code d\'activation vide.',
+    'en': 'You are the {appName} owner: leave the activation code empty.',
   },
   'activationErrorUsed': {'fr': 'Ce code d\'activation a déjà servi : demandez-en un nouveau à votre fournisseur.', 'en': 'This activation code was already used: ask your supplier for a new one.'},
   'ownerTitle': {'fr': 'Clients et codes d\'activation', 'en': 'Customers and activation codes'},
@@ -1856,8 +1864,8 @@ final _strings = <String, Map<String, String>>{
   'ownerClientName': {'fr': 'Nom du client', 'en': 'Customer name'},
   'ownerClientNameHint': {'fr': 'ex : Société Pétrolière Sud', 'en': 'e.g. South Oil Company'},
   'ownerCreate': {'fr': 'Créer le code', 'en': 'Create the code'},
-  'ownerCodeHowTo': {'fr': 'Le client installe $appDisplayName, choisit « Créer mon entreprise » et saisit ce code.', 'en': 'The customer installs $appDisplayName, chooses "Create my company" and enters this code.'},
-  'ownerCodeMessage': {'fr': 'Votre code d\'activation $appDisplayName : {code}. Installez l\'app (ou ouvrez https://puitstrack.web.app), choisissez « Créer mon entreprise » et saisissez ce code.', 'en': 'Your $appDisplayName activation code: {code}. Install the app (or open https://puitstrack.web.app), choose "Create my company" and enter this code.'},
+  'ownerCodeHowTo': {'fr': 'Le client installe {appName}, choisit « Créer mon entreprise » et saisit ce code.', 'en': 'The customer installs {appName}, chooses "Create my company" and enters this code.'},
+  'ownerCodeMessage': {'fr': 'Votre code d\'activation {appName} : {code}. Installez l\'app (ou ouvrez https://puitstrack.web.app), choisissez « Créer mon entreprise » et saisissez ce code.', 'en': 'Your {appName} activation code: {code}. Install the app (or open https://puitstrack.web.app), choose "Create my company" and enter this code.'},
   'ownerCopy': {'fr': 'Copier', 'en': 'Copy'},
   'ownerCodes': {'fr': 'Codes d\'activation', 'en': 'Activation codes'},
   'ownerNoCode': {'fr': 'Aucun code pour l\'instant : bouton « Nouveau code ».', 'en': 'No code yet: "New code" button.'},
@@ -1873,10 +1881,13 @@ final _strings = <String, Map<String, String>>{
 };
 
 /// Traduit une clé pour une [Locale] donnée ; retombe sur le français.
+/// Remplace au passage le marqueur `{appName}` par le nom de l'app actuel
+/// (modifiable depuis Réglages, voir [AppNameController]).
 String tr(Locale locale, String key) {
   final entry = _strings[key];
   if (entry == null) return key;
-  return entry[locale.languageCode] ?? entry['fr'] ?? key;
+  final template = entry[locale.languageCode] ?? entry['fr'] ?? key;
+  return template.contains('{appName}') ? template.replaceAll('{appName}', currentAppName) : template;
 }
 
 /// Remplace les marqueurs `{nom}` d'une chaîne traduite par leurs valeurs.
@@ -1909,3 +1920,42 @@ class LocaleController extends StateNotifier<Locale> {
 }
 
 final localeProvider = StateNotifierProvider<LocaleController, Locale>((ref) => LocaleController());
+
+const _appNameKey = 'custom_app_name';
+
+/// Nom de l'app actuellement affiché (par défaut [appDisplayName], ou le nom
+/// personnalisé choisi dans Réglages). Variable globale simple plutôt qu'un
+/// provider : utilisée par [tr] et par du code non-widget (export PDF) qui
+/// n'a pas de `ref` sous la main.
+String currentAppName = appDisplayName;
+
+/// Permet de renommer l'app depuis l'écran Réglages, sans toucher au code :
+/// stocké sur l'appareil, pris en compte immédiatement (pas besoin de
+/// relancer l'app).
+class AppNameController extends StateNotifier<String> {
+  AppNameController() : super(appDisplayName);
+
+  Future<void> load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString(_appNameKey);
+    final resolved = (saved == null || saved.trim().isEmpty) ? appDisplayName : saved.trim();
+    state = resolved;
+    currentAppName = resolved;
+  }
+
+  /// Un nom vide restaure le nom par défaut ([appDisplayName]).
+  Future<void> setName(String name) async {
+    final trimmed = name.trim();
+    final resolved = trimmed.isEmpty ? appDisplayName : trimmed;
+    state = resolved;
+    currentAppName = resolved;
+    final prefs = await SharedPreferences.getInstance();
+    if (trimmed.isEmpty) {
+      await prefs.remove(_appNameKey);
+    } else {
+      await prefs.setString(_appNameKey, trimmed);
+    }
+  }
+}
+
+final appNameProvider = StateNotifierProvider<AppNameController, String>((ref) => AppNameController());
