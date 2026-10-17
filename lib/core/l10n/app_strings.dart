@@ -992,6 +992,10 @@ final _strings = <String, Map<String, String>>{
     'en': 'No limit set (Limits, at the top of the point page).',
   },
   'plantSampleDate': {'fr': 'Date du prélèvement', 'en': 'Sampling date'},
+  'plantStartTime': {'fr': 'Heure de début', 'en': 'Start time'},
+  'plantEndTime': {'fr': 'Heure de fin', 'en': 'End time'},
+  'colStartTime': {'fr': 'Heure début', 'en': 'Start time'},
+  'colEndTime': {'fr': 'Heure fin', 'en': 'End time'},
   'plantEntryEditing': {
     'fr': 'Modification de cette analyse existante.',
     'en': 'Editing this existing analysis.',

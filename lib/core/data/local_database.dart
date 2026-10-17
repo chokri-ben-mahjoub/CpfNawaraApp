@@ -21,7 +21,7 @@ class LocalDatabase {
   static final LocalDatabase instance = LocalDatabase._();
 
   /// Version du schéma (voir `onUpgrade`), enregistrée dans les sauvegardes.
-  static const schemaVersion = 14;
+  static const schemaVersion = 15;
 
   /// Tables sauvegardées / restaurées / synchronisées.
   static const dataTables = [
@@ -243,6 +243,14 @@ class LocalDatabase {
             // imposée en base, seule la saisie manuelle en décide.
             await db.execute('drop index if exists plant_analyses_point_date');
           }
+          if (oldVersion >= 7 && oldVersion < 15) {
+            // Heure de début et de fin du prélèvement/essai (facultatives),
+            // en plus de la date. Seulement si la table existait déjà avant
+            // cette mise à niveau : sinon elle vient d'être créée avec ces
+            // colonnes par `_createPlantTables` (ci-dessus, oldVersion < 7).
+            await db.execute('alter table plant_analyses add column start_time text');
+            await db.execute('alter table plant_analyses add column end_time text');
+          }
         },
       ),
     );
@@ -310,6 +318,8 @@ class LocalDatabase {
         operator_name text not null default '',
         comment text,
         recorded_at text not null,
+        start_time text,
+        end_time text,
         updated_at integer not null default 0,
         dirty integer not null default 0
       )

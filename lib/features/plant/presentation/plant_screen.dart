@@ -49,6 +49,8 @@ Future<void> exportPlantAnalyses(WidgetRef ref, BuildContext context) async {
       for (final a in controller.analysesFor(point.id)) {
         rows.add([
           DateOnly(a.date),
+          a.startTime ?? '',
+          a.endTime ?? '',
           point.code,
           point.name,
           for (final param in params)
@@ -65,6 +67,8 @@ Future<void> exportPlantAnalyses(WidgetRef ref, BuildContext context) async {
         name: s(circuit.labelKey),
         headers: [
           s('colDate'),
+          s('colStartTime'),
+          s('colEndTime'),
           s('plantColPoint'),
           s('plantColName'),
           for (final param in params) param.unit.isEmpty ? s(param.labelKey) : '${s(param.labelKey)} (${param.unit})',

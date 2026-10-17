@@ -26,6 +26,18 @@ class PdfTableExporter {
     final doc = pw.Document(title: safeTitle, author: 'PuitsTrack');
     final generated = DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now());
 
+    // Beaucoup de colonnes (analyses usine...) : texte plus petit et marge
+    // réduite, sinon les en-têtes se retrouvent coupés lettre par lettre.
+    final maxColumns = tables.isEmpty ? 0 : tables.map((t) => t.headers.length).reduce((a, b) => a > b ? a : b);
+    final fontSize = maxColumns > 12
+        ? 6.5
+        : maxColumns > 8
+            ? 7.5
+            : 8.5;
+    final cellPadding = maxColumns > 8
+        ? const pw.EdgeInsets.symmetric(horizontal: 3, vertical: 4)
+        : const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 5);
+
     final sections = <pw.Widget>[];
     for (final table in tables) {
       sections.add(pw.SizedBox(height: 16));
@@ -36,18 +48,25 @@ class PdfTableExporter {
       sections.add(
         pw.TableHelper.fromTextArray(
           headers: table.headers.map(_safe).toList(),
-          headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8.5, color: PdfColors.white),
+          headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: fontSize, color: PdfColors.white),
           headerDecoration: const pw.BoxDecoration(color: _navy),
-          cellStyle: const pw.TextStyle(fontSize: 8.5),
+          headerPadding: cellPadding,
+          cellStyle: pw.TextStyle(fontSize: fontSize),
+          cellPadding: cellPadding,
+          cellAlignment: pw.Alignment.centerLeft,
           data: [for (final row in table.rows) row.map(_cell).toList()],
         ),
       );
     }
 
+    // Paysage dès qu'un tableau a plus de 6 colonnes : largement plus de
+    // place que le portrait pour que chaque en-tête tienne sur sa ligne.
+    final pageFormat = maxColumns > 6 ? PdfPageFormat.a4.landscape : PdfPageFormat.a4;
+
     doc.addPage(
       pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.fromLTRB(28, 28, 28, 28),
+        pageFormat: pageFormat,
+        margin: const pw.EdgeInsets.fromLTRB(20, 24, 20, 24),
         header: (context) => pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [

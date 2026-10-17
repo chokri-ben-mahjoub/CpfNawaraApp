@@ -31,6 +31,8 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
   final _choices = <String, String?>{};
   final _comment = TextEditingController();
   late DateTime _date;
+  TimeOfDay? _startTime;
+  TimeOfDay? _endTime;
   String _source = plantSources.first;
   bool _saving = false;
 
@@ -72,7 +74,22 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
     }
     _comment.text = existing.comment ?? '';
     _source = existing.source;
+    _startTime = _parseTime(existing.startTime);
+    _endTime = _parseTime(existing.endTime);
   }
+
+  static TimeOfDay? _parseTime(String? text) {
+    if (text == null) return null;
+    final parts = text.split(':');
+    if (parts.length != 2) return null;
+    final h = int.tryParse(parts[0]);
+    final m = int.tryParse(parts[1]);
+    if (h == null || m == null) return null;
+    return TimeOfDay(hour: h, minute: m);
+  }
+
+  static String? _formatTime(TimeOfDay? time) =>
+      time == null ? null : '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
 
   @override
   void dispose() {
@@ -110,6 +127,8 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
           operatorName: ref.read(profileProvider)?.fullName ?? '',
           comment: _comment.text.trim().isEmpty ? null : _comment.text.trim(),
           id: _editingId,
+          startTime: _formatTime(_startTime),
+          endTime: _formatTime(_endTime),
         );
     if (!mounted) return;
     final messenger = ScaffoldMessenger.of(context);
@@ -232,6 +251,26 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
                 child: Text(DateFormat('EEEE d MMMM yyyy', locale.languageCode).format(_date)),
               ),
             ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: _TimeField(
+                    label: s('plantStartTime'),
+                    value: _startTime,
+                    onChanged: (t) => setState(() => _startTime = t),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _TimeField(
+                    label: s('plantEndTime'),
+                    value: _endTime,
+                    onChanged: (t) => setState(() => _endTime = t),
+                  ),
+                ),
+              ],
+            ),
             if (editing != null) ...[
               const SizedBox(height: 6),
               Text(
@@ -315,6 +354,39 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Champ "heure" facultatif (ouvre un sélecteur, effaçable une fois rempli).
+class _TimeField extends StatelessWidget {
+  final String label;
+  final TimeOfDay? value;
+  final ValueChanged<TimeOfDay?> onChanged;
+
+  const _TimeField({required this.label, required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () async {
+        final picked = await showTimePicker(context: context, initialTime: value ?? TimeOfDay.now());
+        if (picked != null) onChanged(picked);
+      },
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: const Icon(Icons.schedule_outlined),
+          suffixIcon: value == null
+              ? null
+              : IconButton(
+                  icon: const Icon(Icons.close, size: 18),
+                  onPressed: () => onChanged(null),
+                ),
+        ),
+        child: Text(value == null ? '—' : value!.format(context)),
       ),
     );
   }

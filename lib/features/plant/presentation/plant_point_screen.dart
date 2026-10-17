@@ -25,6 +25,8 @@ Future<void> _exportPoint(WidgetRef ref, BuildContext context, SamplePoint point
     for (final a in controller.analysesFor(point.id))
       [
         DateOnly(a.date),
+        a.startTime ?? '',
+        a.endTime ?? '',
         for (final param in params)
           param.isNumeric ? a.number(param.key) : (a.values[param.key] == null ? null : s('${a.values[param.key]}')),
         s(a.source),
@@ -42,6 +44,8 @@ Future<void> _exportPoint(WidgetRef ref, BuildContext context, SamplePoint point
         name: point.code,
         headers: [
           s('colDate'),
+          s('colStartTime'),
+          s('colEndTime'),
           for (final param in params) param.unit.isEmpty ? s(param.labelKey) : '${s(param.labelKey)} (${param.unit})',
           s('plantColSource'),
           s('colOperator'),

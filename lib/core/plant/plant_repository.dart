@@ -65,6 +65,11 @@ class PlantAnalysis {
   final String? comment;
   final DateTime recordedAt;
 
+  /// Heure de début et de fin du prélèvement/essai ("HH:mm"), facultatives —
+  /// utile par exemple pour un essai de moussage chronométré.
+  final String? startTime;
+  final String? endTime;
+
   const PlantAnalysis({
     required this.id,
     required this.pointId,
@@ -74,6 +79,8 @@ class PlantAnalysis {
     required this.operatorName,
     this.comment,
     required this.recordedAt,
+    this.startTime,
+    this.endTime,
   });
 
   double? number(String key) => (values[key] as num?)?.toDouble();
@@ -328,6 +335,8 @@ class PlantController extends StateNotifier<PlantState> {
           operatorName: a.operatorName,
           comment: a.comment,
           recordedAt: a.recordedAt,
+          startTime: a.startTime,
+          endTime: a.endTime,
         ),
       );
     }
@@ -479,6 +488,8 @@ class PlantController extends StateNotifier<PlantState> {
     required String operatorName,
     String? comment,
     String? id,
+    String? startTime,
+    String? endTime,
   }) async {
     final db = await LocalDatabase.instance.database;
     final date = _day(day);
@@ -500,6 +511,8 @@ class PlantController extends StateNotifier<PlantState> {
         'operator_name': operatorName,
         'comment': comment,
         'recorded_at': DateTime.now().toIso8601String(),
+        'start_time': startTime,
+        'end_time': endTime,
       }),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -860,6 +873,8 @@ PlantAnalysis? _analysisFromRow(Map<String, Object?> row) {
       operatorName: row['operator_name'] as String? ?? '',
       comment: row['comment'] as String?,
       recordedAt: DateTime.tryParse(row['recorded_at'] as String? ?? '') ?? date,
+      startTime: row['start_time'] as String?,
+      endTime: row['end_time'] as String?,
     );
   } catch (_) {
     // Ligne illisible (ex: synchronisée par une version plus récente) :

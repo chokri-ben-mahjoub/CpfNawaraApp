@@ -132,7 +132,10 @@ void main() {
       "select name from sqlite_master where type = 'index' and tbl_name = 'plant_analyses'",
     );
     expect(plantIndexes.map((r) => r['name']), isNot(contains('plant_analyses_point_date')));
-    expect(LocalDatabase.schemaVersion, 14);
+    // v15 : heure de début et de fin du prélèvement (facultatives).
+    final plantAnalysesColumns = await db.rawQuery('pragma table_info(plant_analyses)');
+    expect(plantAnalysesColumns.map((r) => r['name']), containsAll(['start_time', 'end_time']));
+    expect(LocalDatabase.schemaVersion, 15);
 
     // Première connexion : tout ce qui a été saisi/modifié part au serveur.
     final engine = SyncEngine(
