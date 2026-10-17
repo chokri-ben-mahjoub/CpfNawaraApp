@@ -21,7 +21,7 @@ class LocalDatabase {
   static final LocalDatabase instance = LocalDatabase._();
 
   /// Version du schéma (voir `onUpgrade`), enregistrée dans les sauvegardes.
-  static const schemaVersion = 13;
+  static const schemaVersion = 14;
 
   /// Tables sauvegardées / restaurées / synchronisées.
   static const dataTables = [
@@ -237,6 +237,12 @@ class LocalDatabase {
             // et mouvements (entrées/sorties), avec alerte de seuil bas.
             await _createStockTables(db);
           }
+          if (oldVersion < 14) {
+            // Plusieurs analyses possibles pour un même point le même jour
+            // (plusieurs prélèvements) : l'unicité point + jour n'est plus
+            // imposée en base, seule la saisie manuelle en décide.
+            await db.execute('drop index if exists plant_analyses_point_date');
+          }
         },
       ),
     );
@@ -276,7 +282,9 @@ class LocalDatabase {
 
   /// Module Usine CPF (voir `lib/core/plant/`). `plant_analyses.values_json`
   /// contient les valeurs mesurées ({"bsw": 0.2, "appearance": "..."}) ;
-  /// une seule analyse par point et par jour (id = `<point>_<date>`).
+  /// plusieurs analyses peuvent coexister pour un même point et un même jour
+  /// (plusieurs prélèvements) : l'unicité n'est plus imposée en base, voir
+  /// `PlantController.saveAnalysis`.
   static Future<void> _createPlantTables(DatabaseExecutor db) async {
     await db.execute('''
       create table if not exists sample_points (
@@ -306,9 +314,6 @@ class LocalDatabase {
         dirty integer not null default 0
       )
     ''');
-    await db.execute(
-      'create unique index if not exists plant_analyses_point_date on plant_analyses (point_id, analysis_date)',
-    );
     await db.execute('''
       create table if not exists plant_thresholds (
         id text primary key,

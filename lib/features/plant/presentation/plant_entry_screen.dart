@@ -10,13 +10,16 @@ import '../../../core/plant/plant_repository.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/responsive.dart';
 
-/// Saisie (ou correction) de l'analyse d'un point pour un jour : un champ
-/// par paramètre, valeur hors seuil signalée en direct.
+/// Saisie d'une nouvelle analyse d'un point pour un jour (plusieurs
+/// prélèvements possibles le même jour), ou correction d'une analyse
+/// précise si [analysisId] est fourni (depuis l'historique) : un champ par
+/// paramètre, valeur hors seuil signalée en direct.
 class PlantEntryScreen extends ConsumerStatefulWidget {
   final String pointId;
   final DateTime? initialDate;
+  final String? analysisId;
 
-  const PlantEntryScreen({super.key, required this.pointId, this.initialDate});
+  const PlantEntryScreen({super.key, required this.pointId, this.initialDate, this.analysisId});
 
   @override
   ConsumerState<PlantEntryScreen> createState() => _PlantEntryScreenState();
@@ -30,6 +33,11 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
   late DateTime _date;
   String _source = plantSources.first;
   bool _saving = false;
+
+  /// `null` : nouvelle analyse (sera ajoutée, sans remplacer celles déjà
+  /// saisies ce jour-là). Sinon : identifiant de l'analyse en cours de
+  /// correction, qui sera remplacée à l'enregistrement.
+  String? get _editingId => widget.analysisId;
 
   @override
   void initState() {
@@ -45,22 +53,25 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
         _choices[param.key] = null;
       }
     }
-    _loadExisting();
+    if (_editingId != null) _loadExisting();
   }
 
-  /// Pré-remplit avec l'analyse déjà saisie pour ce jour (correction).
+  /// Pré-remplit avec l'analyse à corriger (mode édition uniquement : la
+  /// saisie d'une nouvelle analyse démarre toujours vierge).
   void _loadExisting() {
     final controller = ref.read(plantControllerProvider.notifier);
-    final existing = controller.analysisOn(widget.pointId, _date);
+    final existing = controller.byId(_editingId!);
+    if (existing == null) return;
+    _date = existing.date;
     for (final entry in _fields.entries) {
-      final v = existing?.number(entry.key);
+      final v = existing.number(entry.key);
       entry.value.text = v == null ? '' : (v == v.roundToDouble() ? v.toInt().toString() : v.toString());
     }
     for (final key in _choices.keys.toList()) {
-      _choices[key] = existing?.values[key] as String?;
+      _choices[key] = existing.values[key] as String?;
     }
-    _comment.text = existing?.comment ?? '';
-    if (existing != null) _source = existing.source;
+    _comment.text = existing.comment ?? '';
+    _source = existing.source;
   }
 
   @override
@@ -98,6 +109,7 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
           source: _source,
           operatorName: ref.read(profileProvider)?.fullName ?? '',
           comment: _comment.text.trim().isEmpty ? null : _comment.text.trim(),
+          id: _editingId,
         );
     if (!mounted) return;
     final messenger = ScaffoldMessenger.of(context);
@@ -142,7 +154,14 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
         body: Center(child: Text(s('plantPointNotFound'))),
       );
     }
-    final existing = controller.analysisOn(point.id, _date);
+    final editing = _editingId == null ? null : controller.byId(_editingId!);
+    // En mode ajout, les autres analyses déjà saisies ce jour-là (hors
+    // l'éventuelle analyse en cours de correction) : affichées à titre
+    // d'information, elles ne sont pas remplacées.
+    final sameDayOthers = controller
+        .analysesOnDay(point.id, _date)
+        .where((a) => a.id != _editingId)
+        .toList();
     final now = DateTime.now();
 
     Widget numberField(PlantParam param) {
@@ -172,11 +191,11 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
       appBar: AppBar(
         title: Text('${s('plantEnter')} · ${point.code}'),
         actions: [
-          if (existing != null)
+          if (editing != null)
             IconButton(
               tooltip: s('recordDelete'),
               icon: Icon(Icons.delete_outline, color: scheme.error),
-              onPressed: () => _delete(existing),
+              onPressed: () => _delete(editing),
             ),
         ],
       ),
@@ -201,10 +220,9 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
                   lastDate: DateTime(now.year, now.month, now.day),
                 );
                 if (picked == null) return;
-                setState(() {
-                  _date = picked;
-                  _loadExisting();
-                });
+                // En mode édition, changer la date déplace l'analyse corrigée
+                // vers ce nouveau jour plutôt que d'en recharger une autre.
+                setState(() => _date = picked);
               },
               child: InputDecorator(
                 decoration: InputDecoration(
@@ -214,11 +232,17 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
                 child: Text(DateFormat('EEEE d MMMM yyyy', locale.languageCode).format(_date)),
               ),
             ),
-            if (existing != null) ...[
+            if (editing != null) ...[
               const SizedBox(height: 6),
               Text(
-                s('plantEntryExisting'),
+                s('plantEntryEditing'),
                 style: TextStyle(color: accentColor, fontSize: 12, fontWeight: FontWeight.w700),
+              ),
+            ] else if (sameDayOthers.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(
+                '${sameDayOthers.length} ${s('plantEntryOthersToday')}',
+                style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w600),
               ),
             ],
             const SizedBox(height: 14),

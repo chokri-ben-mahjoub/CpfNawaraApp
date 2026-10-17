@@ -992,9 +992,13 @@ final _strings = <String, Map<String, String>>{
     'en': 'No limit set (Limits, at the top of the point page).',
   },
   'plantSampleDate': {'fr': 'Date du prélèvement', 'en': 'Sampling date'},
-  'plantEntryExisting': {
-    'fr': 'Une analyse existe déjà ce jour : elle sera remplacée.',
-    'en': 'An analysis already exists that day: it will be replaced.',
+  'plantEntryEditing': {
+    'fr': 'Modification de cette analyse existante.',
+    'en': 'Editing this existing analysis.',
+  },
+  'plantEntryOthersToday': {
+    'fr': 'analyse(s) déjà enregistrée(s) ce jour — celle-ci s\'ajoutera, sans les remplacer.',
+    'en': 'analysis/analyses already recorded that day — this one will be added, not replace them.',
   },
   'plantEntryEmpty': {'fr': 'Saisissez au moins une valeur.', 'en': 'Enter at least one value.'},
   'plantEntrySaved': {'fr': 'Analyse enregistrée.', 'en': 'Analysis saved.'},

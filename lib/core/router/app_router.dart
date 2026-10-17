@@ -141,6 +141,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => PlantEntryScreen(
           pointId: state.pathParameters['id']!,
           initialDate: DateTime.tryParse(state.uri.queryParameters['date'] ?? ''),
+          analysisId: state.uri.queryParameters['analysisId'],
         ),
       ),
       GoRoute(path: '/settings', builder: (context, state) => const SettingsScreen()),

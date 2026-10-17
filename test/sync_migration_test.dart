@@ -126,7 +126,13 @@ void main() {
     // v13 : stock (articles et mouvements, vides).
     expect(await db.query('stock_items'), isEmpty);
     expect(await db.query('stock_movements'), isEmpty);
-    expect(LocalDatabase.schemaVersion, 13);
+    // v14 : plusieurs analyses possibles par point et par jour (l'index
+    // unique point + jour de la v7 est supprimé).
+    final plantIndexes = await db.rawQuery(
+      "select name from sqlite_master where type = 'index' and tbl_name = 'plant_analyses'",
+    );
+    expect(plantIndexes.map((r) => r['name']), isNot(contains('plant_analyses_point_date')));
+    expect(LocalDatabase.schemaVersion, 14);
 
     // Première connexion : tout ce qui a été saisi/modifié part au serveur.
     final engine = SyncEngine(

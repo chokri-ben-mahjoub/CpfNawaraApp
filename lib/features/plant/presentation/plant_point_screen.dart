@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/auth/auth_providers.dart';
+import '../../../core/export/export_service.dart';
+import '../../../core/export/export_table.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/user_role.dart';
 import '../../../core/plant/plant_repository.dart';
@@ -11,6 +13,45 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/responsive.dart';
 import 'plant_screen.dart';
 import 'widgets/plant_diagram.dart';
+
+/// Export Excel/CSV/PDF de l'historique d'un seul point de prélèvement
+/// (toutes les analyses, une colonne par paramètre).
+Future<void> _exportPoint(WidgetRef ref, BuildContext context, SamplePoint point) async {
+  final locale = ref.read(localeProvider);
+  String s(String key) => tr(locale, key);
+  final controller = ref.read(plantControllerProvider.notifier);
+  final params = point.params;
+  final rows = <List<Object?>>[
+    for (final a in controller.analysesFor(point.id))
+      [
+        DateOnly(a.date),
+        for (final param in params)
+          param.isNumeric ? a.number(param.key) : (a.values[param.key] == null ? null : s('${a.values[param.key]}')),
+        s(a.source),
+        a.operatorName,
+        a.comment ?? '',
+      ],
+  ];
+  await runExport(
+    context: context,
+    locale: locale,
+    baseName: point.code,
+    shareSubject: '${point.name} (${point.code})',
+    tables: [
+      ExportTable(
+        name: point.code,
+        headers: [
+          s('colDate'),
+          for (final param in params) param.unit.isEmpty ? s(param.labelKey) : '${s(param.labelKey)} (${param.unit})',
+          s('plantColSource'),
+          s('colOperator'),
+          s('colComment'),
+        ],
+        rows: rows,
+      ),
+    ],
+  );
+}
 
 /// Fiche d'un point de prélèvement : analyse du jour consulté (ou la plus
 /// récente), historique, seuils, accès aux courbes de tendance.
@@ -43,6 +84,11 @@ class PlantPointScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text('${point.code} · ${point.name}'),
         actions: [
+          IconButton(
+            tooltip: s('exportTooltip'),
+            icon: const Icon(Icons.ios_share_outlined),
+            onPressed: history.isEmpty ? null : () => _exportPoint(ref, context, point),
+          ),
           if (role.canConfigure)
             IconButton(
               tooltip: s('plantThresholds'),
@@ -183,7 +229,7 @@ class _HistoryTile extends ConsumerWidget {
       ),
       trailing: role.canEnterData ? Icon(Icons.edit_outlined, size: 18, color: scheme.onSurfaceVariant) : null,
       onTap: role.canEnterData
-          ? () => context.push('/plant/entry/${point.id}?date=${plantDateKey(analysis.date)}')
+          ? () => context.push('/plant/entry/${point.id}?analysisId=${analysis.id}')
           : null,
     );
   }

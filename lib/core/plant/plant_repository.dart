@@ -269,9 +269,12 @@ DateTime _day(DateTime t) => DateTime(t.year, t.month, t.day);
 String plantDateKey(DateTime day) =>
     '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
 
-/// Identifiant d'une analyse : une seule par point et par jour, identique sur
-/// tous les appareils (deux saisies du même jour se fusionnent à la
-/// synchronisation : la plus récente l'emporte).
+/// Identifiant déterministe point + jour, utilisé uniquement par l'import
+/// Excel (une ligne importée par point et par jour fusionne avec la
+/// précédente plutôt que de dupliquer à chaque réimport). La saisie manuelle
+/// (`PlantController.saveAnalysis`) utilise un identifiant unique par analyse
+/// : plusieurs prélèvements peuvent coexister pour un même point et un même
+/// jour.
 String plantAnalysisId(String pointId, DateTime day) => '${pointId}_${plantDateKey(day)}';
 
 class PlantController extends StateNotifier<PlantState> {
@@ -367,8 +370,24 @@ class PlantController extends StateNotifier<PlantState> {
   /// Analyses d'un point, de la plus récente à la plus ancienne.
   List<PlantAnalysis> analysesFor(String pointId) => state.analyses.where((a) => a.pointId == pointId).toList();
 
+  /// Toutes les analyses d'un point pour un jour (plusieurs prélèvements
+  /// possibles), la plus récemment saisie en premier.
+  List<PlantAnalysis> analysesOnDay(String pointId, DateTime day) {
+    final date = _day(day);
+    final list = state.analyses.where((a) => a.pointId == pointId && a.date == date).toList()
+      ..sort((a, b) => b.recordedAt.compareTo(a.recordedAt));
+    return list;
+  }
+
+  /// La plus récente analyse d'un point pour un jour (affichage courant,
+  /// statut du schéma...), ou `null` si rien n'a été saisi ce jour-là.
   PlantAnalysis? analysisOn(String pointId, DateTime day) {
-    final id = plantAnalysisId(pointId, _day(day));
+    final list = analysesOnDay(pointId, day);
+    return list.isEmpty ? null : list.first;
+  }
+
+  /// Une analyse précise par son identifiant (édition depuis l'historique).
+  PlantAnalysis? byId(String id) {
     for (final a in state.analyses) {
       if (a.id == id) return a;
     }
@@ -376,10 +395,14 @@ class PlantController extends StateNotifier<PlantState> {
   }
 
   PlantAnalysis? latest(String pointId) {
+    PlantAnalysis? best;
     for (final a in state.analyses) {
-      if (a.pointId == pointId) return a;
+      if (a.pointId != pointId) continue;
+      if (best == null || a.date.isAfter(best.date) || (a.date == best.date && a.recordedAt.isAfter(best.recordedAt))) {
+        best = a;
+      }
     }
-    return null;
+    return best;
   }
 
   PlantThreshold? threshold(String pointId, String param) => state.thresholds[pointId]?[param];
@@ -444,7 +467,10 @@ class PlantController extends StateNotifier<PlantState> {
 
   // ------------------------------------------------------------- Écriture
 
-  /// Enregistre (ou remplace) l'analyse d'un point pour un jour.
+  /// Enregistre l'analyse d'un point pour un jour. Sans [id], une nouvelle
+  /// analyse est créée (plusieurs analyses peuvent coexister le même jour,
+  /// par exemple plusieurs prélèvements) ; avec [id] (modification d'une
+  /// analyse précise depuis l'historique), cette analyse est remplacée.
   Future<void> saveAnalysis({
     required String pointId,
     required DateTime day,
@@ -452,6 +478,7 @@ class PlantController extends StateNotifier<PlantState> {
     required String source,
     required String operatorName,
     String? comment,
+    String? id,
   }) async {
     final db = await LocalDatabase.instance.database;
     final date = _day(day);
@@ -459,7 +486,7 @@ class PlantController extends StateNotifier<PlantState> {
     await db.insert(
       'plant_analyses',
       LocalDatabase.stamp({
-        'id': plantAnalysisId(pointId, date),
+        'id': id ?? 'pa_${_uuid.v4()}',
         'point_id': pointId,
         'analysis_date': plantDateKey(date),
         'values_json': jsonEncode({
