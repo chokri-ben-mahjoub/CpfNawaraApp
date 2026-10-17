@@ -5,6 +5,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
+import 'core/app_info.dart';
 import 'core/auth/app_lock.dart';
 import 'core/auth/auth_providers.dart';
 import 'core/data/db_factory.dart';
@@ -108,7 +109,7 @@ class _SuiviPuitsAppState extends ConsumerState<SuiviPuitsApp> with WidgetsBindi
     final themeMode = ref.watch(appSettingsProvider.select((s) => s.themeMode));
 
     return MaterialApp.router(
-      title: 'PuitsTrack',
+      title: appDisplayName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),

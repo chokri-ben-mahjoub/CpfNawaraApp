@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/app_info.dart';
 import '../../core/theme/app_theme.dart';
 
 /// Écran de démarrage (splash) affiché au lancement, pendant le chargement
@@ -76,9 +77,9 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                   position: Tween(begin: const Offset(0, 0.4), end: Offset.zero).animate(text),
                   child: Column(
                     children: [
-                      const Text(
-                        'PuitsTrack',
-                        style: TextStyle(color: Color(0xFFF5EDE8), fontSize: 26, fontWeight: FontWeight.w800, letterSpacing: 0.3),
+                      Text(
+                        appDisplayName,
+                        style: const TextStyle(color: Color(0xFFF5EDE8), fontSize: 26, fontWeight: FontWeight.w800, letterSpacing: 0.3),
                       ),
                       const SizedBox(height: 4),
                       Text(

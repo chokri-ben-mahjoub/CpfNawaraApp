@@ -5,6 +5,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import '../../core/analysis/series.dart';
+import '../../core/app_info.dart';
 import '../../core/plant/plant_catalog.dart';
 import '../../core/plant/plant_repository.dart';
 
@@ -30,7 +31,7 @@ Future<Uint8List> buildPlantDailyReport({
 }) async {
   // Polices standard du PDF : pas de tiret long ni de ≤ / ≥.
   String t(String key) => _safe(s(key));
-  final doc = pw.Document(title: t('plantReportTitle'), author: 'PuitsTrack');
+  final doc = pw.Document(title: t('plantReportTitle'), author: appDisplayName);
   final dateLabel = DateFormat('EEEE d MMMM yyyy', languageCode).format(day);
   final generated = DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now());
 
@@ -158,7 +159,7 @@ Future<Uint8List> buildPlantDailyReport({
           pw.Row(
             children: [
               pw.Text(
-                'PuitsTrack',
+                appDisplayName,
                 style: pw.TextStyle(color: _accent, fontWeight: pw.FontWeight.bold, fontSize: 12),
               ),
               pw.Spacer(),

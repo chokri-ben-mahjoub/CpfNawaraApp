@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
+import '../app_info.dart';
 import 'export_table.dart';
 
 const _accent = PdfColor.fromInt(0xFFFF7A33);
@@ -23,7 +24,7 @@ class PdfTableExporter {
 
   static Future<Uint8List> encode(List<ExportTable> tables, {required String title, String operatorName = ''}) async {
     final safeTitle = _safe(title);
-    final doc = pw.Document(title: safeTitle, author: 'PuitsTrack');
+    final doc = pw.Document(title: safeTitle, author: appDisplayName);
     final generated = DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now());
 
     // Beaucoup de colonnes (analyses usine...) : texte plus petit et marge
@@ -72,7 +73,7 @@ class PdfTableExporter {
           children: [
             pw.Row(
               children: [
-                pw.Text('PuitsTrack', style: pw.TextStyle(color: _accent, fontWeight: pw.FontWeight.bold, fontSize: 12)),
+                pw.Text(appDisplayName, style: pw.TextStyle(color: _accent, fontWeight: pw.FontWeight.bold, fontSize: 12)),
                 pw.Spacer(),
                 pw.Text(safeTitle, style: const pw.TextStyle(color: _grey, fontSize: 9)),
               ],
