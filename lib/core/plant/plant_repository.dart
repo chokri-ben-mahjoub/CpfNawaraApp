@@ -70,6 +70,10 @@ class PlantAnalysis {
   final String? startTime;
   final String? endTime;
 
+  /// Photo jointe (aspect visuel, étiquette d'échantillon...), JPEG encodé
+  /// en base64 — voir `schema_image.dart` pour la compression à la saisie.
+  final String? photo;
+
   const PlantAnalysis({
     required this.id,
     required this.pointId,
@@ -81,6 +85,7 @@ class PlantAnalysis {
     required this.recordedAt,
     this.startTime,
     this.endTime,
+    this.photo,
   });
 
   double? number(String key) => (values[key] as num?)?.toDouble();
@@ -337,6 +342,7 @@ class PlantController extends StateNotifier<PlantState> {
           recordedAt: a.recordedAt,
           startTime: a.startTime,
           endTime: a.endTime,
+          photo: a.photo,
         ),
       );
     }
@@ -490,6 +496,7 @@ class PlantController extends StateNotifier<PlantState> {
     String? id,
     String? startTime,
     String? endTime,
+    String? photo,
   }) async {
     final db = await LocalDatabase.instance.database;
     final date = _day(day);
@@ -513,6 +520,7 @@ class PlantController extends StateNotifier<PlantState> {
         'recorded_at': DateTime.now().toIso8601String(),
         'start_time': startTime,
         'end_time': endTime,
+        'photo': photo,
       }),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -914,6 +922,7 @@ PlantAnalysis? _analysisFromRow(Map<String, Object?> row) {
       recordedAt: DateTime.tryParse(row['recorded_at'] as String? ?? '') ?? date,
       startTime: row['start_time'] as String?,
       endTime: row['end_time'] as String?,
+      photo: row['photo'] as String?,
     );
   } catch (_) {
     // Ligne illisible (ex: synchronisée par une version plus récente) :

@@ -21,7 +21,7 @@ class LocalDatabase {
   static final LocalDatabase instance = LocalDatabase._();
 
   /// Version du schéma (voir `onUpgrade`), enregistrée dans les sauvegardes.
-  static const schemaVersion = 16;
+  static const schemaVersion = 17;
 
   /// Tables sauvegardées / restaurées / synchronisées.
   static const dataTables = [
@@ -257,6 +257,11 @@ class LocalDatabase {
             // paramètre personnalisé, avec ce drapeau en plus.
             await db.execute('alter table plant_params add column hidden integer not null default 0');
           }
+          if (oldVersion >= 7 && oldVersion < 17) {
+            // Photo jointe à une analyse (ex: aspect visuel, étiquette
+            // d'échantillon), facultative.
+            await db.execute('alter table plant_analyses add column photo text');
+          }
         },
       ),
     );
@@ -326,6 +331,7 @@ class LocalDatabase {
         recorded_at text not null,
         start_time text,
         end_time text,
+        photo text,
         updated_at integer not null default 0,
         dirty integer not null default 0
       )

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -13,6 +15,43 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/responsive.dart';
 import 'plant_screen.dart';
 import 'widgets/plant_diagram.dart';
+
+/// Affiche en plein écran la photo jointe à une analyse (zoom/déplacement).
+void showPlantPhoto(BuildContext context, String base64) {
+  showDialog<void>(
+    context: context,
+    barrierColor: Colors.black87,
+    builder: (dialogContext) => GestureDetector(
+      onTap: () => Navigator.of(dialogContext).pop(),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
+          child: InteractiveViewer(
+            child: Center(child: Image.memory(base64Decode(base64))),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+/// Vignette d'une photo jointe à une analyse, tapée pour l'agrandir.
+class _PhotoThumbnail extends StatelessWidget {
+  final String base64;
+  const _PhotoThumbnail({required this.base64});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: () => showPlantPhoto(context, base64),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: Image.memory(base64Decode(base64), height: 140, width: double.infinity, fit: BoxFit.cover),
+      ),
+    );
+  }
+}
 
 /// Export Excel/CSV/PDF de l'historique d'un seul point de prélèvement
 /// (toutes les analyses, une colonne par paramètre).
@@ -175,6 +214,10 @@ class PlantPointScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 10),
             PlantValuesTable(point: point, analysis: current),
+            if (current.photo != null) ...[
+              const SizedBox(height: 10),
+              _PhotoThumbnail(base64: current.photo!),
+            ],
             const SizedBox(height: 6),
             Text(s('plantTapForTrend'), style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
           ],
@@ -231,7 +274,18 @@ class _HistoryTile extends ConsumerWidget {
         overflow: TextOverflow.ellipsis,
         style: TextStyle(fontSize: 12, color: out.isEmpty ? scheme.onSurfaceVariant : color),
       ),
-      trailing: role.canEnterData ? Icon(Icons.edit_outlined, size: 18, color: scheme.onSurfaceVariant) : null,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (analysis.photo != null)
+            IconButton(
+              tooltip: s('plantPhotoLabel'),
+              icon: Icon(Icons.photo_outlined, size: 20, color: scheme.onSurfaceVariant),
+              onPressed: () => showPlantPhoto(context, analysis.photo!),
+            ),
+          if (role.canEnterData) Icon(Icons.edit_outlined, size: 18, color: scheme.onSurfaceVariant),
+        ],
+      ),
       onTap: role.canEnterData
           ? () => context.push('/plant/entry/${point.id}?analysisId=${analysis.id}')
           : null,

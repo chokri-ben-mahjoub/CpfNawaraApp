@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -9,6 +11,7 @@ import '../../../core/plant/plant_catalog.dart';
 import '../../../core/plant/plant_repository.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/responsive.dart';
+import 'plant_schema_screens.dart' show pickSchemaImage;
 
 /// Saisie d'une nouvelle analyse d'un point pour un jour (plusieurs
 /// prélèvements possibles le même jour), ou correction d'une analyse
@@ -34,6 +37,7 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
   String _source = plantSources.first;
+  String? _photo;
   bool _saving = false;
 
   /// `null` : nouvelle analyse (sera ajoutée, sans remplacer celles déjà
@@ -76,6 +80,14 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
     _source = existing.source;
     _startTime = _parseTime(existing.startTime);
     _endTime = _parseTime(existing.endTime);
+    _photo = existing.photo;
+  }
+
+  Future<void> _pickPhoto() async {
+    final locale = ref.read(localeProvider);
+    String s(String key) => tr(locale, key);
+    final image = await pickSchemaImage(context, s);
+    if (image != null && mounted) setState(() => _photo = image.base64);
   }
 
   static TimeOfDay? _parseTime(String? text) {
@@ -129,6 +141,7 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
           id: _editingId,
           startTime: _formatTime(_startTime),
           endTime: _formatTime(_endTime),
+          photo: _photo,
         );
     if (!mounted) return;
     final messenger = ScaffoldMessenger.of(context);
@@ -341,6 +354,39 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
               maxLines: 4,
               decoration: InputDecoration(labelText: s('entryCommentLabel')),
             ),
+            const SizedBox(height: 18),
+            Text(s('plantPhotoLabel'), style: const TextStyle(fontWeight: FontWeight.w800)),
+            const SizedBox(height: 8),
+            if (_photo == null)
+              OutlinedButton.icon(
+                onPressed: _pickPhoto,
+                icon: const Icon(Icons.add_a_photo_outlined),
+                label: Text(s('plantPhotoAdd')),
+              )
+            else
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Stack(
+                  children: [
+                    Image.memory(base64Decode(_photo!), height: 180, width: double.infinity, fit: BoxFit.cover),
+                    Positioned(
+                      top: 6,
+                      right: 6,
+                      child: Row(
+                        children: [
+                          _PhotoActionButton(icon: Icons.sync, tooltip: s('plantPhotoReplace'), onPressed: _pickPhoto),
+                          const SizedBox(width: 6),
+                          _PhotoActionButton(
+                            icon: Icons.delete_outline,
+                            tooltip: s('plantPhotoRemove'),
+                            onPressed: () => setState(() => _photo = null),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             const SizedBox(height: 20),
             SizedBox(
               height: 52,
@@ -354,6 +400,30 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Petit bouton rond superposé à la photo (remplacer / retirer).
+class _PhotoActionButton extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+
+  const _PhotoActionButton({required this.icon, required this.tooltip, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.black.withValues(alpha: 0.55),
+      shape: const CircleBorder(),
+      child: IconButton(
+        tooltip: tooltip,
+        icon: Icon(icon, color: Colors.white, size: 20),
+        onPressed: onPressed,
+        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+        padding: EdgeInsets.zero,
       ),
     );
   }

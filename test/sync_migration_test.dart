@@ -138,7 +138,9 @@ void main() {
     // v16 : masquage d'un paramètre intégré (retiré du catalogue).
     final plantParamsColumns = await db.rawQuery('pragma table_info(plant_params)');
     expect(plantParamsColumns.map((r) => r['name']), contains('hidden'));
-    expect(LocalDatabase.schemaVersion, 16);
+    // v17 : photo jointe à une analyse (facultative).
+    expect(plantAnalysesColumns.map((r) => r['name']), contains('photo'));
+    expect(LocalDatabase.schemaVersion, 17);
 
     // Première connexion : tout ce qui a été saisi/modifié part au serveur.
     final engine = SyncEngine(

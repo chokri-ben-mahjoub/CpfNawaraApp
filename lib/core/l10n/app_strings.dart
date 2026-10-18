@@ -1006,6 +1006,10 @@ final _strings = <String, Map<String, String>>{
   'plantEndTime': {'fr': 'Heure de fin', 'en': 'End time'},
   'colStartTime': {'fr': 'Heure début', 'en': 'Start time'},
   'colEndTime': {'fr': 'Heure fin', 'en': 'End time'},
+  'plantPhotoLabel': {'fr': 'Photo (facultatif)', 'en': 'Photo (optional)'},
+  'plantPhotoAdd': {'fr': 'Ajouter une photo', 'en': 'Add a photo'},
+  'plantPhotoReplace': {'fr': 'Remplacer', 'en': 'Replace'},
+  'plantPhotoRemove': {'fr': 'Retirer la photo', 'en': 'Remove photo'},
   'plantEntryEditing': {
     'fr': 'Modification de cette analyse existante.',
     'en': 'Editing this existing analysis.',
