@@ -293,14 +293,12 @@ class _PointFormState extends ConsumerState<_PointForm> {
                     _error = null;
                     on ? _params.add(p.key) : _params.remove(p.key);
                   }),
-                  onEdit: !isCustomPlantParam(p.key)
-                      ? null
-                      : () async {
-                          await showPlantParamForm(context, existing: p);
-                          if (!mounted) return;
-                          final validKeys = plantParamCatalog.map((e) => e.key).toSet();
-                          setState(() => _params.removeWhere((k) => !validKeys.contains(k)));
-                        },
+                  onEdit: () async {
+                    await showPlantParamForm(context, existing: p);
+                    if (!mounted) return;
+                    final validKeys = plantParamCatalog.map((e) => e.key).toSet();
+                    setState(() => _params.removeWhere((k) => !validKeys.contains(k)));
+                  },
                 ),
             ],
           ),

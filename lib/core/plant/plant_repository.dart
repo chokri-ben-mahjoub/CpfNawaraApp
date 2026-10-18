@@ -677,15 +677,18 @@ class PlantController extends StateNotifier<PlantState> {
   }
 
   /// Points et modèles qui utilisent un paramètre (libellés), pour refuser
-  /// sa suppression.
+  /// sa suppression ou son masquage — usage effectif (hérité du modèle du
+  /// point, intégré ou personnalisé), pas seulement les listes explicites.
   List<String> paramUsage(String key) => [
     for (final p in state.points)
-      if (p.paramKeys?.contains(key) ?? false) p.code,
-    for (final d in state.profileDefs)
-      if (d.paramKeys.contains(key)) d.label,
+      if (p.storedParams.any((sp) => sp.key == key)) p.code,
+    for (final id in plantProfileLabelKeys.keys)
+      if (paramsForProfile(id).any((p) => p.key == key)) plantProfileLabelKeys[id]!,
   ];
 
-  /// Crée ou modifie un paramètre personnalisé (clé vide = nouveau).
+  /// Crée ou modifie un paramètre (personnalisé si [param] est nouveau, sinon
+  /// surcharge d'un paramètre intégré existant — clé vide = nouveau
+  /// paramètre personnalisé).
   Future<String> saveParam(PlantParam param, {int? sortOrder}) async {
     final db = await LocalDatabase.instance.database;
     final key = param.key.isEmpty ? 'cp_${_uuid.v4().substring(0, 8)}' : param.key;
@@ -699,6 +702,7 @@ class PlantController extends StateNotifier<PlantState> {
         'choices_json': param.isNumeric ? null : jsonEncode(param.choices),
         'ok_choices_json': param.isNumeric ? null : jsonEncode(param.okChoices),
         'sort_order': sortOrder ?? state.customParams.length + 1,
+        'hidden': 0,
       }),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -706,16 +710,50 @@ class PlantController extends StateNotifier<PlantState> {
     return key;
   }
 
-  /// Supprime un paramètre personnalisé ; refusé (retourne `false`) tant
-  /// qu'un point ou un modèle l'utilise. Les valeurs déjà saisies restent
-  /// dans les analyses.
+  /// Retire un paramètre : un paramètre réellement personnalisé est
+  /// supprimé ; un paramètre intégré ne peut pas l'être (il reste dans le
+  /// code), il est donc masqué du catalogue à la place (voir [restoreParam]
+  /// pour le réafficher). Refusé (retourne `false`) tant qu'un point ou un
+  /// modèle l'utilise encore — les valeurs déjà saisies restent dans les
+  /// analyses dans tous les cas.
   Future<bool> deleteParam(String key) async {
     if (paramUsage(key).isNotEmpty) return false;
+    final db = await LocalDatabase.instance.database;
+    final builtIn = builtInParamCatalog.where((p) => p.key == key).firstOrNull;
+    if (builtIn == null) {
+      await LocalDatabase.recordDeletion(db, 'plant_params', key);
+      await db.delete('plant_params', where: 'id = ?', whereArgs: [key]);
+    } else {
+      await db.insert(
+        'plant_params',
+        LocalDatabase.stamp({
+          'id': key,
+          'label': builtIn.labelKey,
+          'unit': builtIn.unit,
+          'kind': builtIn.kind.name,
+          'choices_json': builtIn.isNumeric ? null : jsonEncode(builtIn.choices),
+          'ok_choices_json': builtIn.isNumeric ? null : jsonEncode(builtIn.okChoices),
+          'sort_order': 0,
+          'hidden': 1,
+        }),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+    await _afterWrite();
+    return true;
+  }
+
+  /// Efface la surcharge d'un paramètre intégré (renommage et/ou masquage) :
+  /// revient à sa définition d'origine, de nouveau visible dans le
+  /// catalogue. Sans effet (et sans vérification d'usage, inutile ici) sur
+  /// un paramètre réellement personnalisé : utiliser [deleteParam] pour
+  /// celui-là.
+  Future<void> restoreParam(String key) async {
+    if (!builtInParamCatalog.any((p) => p.key == key)) return;
     final db = await LocalDatabase.instance.database;
     await LocalDatabase.recordDeletion(db, 'plant_params', key);
     await db.delete('plant_params', where: 'id = ?', whereArgs: [key]);
     await _afterWrite();
-    return true;
   }
 
   /// Crée ou modifie un modèle de paramètres (id vide = nouveau modèle ; id
@@ -814,6 +852,7 @@ PlantParam _paramFromRow(Map<String, Object?> row) => customPlantParam(
   kind: row['kind'] == 'choice' ? ParamKind.choice : ParamKind.number,
   choices: _decodeStrings(row['choices_json']),
   okChoices: _decodeStrings(row['ok_choices_json']),
+  hidden: (row['hidden'] as num?) == 1,
 );
 
 PlantProfileDef _profileFromRow(Map<String, Object?> row) => PlantProfileDef(

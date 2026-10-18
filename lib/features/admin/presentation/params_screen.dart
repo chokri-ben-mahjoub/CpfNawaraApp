@@ -8,14 +8,15 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/responsive.dart';
 import 'widgets/admin_widgets.dart';
 
-/// Ouvre le formulaire d'un paramètre personnalisé (nouveau si [existing]
-/// est nul) ; renvoie la clé enregistrée, ou `null` si annulé.
+/// Ouvre le formulaire d'un paramètre (nouveau si [existing] est nul ;
+/// modification — y compris d'un paramètre intégré au code — sinon) ;
+/// renvoie la clé enregistrée, ou `null` si annulé.
 Future<String?> showPlantParamForm(BuildContext context, {PlantParam? existing}) =>
     showAdminSheet<String>(context, builder: (_) => _ParamForm(existing: existing));
 
-/// Administration › Paramètres et modèles : paramètres personnalisés (en
-/// plus des paramètres intégrés) et modèles de paramètres proposés à la
-/// création d'un circuit ou d'un point.
+/// Administration › Paramètres et modèles : tous les paramètres (intégrés et
+/// ajoutés), chacun modifiable ou retirable du catalogue, et modèles de
+/// paramètres proposés à la création d'un circuit ou d'un point.
 class ParamsScreen extends ConsumerWidget {
   const ParamsScreen({super.key});
 
@@ -56,6 +57,10 @@ class ParamsScreen extends ConsumerWidget {
   }
 }
 
+/// Affiche aussi, sur demande, les paramètres intégrés masqués (pour les
+/// réafficher).
+final _showHiddenParamsProvider = StateProvider<bool>((ref) => false);
+
 class _ParamsTab extends ConsumerWidget {
   const _ParamsTab();
 
@@ -63,45 +68,56 @@ class _ParamsTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     final locale = ref.watch(localeProvider);
-    final plant = ref.watch(plantControllerProvider);
+    ref.watch(plantControllerProvider);
+    final showHidden = ref.watch(_showHiddenParamsProvider);
     String s(String key) => tr(locale, key);
 
     String detail(PlantParam p) {
       final type = p.isNumeric ? s('paramsKindNumber') : '${s('paramsKindChoice')} : ${p.choices.map(s).join(', ')}';
-      return p.unit.isEmpty ? type : '${p.unit} · $type';
+      final unit = p.displayed().unit;
+      return unit.isEmpty ? type : '$unit · $type';
     }
+
+    String? badge(PlantParam p) {
+      final builtIn = builtInParamCatalog.any((b) => b.key == p.key);
+      if (!builtIn) return s('paramsAdded');
+      return isCustomPlantParam(p.key) ? s('paramsModified') : null;
+    }
+
+    final catalog = plantParamCatalog;
+    final hidden = hiddenBuiltInParams;
 
     return ListView(
       padding: pagePadding(context, top: 12, bottom: 130),
       children: [
         Text(s('paramsIntro'), style: TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant, height: 1.4)),
         const SizedBox(height: 12),
-        AdminSectionTitle(fill(s('paramsCustomTitle'), {'n': '${plant.customParams.length}'})),
-        if (plant.customParams.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Text(s('paramsCustomEmpty'), style: TextStyle(color: scheme.onSurfaceVariant)),
-          )
-        else
-          for (final p in plant.customParams)
-            AdminCard(
-              leading: IconBadge(p.isNumeric ? Icons.straighten : Icons.list_alt),
-              title: p.labelKey,
-              subtitle: detail(p),
-              onTap: () => showPlantParamForm(context, existing: p),
-            ),
-        const SizedBox(height: 16),
-        AdminSectionTitle(fill(s('paramsBuiltInTitle'), {'n': '${builtInParamCatalog.length}'})),
-        Text(s('paramsBuiltInHint'), style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final p in builtInParamCatalog)
-              Chip(label: Text('${s(p.labelKey)}${p.unit.isEmpty ? '' : ' (${p.displayed().unit})'}')),
-          ],
-        ),
+        AdminSectionTitle(fill(s('paramsAllTitle'), {'n': '${catalog.length}'})),
+        for (final p in catalog)
+          AdminCard(
+            leading: IconBadge(p.isNumeric ? Icons.straighten : Icons.list_alt),
+            title: s(p.labelKey),
+            subtitle: [detail(p), ?badge(p)].join(' · '),
+            onTap: () => showPlantParamForm(context, existing: p),
+          ),
+        if (hidden.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(s('paramsShowHidden')),
+            subtitle: Text(fill(s('paramsHiddenCount'), {'n': '${hidden.length}'})),
+            value: showHidden,
+            onChanged: (v) => ref.read(_showHiddenParamsProvider.notifier).state = v,
+          ),
+          if (showHidden)
+            for (final p in hidden)
+              AdminCard(
+                leading: IconBadge(Icons.visibility_off_outlined, color: scheme.outline),
+                title: s(p.labelKey),
+                subtitle: s('paramsHiddenBadge'),
+                onTap: () => showPlantParamForm(context, existing: p),
+              ),
+        ],
       ],
     );
   }
@@ -162,11 +178,20 @@ class _ParamFormState extends ConsumerState<_ParamForm> {
   late Set<String> _ok;
   String? _error;
 
+  /// Paramètre intégré au code (modifiable/masquable, jamais vraiment
+  /// supprimable) ; sinon réellement personnalisé (supprimable).
+  bool get _builtIn => widget.existing != null && builtInParamCatalog.any((b) => b.key == widget.existing!.key);
+
+  /// Un paramètre intégré a déjà été renommé/réunitté/masqué.
+  bool get _hasOverride => widget.existing != null && isCustomPlantParam(widget.existing!.key);
+
+  bool get _hidden => widget.existing?.hidden ?? false;
+
   @override
   void initState() {
     super.initState();
     final p = widget.existing;
-    _label = TextEditingController(text: p?.labelKey ?? '');
+    _label = TextEditingController(text: p == null ? '' : s(p.labelKey));
     _unit = TextEditingController(text: p?.unit ?? '');
     _choices = TextEditingController(text: p?.choices.join('\n') ?? '');
     _kind = p?.kind ?? ParamKind.number;
@@ -227,6 +252,13 @@ class _ParamFormState extends ConsumerState<_ParamForm> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s('paramsSaved'))));
   }
 
+  /// Efface le renommage/l'unité modifiée (ou réaffiche, si masqué) d'un
+  /// paramètre intégré : retour à sa définition d'origine.
+  Future<void> _restore() async {
+    await ref.read(plantControllerProvider.notifier).restoreParam(widget.existing!.key);
+    if (mounted) Navigator.of(context).pop();
+  }
+
   Future<void> _delete() async {
     final controller = ref.read(plantControllerProvider.notifier);
     final key = widget.existing!.key;
@@ -237,9 +269,9 @@ class _ParamFormState extends ConsumerState<_ParamForm> {
     }
     final ok = await confirmDanger(
       context,
-      title: s('paramsDeleteTitle'),
-      body: s('paramsDeleteBody'),
-      confirm: s('schemaDeleteConfirm'),
+      title: s(_builtIn ? 'paramsHideTitle' : 'paramsDeleteTitle'),
+      body: s(_builtIn ? 'paramsHideBody' : 'paramsDeleteBody'),
+      confirm: s(_builtIn ? 'paramsHideConfirm' : 'schemaDeleteConfirm'),
       cancel: s('cancel'),
     );
     if (!ok) return;
@@ -267,14 +299,27 @@ class _ParamFormState extends ConsumerState<_ParamForm> {
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
                 ),
               ),
+              if (_builtIn && _hasOverride)
+                IconButton(
+                  tooltip: s(_hidden ? 'paramsShow' : 'paramsReset'),
+                  onPressed: _restore,
+                  icon: Icon(_hidden ? Icons.visibility_outlined : Icons.restart_alt, color: accentColor),
+                ),
               if (widget.existing != null)
                 IconButton(
-                  tooltip: s('paramsDelete'),
+                  tooltip: s(_builtIn ? 'paramsHide' : 'paramsDelete'),
                   onPressed: _delete,
-                  icon: Icon(Icons.delete_outline, color: scheme.error),
+                  icon: Icon(_builtIn ? Icons.visibility_off_outlined : Icons.delete_outline, color: scheme.error),
                 ),
             ],
           ),
+          if (_builtIn) ...[
+            const SizedBox(height: 4),
+            Text(
+              s(_hidden ? 'paramsHiddenBadge' : 'paramsBuiltInBadge'),
+              style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant, fontWeight: FontWeight.w600),
+            ),
+          ],
           const SizedBox(height: 16),
           TextFormField(
             controller: _label,
@@ -518,14 +563,12 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
                     _error = null;
                     on ? _keys.add(p.key) : _keys.remove(p.key);
                   }),
-                  onEdit: !isCustomPlantParam(p.key)
-                      ? null
-                      : () async {
-                          await showPlantParamForm(context, existing: p);
-                          if (!mounted) return;
-                          final validKeys = plantParamCatalog.map((e) => e.key).toSet();
-                          setState(() => _keys.removeWhere((k) => !validKeys.contains(k)));
-                        },
+                  onEdit: () async {
+                    await showPlantParamForm(context, existing: p);
+                    if (!mounted) return;
+                    final validKeys = plantParamCatalog.map((e) => e.key).toSet();
+                    setState(() => _keys.removeWhere((k) => !validKeys.contains(k)));
+                  },
                 ),
             ],
           ),

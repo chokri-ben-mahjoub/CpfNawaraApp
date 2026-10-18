@@ -135,7 +135,10 @@ void main() {
     // v15 : heure de début et de fin du prélèvement (facultatives).
     final plantAnalysesColumns = await db.rawQuery('pragma table_info(plant_analyses)');
     expect(plantAnalysesColumns.map((r) => r['name']), containsAll(['start_time', 'end_time']));
-    expect(LocalDatabase.schemaVersion, 15);
+    // v16 : masquage d'un paramètre intégré (retiré du catalogue).
+    final plantParamsColumns = await db.rawQuery('pragma table_info(plant_params)');
+    expect(plantParamsColumns.map((r) => r['name']), contains('hidden'));
+    expect(LocalDatabase.schemaVersion, 16);
 
     // Première connexion : tout ce qui a été saisi/modifié part au serveur.
     final engine = SyncEngine(

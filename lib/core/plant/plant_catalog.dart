@@ -102,6 +102,11 @@ class PlantParam {
   /// kg/m³ même en unités API).
   final bool fixedUnit;
 
+  /// Paramètre intégré retiré du catalogue par un administrateur (voir
+  /// [PlantCustomCatalog]) : n'apparaît plus dans les listes de choix, mais
+  /// reste affiché correctement partout où il est déjà utilisé.
+  final bool hidden;
+
   const PlantParam(
     this.key,
     this.labelKey,
@@ -111,6 +116,7 @@ class PlantParam {
     this.okChoices = const [],
     this.storedUnit,
     this.fixedUnit = false,
+    this.hidden = false,
   });
 
   bool get isNumeric => kind == ParamKind.number;
@@ -250,11 +256,14 @@ class PlantCustomCatalog {
   static Map<String, PlantProfileDef> profiles = const {};
 }
 
-/// Paramètres d'un modèle : modifié par l'administrateur, sinon intégré.
+/// Paramètres d'un modèle : liste modifiée par l'administrateur, sinon
+/// intégrée — dans les deux cas, chaque paramètre passe par [_paramIn] pour
+/// tenir compte d'une éventuelle surcharge (renommage, nouvelle unité...).
 List<PlantParam> paramsForProfile(String profile) {
   final custom = PlantCustomCatalog.profiles[profile];
-  if (custom == null) return builtInPlantProfiles[profile] ?? const [];
-  return [for (final key in custom.paramKeys) ?_paramIn(key, builtInPlantProfiles[profile])];
+  final builtIn = builtInPlantProfiles[profile];
+  final keys = custom?.paramKeys ?? [for (final p in builtIn ?? const <PlantParam>[]) p.key];
+  return [for (final key in keys) ?_paramIn(key, builtIn)];
 }
 
 /// Modèles intégrés d'origine (libellé = clé de traduction).
@@ -288,18 +297,39 @@ final List<PlantParam> builtInParamCatalog = () {
   ];
 }();
 
-/// Tous les paramètres connus (intégrés puis personnalisés), pour choisir
-/// librement ceux analysés sur un point.
-List<PlantParam> get plantParamCatalog => [...builtInParamCatalog, ...PlantCustomCatalog.params.values];
+/// Tous les paramètres à proposer dans les listes de choix (modèle, point) :
+/// intégrés (remplacés par leur surcharge s'il y en a une, retirés s'ils
+/// sont masqués) puis personnalisés — jamais de doublon de clé.
+List<PlantParam> get plantParamCatalog {
+  final overrides = PlantCustomCatalog.params;
+  return [
+    for (final p in builtInParamCatalog)
+      if (overrides[p.key] == null)
+        p
+      else if (!overrides[p.key]!.hidden)
+        overrides[p.key]!,
+    for (final p in overrides.values)
+      if (!builtInParamCatalog.any((b) => b.key == p.key) && !p.hidden) p,
+  ];
+}
+
+/// Paramètres intégrés retirés du catalogue (masqués), pour l'écran
+/// Administration qui permet de les réafficher.
+List<PlantParam> get hiddenBuiltInParams => [
+  for (final p in builtInParamCatalog)
+    if (PlantCustomCatalog.params[p.key]?.hidden ?? false) p,
+];
 
 PlantParam? _paramIn(String key, List<PlantParam>? preferred) {
+  final override = PlantCustomCatalog.params[key];
+  if (override != null) return override;
   for (final p in preferred ?? const <PlantParam>[]) {
     if (p.key == key) return p;
   }
   for (final p in builtInParamCatalog) {
     if (p.key == key) return p;
   }
-  return PlantCustomCatalog.params[key];
+  return null;
 }
 
 /// Définition d'un paramètre : celle du profil du point en priorité (unités
@@ -311,8 +341,8 @@ PlantParam? plantParamByKey(String key, {String? profile}) {
   return _paramIn(key, builtInPlantProfiles[profile]);
 }
 
-/// Paramètre personnalisé : libellé et choix en texte libre, unité jamais
-/// convertie.
+/// Paramètre personnalisé (ou surcharge d'un paramètre intégré) : libellé et
+/// choix en texte libre, unité jamais convertie.
 PlantParam customPlantParam({
   required String key,
   required String label,
@@ -320,7 +350,8 @@ PlantParam customPlantParam({
   ParamKind kind = ParamKind.number,
   List<String> choices = const [],
   List<String> okChoices = const [],
-}) => PlantParam(key, label, unit, kind: kind, choices: choices, okChoices: okChoices, fixedUnit: true);
+  bool hidden = false,
+}) => PlantParam(key, label, unit, kind: kind, choices: choices, okChoices: okChoices, fixedUnit: true, hidden: hidden);
 
 bool isCustomPlantParam(String key) => PlantCustomCatalog.params.containsKey(key);
 

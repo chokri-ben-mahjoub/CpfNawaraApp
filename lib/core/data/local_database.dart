@@ -21,7 +21,7 @@ class LocalDatabase {
   static final LocalDatabase instance = LocalDatabase._();
 
   /// Version du schéma (voir `onUpgrade`), enregistrée dans les sauvegardes.
-  static const schemaVersion = 15;
+  static const schemaVersion = 16;
 
   /// Tables sauvegardées / restaurées / synchronisées.
   static const dataTables = [
@@ -251,6 +251,12 @@ class LocalDatabase {
             await db.execute('alter table plant_analyses add column start_time text');
             await db.execute('alter table plant_analyses add column end_time text');
           }
+          if (oldVersion >= 12 && oldVersion < 16) {
+            // Masquage d'un paramètre intégré (retiré du catalogue sans
+            // toucher au code) : même mécanisme qu'une surcharge de
+            // paramètre personnalisé, avec ce drapeau en plus.
+            await db.execute('alter table plant_params add column hidden integer not null default 0');
+          }
         },
       ),
     );
@@ -397,6 +403,7 @@ class LocalDatabase {
         choices_json text,
         ok_choices_json text,
         sort_order integer not null default 0,
+        hidden integer not null default 0,
         updated_at integer not null default 0,
         dirty integer not null default 0
       )

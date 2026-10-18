@@ -94,9 +94,9 @@ class AdminCard extends StatelessWidget {
 }
 
 /// Puce de sélection (paramètre, type...) : coche/décoche sa présence dans
-/// une liste. Si [onEdit] est fourni (élément personnalisé, modifiable),
-/// affiche un petit crayon pour le renommer, changer son unité ou le
-/// supprimer directement depuis cette liste, sans quitter l'écran.
+/// une liste. Si [onEdit] est fourni, affiche un petit crayon pour renommer,
+/// changer l'unité ou retirer l'élément directement depuis cette liste, sans
+/// quitter l'écran (y compris pour un paramètre intégré au code).
 class SelectableEditableChip extends StatelessWidget {
   final String label;
   final bool selected;
