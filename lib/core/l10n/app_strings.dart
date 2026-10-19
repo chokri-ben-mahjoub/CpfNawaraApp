@@ -1032,6 +1032,7 @@ final _strings = <String, Map<String, String>>{
   'plantSourceLab': {'fr': 'Laboratoire', 'en': 'Laboratory'},
   'plantSourceField': {'fr': 'Terrain', 'en': 'Field'},
   'plantSourceImport': {'fr': 'Import', 'en': 'Import'},
+  'plantSourceRequired': {'fr': 'Veuillez saisir une source.', 'en': 'Please enter a source.'},
   'plantParamDensity': {'fr': 'Densité', 'en': 'Density'},
   'plantParamBsw': {'fr': 'BSW', 'en': 'BSW'},
   'plantParamWaterCut': {'fr': 'Water cut', 'en': 'Water cut'},

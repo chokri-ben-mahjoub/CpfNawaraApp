@@ -36,7 +36,7 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
   late DateTime _date;
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
-  String _source = plantSources.first;
+  late final TextEditingController _sourceController;
   String? _photo;
   bool _saving = false;
 
@@ -59,6 +59,8 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
         _choices[param.key] = null;
       }
     }
+    final locale = ref.read(localeProvider);
+    _sourceController = TextEditingController(text: tr(locale, plantSources.first));
     if (_editingId != null) _loadExisting();
   }
 
@@ -77,7 +79,11 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
       _choices[key] = existing.values[key] as String?;
     }
     _comment.text = existing.comment ?? '';
-    _source = existing.source;
+    // Les anciennes analyses stockent une clé de traduction (plantSourceLab
+    // etc.) ; les nouvelles un texte libre tel quel — `tr` renvoie la clé
+    // inchangée si elle n'est pas dans le dictionnaire, donc les deux cas
+    // s'affichent correctement sans distinction.
+    _sourceController.text = tr(ref.read(localeProvider), existing.source);
     _startTime = _parseTime(existing.startTime);
     _endTime = _parseTime(existing.endTime);
     _photo = existing.photo;
@@ -109,6 +115,7 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
       c.dispose();
     }
     _comment.dispose();
+    _sourceController.dispose();
     super.dispose();
   }
 
@@ -135,7 +142,7 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
           pointId: widget.pointId,
           day: _date,
           values: values,
-          source: _source,
+          source: _sourceController.text.trim(),
           operatorName: ref.read(profileProvider)?.fullName ?? '',
           comment: _comment.text.trim().isEmpty ? null : _comment.text.trim(),
           id: _editingId,
@@ -341,11 +348,19 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
               ),
             ],
             const SizedBox(height: 18),
-            DropdownButtonFormField<String>(
-              initialValue: _source,
+            TextFormField(
+              controller: _sourceController,
               decoration: InputDecoration(labelText: s('plantColSource')),
-              items: [for (final key in plantSources) DropdownMenuItem(value: key, child: Text(s(key)))],
-              onChanged: (v) => setState(() => _source = v ?? _source),
+              validator: (v) => (v ?? '').trim().isEmpty ? s('plantSourceRequired') : null,
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                for (final key in plantSources)
+                  ActionChip(label: Text(s(key)), onPressed: () => setState(() => _sourceController.text = s(key))),
+              ],
             ),
             const SizedBox(height: 12),
             TextFormField(
