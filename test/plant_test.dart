@@ -220,4 +220,18 @@ void main() {
     expect(ascii.decode(bytes.take(5).toList()), '%PDF-');
     expect(bytes.length, greaterThan(2000));
   });
+
+  test('rapport PDF : points non analysés exclus par défaut, inclus sur demande', () async {
+    final plant = seededPlant(today);
+    Future<int> size({required bool includeMissing}) async => (await buildPlantDailyReport(
+      controller: plant,
+      day: today,
+      circuits: _circuitsById.values.toList(),
+      s: (key) => key,
+      languageCode: 'fr',
+      operatorName: 'Ahmed',
+      includeMissing: includeMissing,
+    )).length;
+    expect(await size(includeMissing: false), lessThan(await size(includeMissing: true)));
+  });
 }

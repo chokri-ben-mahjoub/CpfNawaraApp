@@ -31,6 +31,7 @@ Future<Uint8List> buildPlantDailyReport({
   required String Function(String) s,
   required String languageCode,
   required String operatorName,
+  bool includeMissing = false,
 }) async {
   // Polices standard du PDF : pas de tiret long ni de ≤ / ≥.
   String t(String key) => _safe(s(key));
@@ -47,26 +48,33 @@ Future<Uint8List> buildPlantDailyReport({
 
   for (final circuit in circuits) {
     final points = controller.pointsOf(circuit);
-    sections.add(pw.SizedBox(height: 14));
-    sections.add(
-      pw.Container(
-        padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-        decoration: pw.BoxDecoration(
-          color: PdfColor.fromInt(circuit.color.toARGB32()),
-          borderRadius: pw.BorderRadius.circular(4),
+    final circuitCharts = plantCircuitCharts(controller, circuit, t);
+    // Circuit sans rien à montrer (tous ses points non analysés, exclus du
+    // rapport, et aucune courbe) : pas d'en-tête orphelin.
+    final hasVisiblePoint = includeMissing || points.any((p) => controller.analysisOn(p.id, day) != null);
+    if (hasVisiblePoint || circuitCharts.isNotEmpty) {
+      sections.add(pw.SizedBox(height: 14));
+      sections.add(
+        pw.Container(
+          padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+          decoration: pw.BoxDecoration(
+            color: PdfColor.fromInt(circuit.color.toARGB32()),
+            borderRadius: pw.BorderRadius.circular(4),
+          ),
+          child: pw.Text(
+            t(circuit.labelKey).toUpperCase(),
+            style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 11),
+          ),
         ),
-        child: pw.Text(
-          t(circuit.labelKey).toUpperCase(),
-          style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 11),
-        ),
-      ),
-    );
+      );
+    }
     for (final point in points) {
       total++;
       final analysis = controller.analysisOn(point.id, day);
       final status = controller.status(point, day);
       if (analysis != null) analysed++;
       if (status == PlantStatus.outOfRange) outCount++;
+      if (analysis == null && !includeMissing) continue;
       sections.add(pw.SizedBox(height: 8));
       sections.add(
         pw.Row(
@@ -152,7 +160,6 @@ Future<Uint8List> buildPlantDailyReport({
         ),
       );
     }
-    final circuitCharts = plantCircuitCharts(controller, circuit, t);
     if (circuitCharts.isNotEmpty) {
       sections.add(pw.SizedBox(height: 10));
       sections.add(

@@ -993,6 +993,13 @@ final _strings = <String, Map<String, String>>{
   'plantReportTitle': {'fr': 'Rapport journalier — Usine CPF', 'en': 'Daily report — CPF plant'},
   'plantReportGenerated': {'fr': 'Généré le', 'en': 'Generated on'},
   'plantReportCurves': {'fr': 'Courbes', 'en': 'Trends'},
+  'plantReportMissingTitle': {'fr': 'Points non analysés', 'en': 'Points not analysed'},
+  'plantReportMissingBody': {
+    'fr': '{n} point(s) n\'ont pas d\'analyse ce jour-là. Les lister dans le rapport comme « Non analysé » ?',
+    'en': '{n} point(s) have no analysis that day. List them in the report as "Not analysed"?',
+  },
+  'plantReportMissingInclude': {'fr': 'Les inclure', 'en': 'Include them'},
+  'plantReportMissingExclude': {'fr': 'Ne pas les afficher', 'en': 'Leave them out'},
   'plantNoAnalysisThatDay': {'fr': 'Pas d\'analyse ce jour.', 'en': 'No analysis that day.'},
   'plantNeverAnalysed': {'fr': 'Aucune analyse enregistrée.', 'en': 'No analysis recorded.'},
   'plantLastAnalysis': {'fr': 'Dernière analyse', 'en': 'Last analysis'},

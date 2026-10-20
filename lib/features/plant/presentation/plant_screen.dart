@@ -273,6 +273,36 @@ class PlantScreen extends ConsumerWidget {
     );
     if (circuits == null || !context.mounted) return;
     final day = ref.read(plantDayProvider);
+    final plantController = ref.read(plantControllerProvider.notifier);
+    final missingCount = [
+      for (final c in circuits)
+        for (final p in plantController.pointsOf(c))
+          if (plantController.analysisOn(p.id, day) == null) p,
+    ].length;
+    // Des points sans analyse ce jour-là : on demande avant de générer s'il
+    // faut les lister ("Non analysé") ou les laisser de côté (par défaut).
+    var includeMissing = false;
+    if (missingCount > 0) {
+      final choice = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(s('plantReportMissingTitle')),
+          content: Text(fill(s('plantReportMissingBody'), {'n': '$missingCount'})),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(s('plantReportMissingInclude')),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(s('plantReportMissingExclude')),
+            ),
+          ],
+        ),
+      );
+      if (choice == null || !context.mounted) return;
+      includeMissing = choice;
+    }
     final bytes = await runWithLoading(
       context,
       s('loadingReport'),
@@ -283,6 +313,7 @@ class PlantScreen extends ConsumerWidget {
         s: s,
         languageCode: locale.languageCode,
         operatorName: ref.read(profileProvider)?.fullName ?? '',
+        includeMissing: includeMissing,
       ),
     );
     if (!context.mounted) return;
