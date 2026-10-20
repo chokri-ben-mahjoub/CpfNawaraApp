@@ -9,7 +9,8 @@ import '../../../core/export/export_table.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/stock_item.dart';
 import '../../../core/models/user_role.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/status_style.dart';
+import '../../../core/widgets/hero_header.dart';
 import '../../../core/widgets/responsive.dart';
 import '../../admin/presentation/widgets/admin_widgets.dart';
 import 'widgets/stock_item_form_sheet.dart';
@@ -131,7 +132,7 @@ class StockScreen extends ConsumerWidget {
           : ListView(
               padding: pagePadding(context, top: 12, bottom: 130),
               children: [
-                _SummaryRow(total: stock.items.length, low: stock.lowStockItems.length, s: s),
+                _SummaryRow(items: stock.items, s: s),
                 if (stock.lowStockItems.isNotEmpty) ...[
                   AdminSectionTitle(s('stockLowSection')),
                   AdminTable<StockItem>(
@@ -221,62 +222,29 @@ class StockScreen extends ConsumerWidget {
 }
 
 class _SummaryRow extends StatelessWidget {
-  final int total;
-  final int low;
+  final List<StockItem> items;
   final String Function(String) s;
-  const _SummaryRow({required this.total, required this.low, required this.s});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: ResponsiveWrapGrid(
-        minItemWidth: 180,
-        spacing: 12,
-        children: [
-          _StatCard(icon: Icons.inventory_2_outlined, color: accentColor, label: s('stockTotalItems'), value: '$total'),
-          _StatCard(
-            icon: Icons.warning_amber_rounded,
-            color: low > 0 ? const Color(0xFFE08A1E) : Colors.green.shade600,
-            label: s('stockLowSection'),
-            value: '$low',
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final String label;
-  final String value;
-  const _StatCard({required this.icon, required this.color, required this.label, required this.value});
+  const _SummaryRow({required this.items, required this.s});
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.4)),
-      ),
-      child: Row(
-        children: [
-          IconBadge(icon, color: color),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(value, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 20)),
-                Text(label, style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
-              ],
-            ),
-          ),
+    final low = items.where((i) => i.isLow).length;
+    final out = items.where((i) => i.isOut).length;
+    final categories = items.map((i) => i.category.trim()).where((c) => c.isNotEmpty).toSet().length;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: HeroHeader(
+        icon: Icons.inventory_2_outlined,
+        title: s('stockTitle'),
+        subtitle: '${items.length} ${s('stockTotalItems').toLowerCase()}',
+        pillLabel: low > 0 ? s('stockLowSection') : s('stockHeroAllGood'),
+        pillColor: low > 0 ? AppStatus.todo.color(scheme) : AppStatus.ok.color(scheme),
+        stats: [
+          HeroStat(value: '${items.length}', label: s('stockTotalItems')),
+          HeroStat(value: '$low', label: s('stockLowSection'), valueColor: low > 0 ? const Color(0xFFFFB74D) : null),
+          HeroStat(value: '$out', label: s('stockHeroOut'), valueColor: out > 0 ? const Color(0xFFFF8A80) : null),
+          HeroStat(value: '$categories', label: s('stockHeroCategories')),
         ],
       ),
     );

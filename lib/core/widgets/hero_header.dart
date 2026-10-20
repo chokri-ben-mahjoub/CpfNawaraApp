@@ -8,8 +8,11 @@ class HeroHeader extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
-  final String pillLabel;
+  final String? pillLabel;
   final Color pillColor;
+
+  /// Remplace l'icône (ex: avatar du profil).
+  final Widget? leading;
   final List<HeroStat> stats;
 
   const HeroHeader({
@@ -17,8 +20,9 @@ class HeroHeader extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.subtitle,
-    required this.pillLabel,
-    required this.pillColor,
+    this.pillLabel,
+    this.pillColor = Colors.white,
+    this.leading,
     this.stats = const [],
   });
 
@@ -56,15 +60,16 @@ class HeroHeader extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Container(
-                        width: 54,
-                        height: 54,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.14),
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                        child: Icon(icon, color: Colors.white, size: 28),
-                      ),
+                      leading ??
+                          Container(
+                            width: 54,
+                            height: 54,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            child: Icon(icon, color: Colors.white, size: 28),
+                          ),
                       const SizedBox(width: 14),
                       Expanded(
                         child: Column(
@@ -86,37 +91,54 @@ class HeroHeader extends StatelessWidget {
                               subtitle,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(color: Colors.white.withValues(alpha: 0.72), fontSize: 13),
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.72),
+                                fontSize: 13,
+                              ),
                             ),
                           ],
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 14),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: pillColor.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(100),
-                      border: Border.all(color: pillColor.withValues(alpha: 0.7)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(color: pillColor, shape: BoxShape.circle),
+                  if (pillLabel != null) ...[
+                    const SizedBox(height: 14),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: pillColor.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(100),
+                        border: Border.all(
+                          color: pillColor.withValues(alpha: 0.7),
                         ),
-                        const SizedBox(width: 7),
-                        Text(
-                          pillLabel,
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12.5),
-                        ),
-                      ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: pillColor,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 7),
+                          Text(
+                            pillLabel!,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12.5,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+                  ],
                   if (stats.isNotEmpty) ...[
                     const SizedBox(height: 18),
                     Row(
@@ -126,7 +148,9 @@ class HeroHeader extends StatelessWidget {
                             Container(
                               width: 1,
                               height: 34,
-                              margin: const EdgeInsets.symmetric(horizontal: 12),
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
                               color: Colors.white.withValues(alpha: 0.18),
                             ),
                           Expanded(child: stats[i]),
@@ -150,7 +174,12 @@ class HeroStat extends StatelessWidget {
   final String label;
   final Color? valueColor;
 
-  const HeroStat({super.key, required this.value, required this.label, this.valueColor});
+  const HeroStat({
+    super.key,
+    required this.value,
+    required this.label,
+    this.valueColor,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -161,14 +190,22 @@ class HeroStat extends StatelessWidget {
           value,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(color: valueColor ?? Colors.white, fontSize: 21, fontWeight: FontWeight.w800, height: 1.1),
+          style: TextStyle(
+            color: valueColor ?? Colors.white,
+            fontSize: 21,
+            fontWeight: FontWeight.w800,
+            height: 1.1,
+          ),
         ),
         const SizedBox(height: 2),
         Text(
           label,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 11),
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.7),
+            fontSize: 11,
+          ),
         ),
       ],
     );

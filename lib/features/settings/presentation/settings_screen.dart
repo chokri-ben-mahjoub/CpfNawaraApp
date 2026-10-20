@@ -30,6 +30,7 @@ import '../../../core/settings/startup_tasks.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/units/unit_system.dart';
 import '../../../core/widgets/app_loader.dart';
+import '../../../core/widgets/hero_header.dart';
 import '../../../core/widgets/filter_pills.dart';
 import 'sync_section.dart';
 import '../../../core/widgets/responsive.dart';
@@ -116,41 +117,37 @@ class _ProfileSection extends ConsumerWidget {
     String s(String key) => tr(locale, key);
     final name = profile?.fullName ?? '';
 
-    return SectionCard(
-      title: s('settingsProfile'),
-      icon: Icons.person_outline,
+    final role = ref.watch(currentRoleProvider);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          children: [
-            const ProfileAvatar(radius: 28, editable: true),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(name.isEmpty ? s('accountNoName') : name, style: const TextStyle(fontWeight: FontWeight.w700)),
-                  Text(
-                    [
-                      if ((profile?.serviceKey ?? '').isNotEmpty) s(profile!.serviceKey),
-                      if ((profile?.phone ?? '').isNotEmpty) profile!.phone,
-                    ].join(' · '),
-                    style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12.5),
-                  ),
-                ],
-              ),
-            ),
-            TextButton(onPressed: profile == null ? null : () => _editProfile(context, ref), child: Text(s('edit'))),
-          ],
+        HeroHeader(
+          icon: Icons.person_outline,
+          leading: const ProfileAvatar(radius: 28, editable: true),
+          title: name.isEmpty ? s('accountNoName') : name,
+          subtitle: [
+            if ((profile?.serviceKey ?? '').isNotEmpty) s(profile!.serviceKey),
+            if ((profile?.phone ?? '').isNotEmpty) profile!.phone,
+          ].join(' · '),
+          pillLabel: s(role.labelKey),
+          pillColor: accentColor,
         ),
-        const SizedBox(height: 4),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton.icon(
-            style: TextButton.styleFrom(foregroundColor: scheme.error, padding: EdgeInsets.zero),
-            onPressed: () => _resetProfile(context, ref),
-            icon: const Icon(Icons.logout, size: 18),
-            label: Text(s('logout')),
-          ),
+        const SizedBox(height: 8),
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          children: [
+            TextButton.icon(
+              onPressed: profile == null ? null : () => _editProfile(context, ref),
+              icon: const Icon(Icons.edit_outlined, size: 18),
+              label: Text(s('edit')),
+            ),
+            TextButton.icon(
+              style: TextButton.styleFrom(foregroundColor: scheme.error),
+              onPressed: () => _resetProfile(context, ref),
+              icon: const Icon(Icons.logout, size: 18),
+              label: Text(s('logout')),
+            ),
+          ],
         ),
       ],
     );

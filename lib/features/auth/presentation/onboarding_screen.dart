@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/auth/auth_providers.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/brand_backdrop.dart';
 import '../../../core/widgets/responsive.dart';
 import 'widgets/language_switch.dart';
 
@@ -20,58 +21,75 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final locale = ref.watch(localeProvider);
     String s(String key) => tr(locale, key);
 
     return Scaffold(
-      body: NarrowSafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Align(alignment: Alignment.topRight, child: LanguageSwitch()),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: const Icon(Icons.oil_barrel_outlined, size: 44, color: accentColor),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                s('onboardingTitle'),
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                s('onboardingBody'),
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant, height: 1.5),
-              ),
-              const Spacer(flex: 2),
-              SizedBox(
-                width: double.infinity,
-                height: 54,
-                child: ElevatedButton(
-                  onPressed: _saving ? null : _confirm,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: scheme.primary,
-                    foregroundColor: scheme.onPrimary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+      backgroundColor: deepNavy,
+      body: BrandBackdrop(
+        child: NarrowSafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Align(alignment: Alignment.topRight, child: LanguageSwitch()),
+                const Spacer(),
+                Container(
+                  width: 92,
+                  height: 92,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(26),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.16), width: 1.5),
+                    boxShadow: [BoxShadow(color: accentColor.withValues(alpha: 0.35), blurRadius: 40, spreadRadius: -6)],
                   ),
-                  child: _saving
-                      ? SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: scheme.onPrimary),
-                        )
-                      : Text(s('onboardingCta'), style: const TextStyle(fontWeight: FontWeight.w700)),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(26),
+                    child: Image.asset('assets/icon/icon.png', fit: BoxFit.cover),
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 28),
+                Text(
+                  s('onboardingTitle'),
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                    height: 1.15,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  s('onboardingBody'),
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.75),
+                    height: 1.5,
+                  ),
+                ),
+                const Spacer(flex: 2),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: FilledButton(
+                    onPressed: _saving ? null : _confirm,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: accentColor,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    ),
+                    child: _saving
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : Text(
+                            s('onboardingCta'),
+                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                          ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -1,14 +1,14 @@
-/// Nom affiché de l'app (connexion, écran de démarrage, titre de l'onglet
-/// navigateur, PDF générés...). Seul endroit à modifier pour la renommer :
+﻿/// Nom affichÃ© de l'app (connexion, Ã©cran de dÃ©marrage, titre de l'onglet
+/// navigateur, PDF gÃ©nÃ©rÃ©s...). Seul endroit Ã  modifier pour la renommer :
 /// ne change ni le nom du paquet Android/iOS, ni le dossier de
-/// téléchargements, ni le projet Firebase.
+/// tÃ©lÃ©chargements, ni le projet Firebase.
 const appDisplayName = 'CPF Laboratory NAWARA';
 
-/// Version affichée dans Réglages › À propos — à garder alignée sur
+/// Version affichÃ©e dans RÃ©glages â€º Ã€ propos â€” Ã  garder alignÃ©e sur
 /// `version:` dans pubspec.yaml.
-const appVersion = '0.4.1';
+const appVersion = '0.5.0';
 
-/// Propriétaire de PuitsTrack : seul compte qui crée les codes d'activation
-/// (écran Clients) et une entreprise sans code. Doit rester identique à
-/// `isOwner()` dans `firestore.rules` (vérifié par les tests).
+/// PropriÃ©taire de PuitsTrack : seul compte qui crÃ©e les codes d'activation
+/// (Ã©cran Clients) et une entreprise sans code. Doit rester identique Ã 
+/// `isOwner()` dans `firestore.rules` (vÃ©rifiÃ© par les tests).
 const platformOwnerEmail = 'chokribenmahjoub@gmail.com';

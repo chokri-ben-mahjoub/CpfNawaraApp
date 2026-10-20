@@ -8,6 +8,7 @@ import '../../../core/auth/auth_providers.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/settings/app_settings.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/brand_backdrop.dart';
 import '../../../core/widgets/responsive.dart';
 import 'widgets/numeric_keypad.dart';
 import '../../../core/widgets/profile_avatar.dart';
@@ -116,68 +117,105 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> with SingleTickerPr
     String s(String key) => tr(locale, key);
 
     return Scaffold(
-      body: NarrowSafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            children: [
-              const SizedBox(height: 24),
-              const ProfileAvatar(radius: 40),
-              const SizedBox(height: 16),
-              Text(
-                name == null || name.isEmpty ? s('unlockTitle') : '${s('unlockTitle')}, $name',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                s('unlockSubtitle'),
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
-              ),
-              const SizedBox(height: 24),
-              AnimatedBuilder(
-                animation: _shakeController,
-                builder: (context, child) {
-                  final t = _shakeController.value;
-                  final offset = (t == 0) ? 0.0 : (16 * (1 - t)) * ((t * 10).floor().isEven ? 1 : -1);
-                  return Transform.translate(offset: Offset(offset, 0), child: child);
-                },
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    for (var i = 0; i < _codeLength; i++)
-                      Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 8),
-                        width: 16,
-                        height: 16,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: i < _digits.length ? accentColor : scheme.surfaceContainerHigh,
-                          border: Border.all(color: i < _digits.length ? accentColor : scheme.outlineVariant),
+      body: Column(
+        children: [
+          BrandBackdrop(
+            bottomRadius: 32,
+            child: SizedBox(
+              width: double.infinity,
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
+                  child: Column(
+                    children: [
+                      const ProfileAvatar(radius: 38),
+                      const SizedBox(height: 14),
+                      Text(
+                        name == null || name.isEmpty ? s('unlockTitle') : '${s('unlockTitle')}, $name',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
                         ),
                       ),
+                      const SizedBox(height: 6),
+                      Text(
+                        s('unlockSubtitle'),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.white.withValues(alpha: 0.72)),
+                      ),
+                      const SizedBox(height: 22),
+                      AnimatedBuilder(
+                        animation: _shakeController,
+                        builder: (context, child) {
+                          final t = _shakeController.value;
+                          final offset = (t == 0) ? 0.0 : (16 * (1 - t)) * ((t * 10).floor().isEven ? 1 : -1);
+                          return Transform.translate(offset: Offset(offset, 0), child: child);
+                        },
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            for (var i = 0; i < _codeLength; i++)
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 140),
+                                margin: const EdgeInsets.symmetric(horizontal: 9),
+                                width: 16,
+                                height: 16,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: i < _digits.length ? accentColor : Colors.transparent,
+                                  border: Border.all(
+                                    color: i < _digits.length ? accentColor : Colors.white.withValues(alpha: 0.5),
+                                    width: 1.8,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(
+                        height: 28,
+                        child: _error != null
+                            ? Padding(
+                                padding: const EdgeInsets.only(top: 10),
+                                child: Text(
+                                  _error!,
+                                  style: const TextStyle(color: Color(0xFFFF8A80), fontSize: 13, fontWeight: FontWeight.w700),
+                                ),
+                              )
+                            : null,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: NarrowSafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  children: [
+                    const Spacer(),
+                    NumericKeypad(
+                      onDigit: _onDigit,
+                      onBackspace: _onBackspace,
+                      onBiometric: _biometricAvailable ? _tryBiometric : null,
+                    ),
+                    const SizedBox(height: 12),
+                    TextButton(
+                      onPressed: _forgotCode,
+                      child: Text(s('unlockForgotPin'), style: TextStyle(color: scheme.onSurfaceVariant)),
+                    ),
+                    const SizedBox(height: 8),
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
-              SizedBox(
-                height: 20,
-                child: _error != null ? Text(_error!, style: TextStyle(color: scheme.error, fontSize: 13)) : null,
-              ),
-              const Spacer(),
-              NumericKeypad(
-                onDigit: _onDigit,
-                onBackspace: _onBackspace,
-                onBiometric: _biometricAvailable ? _tryBiometric : null,
-              ),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: _forgotCode,
-                child: Text(s('unlockForgotPin'), style: TextStyle(color: scheme.onSurfaceVariant)),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

@@ -8,6 +8,7 @@ import '../../../core/data/wells_repository.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/stock_item.dart';
 import '../../../core/models/user_role.dart';
+import '../../../core/widgets/hero_header.dart';
 import '../../../core/widgets/responsive.dart';
 import '../../admin/presentation/widgets/admin_widgets.dart';
 import 'stock_screen.dart' show stockStatusColor, stockStatusLabel;
@@ -58,53 +59,16 @@ class StockItemDetailScreen extends ConsumerWidget {
       body: ListView(
         padding: pagePadding(context, top: 12, bottom: 32),
         children: [
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: statusColor.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: statusColor.withValues(alpha: 0.3)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        item.category.isEmpty ? s('stockUncategorized') : item.category,
-                        style: TextStyle(color: scheme.onSurfaceVariant, fontWeight: FontWeight.w700, fontSize: 12.5),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: statusColor.withValues(alpha: 0.18),
-                        borderRadius: BorderRadius.circular(100),
-                      ),
-                      child: Text(
-                        stockStatusLabel(item, s),
-                        style: TextStyle(color: statusColor, fontWeight: FontWeight.w800, fontSize: 11.5),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '${_qtyText(item.quantity)} ${item.unit}',
-                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 32),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${s('stockThresholdLabel')} : ${_qtyText(item.threshold)} ${item.unit}',
-                  style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
-                ),
-                if (item.notes.trim().isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  Text(item.notes, style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13)),
-                ],
-              ],
-            ),
+          HeroHeader(
+            icon: Icons.inventory_2_outlined,
+            title: '${_qtyText(item.quantity)} ${item.unit}',
+            subtitle: item.category.isEmpty ? s('stockUncategorized') : item.category,
+            pillLabel: stockStatusLabel(item, s),
+            pillColor: statusColor,
+            stats: [
+              HeroStat(value: '${_qtyText(item.threshold)} ${item.unit}', label: s('stockThresholdLabel')),
+              if (item.notes.trim().isNotEmpty) HeroStat(value: item.notes.trim(), label: s('stockNotesLabel')),
+            ],
           ),
           if (role.canEnterData) ...[
             const SizedBox(height: 16),

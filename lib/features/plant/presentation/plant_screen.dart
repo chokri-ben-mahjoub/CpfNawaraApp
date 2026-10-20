@@ -12,6 +12,8 @@ import '../../../core/models/user_role.dart';
 import '../../../core/plant/plant_catalog.dart';
 import '../../../core/plant/plant_repository.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/status_style.dart';
+import '../../../core/widgets/hero_header.dart';
 import '../../../core/widgets/responsive.dart';
 import '../plant_report.dart';
 import 'plant_schema_screens.dart';
@@ -153,31 +155,26 @@ class PlantScreen extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: _SummaryTile(
-                label: s('plantSummaryAnalysed'),
-                value: '$analysed / ${points.length}',
-                color: accentColor,
-              ),
+        HeroHeader(
+          icon: Icons.factory_outlined,
+          title: s('navPlant'),
+          subtitle: '${points.length} ${s('plantHeroPoints')} · ${state.circuits.length} ${s('plantHeroCircuits')}',
+          pillLabel: out > 0
+              ? s('plantStatusOut')
+              : (points.isNotEmpty && analysed == points.length ? s('plantHeroAllDone') : s('plantHeroInProgress')),
+          pillColor: out > 0
+              ? AppStatus.out.color(scheme)
+              : (points.isNotEmpty && analysed == points.length
+                    ? AppStatus.ok.color(scheme)
+                    : AppStatus.todo.color(scheme)),
+          stats: [
+            HeroStat(value: '$analysed/${points.length}', label: s('plantSummaryAnalysed')),
+            HeroStat(
+              value: '$out',
+              label: s('plantSummaryOut'),
+              valueColor: out > 0 ? const Color(0xFFFF8A80) : null,
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _SummaryTile(
-                label: s('plantSummaryOut'),
-                value: '$out',
-                color: out > 0 ? scheme.error : Colors.green.shade600,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _SummaryTile(
-                label: s('plantSummaryMissing'),
-                value: '${points.length - analysed}',
-                color: points.length - analysed > 0 ? scheme.outline : Colors.green.shade600,
-              ),
-            ),
+            HeroStat(value: '${points.length - analysed}', label: s('plantSummaryMissing')),
           ],
         ),
         const SizedBox(height: 14),
@@ -415,41 +412,6 @@ class _DiagramSection extends ConsumerWidget {
           ),
         ],
       ],
-    );
-  }
-}
-
-class _SummaryTile extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color color;
-  const _SummaryTile({required this.label, required this.value, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.25)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            value,
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: color),
-          ),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 11.5, color: scheme.onSurfaceVariant),
-          ),
-        ],
-      ),
     );
   }
 }

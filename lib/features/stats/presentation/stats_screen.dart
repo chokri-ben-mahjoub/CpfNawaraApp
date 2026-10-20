@@ -8,6 +8,8 @@ import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/analysis_type.dart';
 import '../../../core/models/well.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/status_style.dart';
+import '../../../core/widgets/hero_header.dart';
 import '../../../core/widgets/filter_pills.dart';
 import '../../../core/widgets/responsive.dart';
 import 'widgets/threshold_gauge.dart';
@@ -35,9 +37,43 @@ class StatsScreen extends ConsumerWidget {
     ref.watch(wellsControllerProvider); // reconstruit après chaque nouvelle saisie
     String s(String key) => tr(locale, key);
 
+    final filter = ref.watch(statsFilterProvider);
+    final range = filter.period.resolve(DateTime.now());
+    final heroGroups = ref.read(wellsControllerProvider.notifier).statsForPeriod(range.start, range.end);
+    var heroTotal = 0;
+    var heroOut = 0;
+    var heroWells = 0;
+    for (final g in heroGroups) {
+      for (final w in g.wells.where((w) => filter.matches(w.well))) {
+        heroTotal += w.totalRecords;
+        heroOut += w.outOfRangeCount;
+        if (w.well.active) heroWells++;
+      }
+    }
+    final rate = heroTotal == 0 ? 1.0 : (heroTotal - heroOut) / heroTotal;
+    final scheme = Theme.of(context).colorScheme;
+    final rateStatus = rate >= 0.95 ? AppStatus.ok : (rate >= 0.8 ? AppStatus.todo : AppStatus.out);
+
     return ListView(
       padding: pagePadding(context, top: 8, bottom: 24),
       children: [
+        HeroHeader(
+          icon: Icons.bar_chart_rounded,
+          title: s('navStats'),
+          subtitle: s('statsHeroSubtitle'),
+          pillLabel: heroTotal == 0 ? null : '${(rate * 100).round()} % ${s('statsHeroCompliant')}',
+          pillColor: rateStatus.color(scheme),
+          stats: [
+            HeroStat(value: '$heroTotal', label: s('statsAnalysesCount')),
+            HeroStat(
+              value: '$heroOut',
+              label: s('statsOutOfRangeCount'),
+              valueColor: heroOut > 0 ? const Color(0xFFFF8A80) : null,
+            ),
+            HeroStat(value: '$heroWells', label: s('statsHeroWells')),
+          ],
+        ),
+        const SizedBox(height: 16),
         Card(
           child: ListTile(
             leading: Container(
