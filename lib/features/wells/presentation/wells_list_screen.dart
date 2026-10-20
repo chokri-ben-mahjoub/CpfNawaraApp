@@ -323,7 +323,7 @@ class _WellCard extends ConsumerWidget {
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
+              Icon(Icons.visibility_outlined, color: scheme.onSurfaceVariant),
             ],
           ),
         ),

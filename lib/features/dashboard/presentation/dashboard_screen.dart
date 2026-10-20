@@ -624,7 +624,7 @@ class _WellDashboardSection extends ConsumerWidget {
                         fontSize: 12,
                       ),
                     ),
-                    Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
+                    Icon(Icons.visibility_outlined, color: scheme.onSurfaceVariant),
                   ],
                 ),
               ),

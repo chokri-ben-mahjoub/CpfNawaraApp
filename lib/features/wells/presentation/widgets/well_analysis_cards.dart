@@ -215,7 +215,7 @@ class DeclineCard extends ConsumerWidget {
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
                     ),
                   ),
-                  Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
+                  Icon(Icons.visibility_outlined, color: scheme.onSurfaceVariant),
                 ],
               ),
               const SizedBox(height: 4),

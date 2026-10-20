@@ -145,13 +145,30 @@ class StockScreen extends ConsumerWidget {
                         (i) => Text('${_qtyText(i.quantity)} ${i.unit}'),
                         numeric: true,
                       ),
-                      AdminColumn(s('stockStatusLabel'), (i) => _StatusPill(item: i)),
+                      AdminColumn(
+                        s('stockStatusLabel'),
+                        (i) => Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _StatusPill(item: i),
+                            const SizedBox(width: 8),
+                            Icon(Icons.visibility_outlined, size: 18, color: scheme.onSurfaceVariant),
+                          ],
+                        ),
+                      ),
                     ],
                     card: (context, i) => AdminCard(
                       leading: IconBadge(Icons.warning_amber_rounded, color: stockStatusColor(i, scheme)),
                       title: i.name,
                       subtitle: '${_qtyText(i.quantity)} ${i.unit} · ${s('stockThresholdLabel')} ${_qtyText(i.threshold)} ${i.unit}',
-                      trailing: _StatusPill(item: i),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _StatusPill(item: i),
+                          const SizedBox(width: 8),
+                          Icon(Icons.visibility_outlined, size: 20, color: scheme.onSurfaceVariant),
+                        ],
+                      ),
                       onTap: () => context.push('/stock/${i.id}'),
                     ),
                   ),
@@ -169,13 +186,30 @@ class StockScreen extends ConsumerWidget {
                         (i) => Text('${_qtyText(i.quantity)} ${i.unit}'),
                         numeric: true,
                       ),
-                      AdminColumn(s('stockStatusLabel'), (i) => _StatusPill(item: i)),
+                      AdminColumn(
+                        s('stockStatusLabel'),
+                        (i) => Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _StatusPill(item: i),
+                            const SizedBox(width: 8),
+                            Icon(Icons.visibility_outlined, size: 18, color: scheme.onSurfaceVariant),
+                          ],
+                        ),
+                      ),
                     ],
                     card: (context, i) => AdminCard(
                       leading: IconBadge(Icons.inventory_2_outlined, color: stockStatusColor(i, scheme)),
                       title: i.name,
                       subtitle: '${_qtyText(i.quantity)} ${i.unit}',
-                      trailing: _StatusPill(item: i),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _StatusPill(item: i),
+                          const SizedBox(width: 8),
+                          Icon(Icons.visibility_outlined, size: 20, color: scheme.onSurfaceVariant),
+                        ],
+                      ),
                       onTap: () => context.push('/stock/${i.id}'),
                     ),
                   ),

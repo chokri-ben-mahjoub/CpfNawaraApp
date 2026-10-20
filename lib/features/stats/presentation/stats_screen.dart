@@ -51,7 +51,7 @@ class StatsScreen extends ConsumerWidget {
             ),
             title: Text(s('compareTitle'), style: const TextStyle(fontWeight: FontWeight.w700)),
             subtitle: Text(s('compareEntrySubtitle'), style: const TextStyle(fontSize: 12)),
-            trailing: const Icon(Icons.chevron_right),
+            trailing: const Icon(Icons.visibility_outlined),
             onTap: () => context.push('/compare'),
           ),
         ),
