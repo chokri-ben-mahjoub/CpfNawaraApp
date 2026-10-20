@@ -34,8 +34,7 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
   final _choices = <String, String?>{};
   final _comment = TextEditingController();
   late DateTime _date;
-  TimeOfDay? _startTime;
-  TimeOfDay? _endTime;
+  TimeOfDay? _samplingTime;
   late final TextEditingController _sourceController;
   String? _photo;
   bool _saving = false;
@@ -84,8 +83,7 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
     // inchangée si elle n'est pas dans le dictionnaire, donc les deux cas
     // s'affichent correctement sans distinction.
     _sourceController.text = tr(ref.read(localeProvider), existing.source);
-    _startTime = _parseTime(existing.startTime);
-    _endTime = _parseTime(existing.endTime);
+    _samplingTime = _parseTime(existing.startTime);
     _photo = existing.photo;
   }
 
@@ -146,8 +144,7 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
           operatorName: ref.read(profileProvider)?.fullName ?? '',
           comment: _comment.text.trim().isEmpty ? null : _comment.text.trim(),
           id: _editingId,
-          startTime: _formatTime(_startTime),
-          endTime: _formatTime(_endTime),
+          startTime: _formatTime(_samplingTime),
           photo: _photo,
         );
     if (!mounted) return;
@@ -272,24 +269,10 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
               ),
             ),
             const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: _TimeField(
-                    label: s('plantStartTime'),
-                    value: _startTime,
-                    onChanged: (t) => setState(() => _startTime = t),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _TimeField(
-                    label: s('plantEndTime'),
-                    value: _endTime,
-                    onChanged: (t) => setState(() => _endTime = t),
-                  ),
-                ),
-              ],
+            _TimeField(
+              label: s('plantSamplingTime'),
+              value: _samplingTime,
+              onChanged: (t) => setState(() => _samplingTime = t),
             ),
             if (editing != null) ...[
               const SizedBox(height: 6),

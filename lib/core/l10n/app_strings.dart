@@ -1019,6 +1019,7 @@ final _strings = <String, Map<String, String>>{
   'plantSampleDate': {'fr': 'Date du prélèvement', 'en': 'Sampling date'},
   'plantStartTime': {'fr': 'Heure de début', 'en': 'Start time'},
   'plantEndTime': {'fr': 'Heure de fin', 'en': 'End time'},
+  'plantSamplingTime': {'fr': 'Heure de prélèvement', 'en': 'Sampling time'},
   'colStartTime': {'fr': 'Heure début', 'en': 'Start time'},
   'colEndTime': {'fr': 'Heure fin', 'en': 'End time'},
   'plantPhotoLabel': {'fr': 'Photo (facultatif)', 'en': 'Photo (optional)'},
