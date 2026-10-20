@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:pdf/pdf.dart';
 
 import '../../../core/analysis/decline.dart';
 import '../../../core/analysis/production_metrics.dart';
@@ -8,6 +9,7 @@ import '../../../core/analysis/series.dart';
 import '../../../core/data/wells_repository.dart';
 import '../../../core/export/export_service.dart';
 import '../../../core/export/export_table.dart';
+import '../../../core/export/pdf_chart.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/production_types.dart';
 import '../../../core/theme/app_theme.dart';
@@ -337,6 +339,25 @@ class _DeclineScreenState extends ConsumerState<DeclineScreen> {
           ],
         ),
       ],
+      charts: fit == null
+          ? []
+          : [
+              PdfReportChart(
+                title: '$fluidLabel ($unit)',
+                series: [
+                  PdfChartSeries(
+                    label: s('declineMeasured'),
+                    color: const PdfColor.fromInt(0xFF1E88E5),
+                    points: [for (final p in result.all) (p.t, p.v)],
+                  ),
+                  PdfChartSeries(
+                    label: s('declineFitted'),
+                    color: const PdfColor.fromInt(0xFFFF7A33),
+                    points: [for (final p in result.all) (p.t, fit.rateAt(p.t))],
+                  ),
+                ],
+              ),
+            ],
     );
   }
 }

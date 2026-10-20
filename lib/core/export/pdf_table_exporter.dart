@@ -7,6 +7,7 @@ import 'package:pdf/widgets.dart' as pw;
 import '../branding/app_logo.dart';
 import '../l10n/app_strings.dart';
 import 'export_table.dart';
+import 'pdf_chart.dart';
 
 const _accent = PdfColor.fromInt(0xFFFF7A33);
 const _navy = PdfColor.fromInt(0xFF0B1E2D);
@@ -23,7 +24,12 @@ class PdfTableExporter {
   static final _dateTimeFormat = DateFormat('dd/MM/yyyy HH:mm');
   static final _dateFormat = DateFormat('dd/MM/yyyy');
 
-  static Future<Uint8List> encode(List<ExportTable> tables, {required String title, String operatorName = ''}) async {
+  static Future<Uint8List> encode(
+    List<ExportTable> tables, {
+    required String title,
+    String operatorName = '',
+    List<PdfReportChart> charts = const [],
+  }) async {
     final safeTitle = _safe(title);
     final doc = pw.Document(title: safeTitle, author: currentAppName);
     final logo = currentAppLogo;
@@ -43,6 +49,10 @@ class PdfTableExporter {
         : const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 5);
 
     final sections = <pw.Widget>[];
+    for (final chart in charts) {
+      sections.add(pw.SizedBox(height: 16));
+      sections.add(buildPdfChartSection(chart));
+    }
     for (final table in tables) {
       sections.add(pw.SizedBox(height: 16));
       sections.add(

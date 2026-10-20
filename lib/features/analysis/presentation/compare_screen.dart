@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:pdf/pdf.dart';
 
 import '../../../core/analysis/metrics.dart';
 import '../../../core/analysis/production_metrics.dart';
@@ -8,6 +9,7 @@ import '../../../core/analysis/series.dart';
 import '../../../core/data/wells_repository.dart';
 import '../../../core/export/export_service.dart';
 import '../../../core/export/export_table.dart';
+import '../../../core/export/pdf_chart.dart';
 import '../../../core/filters/well_filter.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/intervention.dart';
@@ -499,6 +501,23 @@ class _CompareScreenState extends ConsumerState<CompareScreen> {
           rows: [
             for (final p in c.a) [c.labelA, p.t, p.v],
             for (final p in c.b) [c.labelB, p.t, p.v],
+          ],
+        ),
+      ],
+      charts: [
+        PdfReportChart(
+          title: '${metric.label} (${metric.unit})',
+          series: [
+            PdfChartSeries(
+              label: c.labelA,
+              color: const PdfColor.fromInt(0xFF1E88E5),
+              points: [for (final p in c.a) (p.t, p.v)],
+            ),
+            PdfChartSeries(
+              label: c.labelB,
+              color: const PdfColor.fromInt(0xFFFF7A33),
+              points: [for (final p in c.b) (p.t, p.v)],
+            ),
           ],
         ),
       ],

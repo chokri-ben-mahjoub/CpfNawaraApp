@@ -7,6 +7,8 @@ import 'package:puitstrack/core/analysis/series.dart';
 import 'package:puitstrack/core/export/csv_exporter.dart';
 import 'package:puitstrack/core/export/excel_exporter.dart';
 import 'package:puitstrack/core/export/export_table.dart';
+import 'package:puitstrack/core/export/pdf_chart.dart';
+import 'package:puitstrack/core/export/pdf_table_exporter.dart';
 import 'package:puitstrack/core/filters/well_filter.dart';
 import 'package:puitstrack/core/models/analysis_record.dart';
 import 'package:puitstrack/core/models/production_types.dart';
@@ -224,6 +226,43 @@ void main() {
       expect(cell, isA<DoubleCellValue>());
       expect((cell as DoubleCellValue).value, 1.5);
       expect(book.tables['Analyses']!.rows[1][2]!.value.toString(), 'a;b');
+    });
+
+    test('PDF : tableaux seuls, génère un document valide', () async {
+      final bytes = await PdfTableExporter.encode([table], title: 'Analyses');
+      expect(bytes.length, greaterThan(100));
+      expect(utf8.decode(bytes.take(5).toList(), allowMalformed: true), '%PDF-');
+    });
+
+    test('PDF : avec une courbe, génère un document valide', () async {
+      final chart = PdfReportChart(
+        title: 'BSW (%)',
+        series: [
+          PdfChartSeries(
+            label: 'BSW',
+            color: pdfChartPalette.first,
+            points: [
+              (DateTime(2026, 10, 1), 1.2),
+              (DateTime(2026, 10, 2), 1.4),
+              (DateTime(2026, 10, 3), 1.1),
+            ],
+          ),
+        ],
+      );
+      final bytes = await PdfTableExporter.encode([table], title: 'Analyses', charts: [chart]);
+      expect(bytes.length, greaterThan(100));
+      expect(utf8.decode(bytes.take(5).toList(), allowMalformed: true), '%PDF-');
+    });
+
+    test('PDF : courbe à un seul point ignorée sans erreur', () async {
+      final chart = PdfReportChart(
+        title: 'BSW (%)',
+        series: [
+          PdfChartSeries(label: 'BSW', color: pdfChartPalette.first, points: [(DateTime(2026, 10, 1), 1.2)]),
+        ],
+      );
+      final bytes = await PdfTableExporter.encode([table], title: 'Analyses', charts: [chart]);
+      expect(bytes.length, greaterThan(100));
     });
   });
 }

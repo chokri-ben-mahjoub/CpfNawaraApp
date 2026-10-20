@@ -455,6 +455,12 @@ python tool/serve_web.py        # test local : http://localhost:8765
   statut), au choix en Excel, CSV ou **PDF** — ce troisième format est
   disponible partout où l'app propose un export (`export_format_sheet.dart`,
   `pdf_table_exporter.dart`), pas seulement pour le stock
+- **Courbes dans les exports PDF** (`pdf_chart.dart`, API graphique native du
+  paquet `pdf`) : en plus des tableaux, certains exports PDF affichent
+  maintenant la courbe du résultat — historique d'un puits (une courbe par
+  type d'analyse), période du tableau de bord (débits huile/gaz/eau),
+  comparaison (deux séries superposées), déclin (mesuré vs ajusté). Ignorées
+  en Excel/CSV (pas de courbe possible dans ces formats)
 - Aucun article de démarrage : chacun saisit les siens. Tables `stock_items`
   et `stock_movements` (migration de base v13), incluses dans les
   sauvegardes/restaurations et la synchronisation d'équipe (droits d'écriture

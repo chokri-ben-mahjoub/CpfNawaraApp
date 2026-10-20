@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../core/auth/auth_providers.dart';
 import '../../../core/data/wells_repository.dart';
 import '../../../core/export/export_service.dart';
+import '../../../core/export/pdf_chart.dart';
 import '../../../core/export/report_tables.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/analysis_record.dart';
@@ -39,7 +40,36 @@ class _WellHistoryScreenState extends ConsumerState<WellHistoryScreen> {
       baseName: well.code,
       shareSubject: '${well.name} (${well.code})',
       tables: [analysesTable(data, records, s)],
+      charts: _charts(data, records, s),
     );
+  }
+
+  /// Une courbe par type d'analyse présent dans [records] (valeur au fil du
+  /// temps, triée par date) — affichée en tête du PDF exporté.
+  List<PdfReportChart> _charts(WellsState data, List<AnalysisRecord> records, String Function(String) s) {
+    final byType = <String, List<AnalysisRecord>>{};
+    for (final record in records) {
+      (byType[record.typeId] ??= []).add(record);
+    }
+    final typesById = {for (final t in data.analysisTypes) t.id: t};
+    final typeIds = byType.keys.toList()..sort((a, b) => (typesById[a]?.label ?? a).compareTo(typesById[b]?.label ?? b));
+
+    return [
+      for (var i = 0; i < typeIds.length; i++)
+        if (typesById[typeIds[i]] != null)
+          PdfReportChart(
+            title: '${typesById[typeIds[i]]!.label} (${typesById[typeIds[i]]!.unit})',
+            series: [
+              PdfChartSeries(
+                label: typesById[typeIds[i]]!.label,
+                color: pdfChartPalette[i % pdfChartPalette.length],
+                points: (byType[typeIds[i]]!..sort((a, b) => a.dateTime.compareTo(b.dateTime)))
+                    .map((r) => (r.dateTime, r.value))
+                    .toList(),
+              ),
+            ],
+          ),
+    ];
   }
 
   @override

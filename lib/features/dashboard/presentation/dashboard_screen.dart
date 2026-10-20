@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:pdf/pdf.dart';
 
 import '../../../core/auth/auth_providers.dart';
 import '../../../core/data/stock_repository.dart';
 import '../../../core/data/wells_repository.dart';
 import '../../../core/export/export_service.dart';
+import '../../../core/export/pdf_chart.dart';
 import '../../../core/export/report_tables.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/analysis_type.dart';
@@ -61,7 +63,42 @@ Future<void> exportDashboardPeriod(WidgetRef ref, BuildContext context) async {
       productionTable(data, data.wells, s, from: startDay),
       interventionsTable(data, data.interventions.where((i) => !i.date.isBefore(startDay)).toList(), s),
     ],
+    charts: _dashboardCharts(ref, data, startDay, today, s),
   );
+}
+
+/// Courbe de production totale (tous puits actifs) pour chaque débit, sur la
+/// période exportée — affichées en tête du PDF, avant les tableaux détaillés.
+List<PdfReportChart> _dashboardCharts(
+  WidgetRef ref,
+  WellsState data,
+  DateTime startDay,
+  DateTime today,
+  String Function(String) s,
+) {
+  final controller = ref.read(wellsControllerProvider.notifier);
+  final days = today.difference(startDay).inDays + 1;
+  String unitFor(String typeId) => data.analysisTypes.where((t) => t.id == typeId).map((t) => t.unit).firstOrNull ?? '';
+
+  final metrics = [
+    (oilFlowTypeId, s('productionOil'), const PdfColor.fromInt(0xFF2E7D32)),
+    (gasFlowTypeId, s('productionGas'), const PdfColor.fromInt(0xFFE53935)),
+    (waterFlowTypeId, s('productionWater'), const PdfColor.fromInt(0xFF1E88E5)),
+  ];
+
+  return [
+    for (final (typeId, label, color) in metrics)
+      PdfReportChart(
+        title: '$label (${unitFor(typeId)})',
+        series: [
+          PdfChartSeries(
+            label: label,
+            color: color,
+            points: [for (final (day, total) in controller.aggregateDailyTotals(typeId, days: days)) (day, total)],
+          ),
+        ],
+      ),
+  ];
 }
 
 String _periodKey(DashboardPeriod period) {

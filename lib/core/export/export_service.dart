@@ -9,6 +9,7 @@ import 'download_saver.dart';
 import 'excel_exporter.dart';
 import 'export_format_sheet.dart';
 import 'export_table.dart';
+import 'pdf_chart.dart';
 import 'pdf_table_exporter.dart';
 import 'share_files.dart';
 
@@ -30,11 +31,14 @@ class _GeneratedFile {
 ///
 /// En Excel, chaque [ExportTable] devient une feuille du même classeur ; en
 /// CSV (un seul tableau par fichier), un fichier est généré par tableau.
+/// [charts] : courbes ajoutées en tête du PDF (ignorées en Excel/CSV, qui ne
+/// peuvent pas en afficher).
 Future<void> runExport({
   required BuildContext context,
   required Locale locale,
   required String baseName,
   required List<ExportTable> tables,
+  List<PdfReportChart> charts = const [],
   String? shareSubject,
 }) async {
   String s(String key) => tr(locale, key);
@@ -68,7 +72,7 @@ Future<void> runExport({
           files.add(_GeneratedFile(name, _csvMime, CsvExporter.encode(table)));
         }
       case ExportFormat.pdf:
-        final bytes = await PdfTableExporter.encode(nonEmpty, title: baseName);
+        final bytes = await PdfTableExporter.encode(nonEmpty, title: baseName, charts: charts);
         files.add(_GeneratedFile('${safeBase}_$suffix.pdf', _pdfMime, bytes));
     }
 
