@@ -1,5 +1,18 @@
 {
   "projects": {
     "default": "puitstrack"
-  }
+  },
+  "targets": {
+    "puitstrack": {
+      "hosting": {
+        "nawara": [
+          "cpflaboratorynawara"
+        ],
+        "puitstrack": [
+          "puitstrack"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }

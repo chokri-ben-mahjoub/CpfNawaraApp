@@ -22,7 +22,8 @@ try {
   }
   & $firebase deploy --only $only --project $Project
   if ($LASTEXITCODE -ne 0) { throw 'firebase deploy a échoué (firebase login fait ?)' }
-  Write-Host "`nEn ligne : https://$Project.web.app"
+  Write-Host "`nEn ligne : https://puitstrack.web.app"
+  Write-Host "En ligne : https://cpflaboratorynawara.web.app"
 } finally {
   Pop-Location
 }
