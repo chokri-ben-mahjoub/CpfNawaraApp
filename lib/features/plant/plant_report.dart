@@ -9,7 +9,7 @@ import '../../core/branding/app_logo.dart';
 import '../../core/export/pdf_chart.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/plant/plant_catalog.dart';
-import '../../core/plant/plant_point_charts.dart';
+import '../../core/plant/plant_point_charts.dart' show plantCircuitCharts;
 import '../../core/plant/plant_repository.dart';
 
 const _accent = PdfColor.fromInt(0xFFFF7A33);
@@ -151,9 +151,16 @@ Future<Uint8List> buildPlantDailyReport({
           child: pw.Text(meta, style: const pw.TextStyle(color: _grey, fontSize: 8.5)),
         ),
       );
-      for (final chart in plantPointCharts(controller, point, t)) {
+    }
+    final circuitCharts = plantCircuitCharts(controller, circuit, t);
+    if (circuitCharts.isNotEmpty) {
+      sections.add(pw.SizedBox(height: 10));
+      sections.add(
+        pw.Text(t('plantReportCurves'), style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10.5, color: _navy)),
+      );
+      for (final chart in circuitCharts) {
         sections.add(pw.SizedBox(height: 8));
-        sections.add(buildPdfChartSection(chart, height: 110));
+        sections.add(buildPdfChartSection(chart, height: 130));
       }
     }
   }

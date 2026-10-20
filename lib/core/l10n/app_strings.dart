@@ -992,6 +992,7 @@ final _strings = <String, Map<String, String>>{
   'plantReportAllShort': {'fr': 'complet', 'en': 'full'},
   'plantReportTitle': {'fr': 'Rapport journalier — Usine CPF', 'en': 'Daily report — CPF plant'},
   'plantReportGenerated': {'fr': 'Généré le', 'en': 'Generated on'},
+  'plantReportCurves': {'fr': 'Courbes', 'en': 'Trends'},
   'plantNoAnalysisThatDay': {'fr': 'Pas d\'analyse ce jour.', 'en': 'No analysis that day.'},
   'plantNeverAnalysed': {'fr': 'Aucune analyse enregistrée.', 'en': 'No analysis recorded.'},
   'plantLastAnalysis': {'fr': 'Dernière analyse', 'en': 'Last analysis'},
