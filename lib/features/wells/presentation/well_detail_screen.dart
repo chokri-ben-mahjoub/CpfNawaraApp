@@ -14,6 +14,8 @@ import '../../../core/models/production_types.dart';
 import '../../../core/models/user_role.dart';
 import '../../../core/models/well.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/status_style.dart';
+import '../../../core/widgets/hero_header.dart';
 import '../../../core/widgets/series_chart.dart';
 import '../../../core/widgets/responsive.dart';
 import 'widgets/production_chart.dart';
@@ -66,6 +68,14 @@ class WellDetailScreen extends ConsumerWidget {
         .toList();
     final history = controller.recordsForWell(wellId).take(20).toList();
     final dateFormat = DateFormat('d MMM, HH:mm', locale.languageCode);
+    final progress = controller.todayProgress(wellId);
+    final since30 = DateTime.now().subtract(const Duration(days: 30));
+    final last30 = controller.recordsForWell(wellId).where((r) => r.dateTime.isAfter(since30)).toList();
+    final recent30 = last30.length;
+    final out30 = last30.where((r) {
+      final type = controller.findType(r.typeId);
+      return type != null && type.isOutOfRange(r.value);
+    }).length;
 
     return Scaffold(
       appBar: AppBar(
@@ -93,40 +103,25 @@ class WellDetailScreen extends ConsumerWidget {
       body: ListView(
         padding: pagePadding(context, top: 8, bottom: 130),
         children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: (well.active ? accentColor : scheme.outline).withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Icon(Icons.water_drop_outlined, color: well.active ? accentColor : scheme.outline),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(well.code, style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
-                        const SizedBox(height: 2),
-                        Text(
-                          s(well.active ? 'wellStatusActive' : 'wellStatusStopped'),
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            color: well.active ? Colors.green.shade600 : scheme.outline,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+          HeroHeader(
+            icon: Icons.water_drop_outlined,
+            title: well.name,
+            subtitle: well.group.trim().isEmpty ? well.code : '${well.code} · ${well.group.trim()}',
+            pillLabel: s(well.active ? 'wellStatusActive' : 'wellStatusStopped'),
+            pillColor: well.active ? AppStatus.ok.color(scheme) : scheme.outline,
+            stats: [
+              HeroStat(value: '${progress.$1}/${progress.$2}', label: s('wellKpiToday')),
+              HeroStat(value: '$recent30', label: s('wellKpi30d')),
+              HeroStat(
+                value: '$out30',
+                label: s('wellKpiOut'),
+                valueColor: out30 > 0 ? const Color(0xFFFF8A80) : null,
               ),
-            ),
+              HeroStat(
+                value: history.isEmpty ? '—' : DateFormat('d MMM', locale.languageCode).format(history.first.dateTime),
+                label: s('wellKpiLast'),
+              ),
+            ],
           ),
           const SizedBox(height: 20),
           _ProductionCard(wellId: wellId),

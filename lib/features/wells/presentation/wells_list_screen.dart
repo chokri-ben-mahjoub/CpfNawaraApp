@@ -9,6 +9,7 @@ import '../../../core/filters/well_filter.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/well.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/status_style.dart';
 import '../../../core/widgets/filter_pills.dart';
 import '../../../core/widgets/responsive.dart';
 
@@ -275,6 +276,7 @@ class _WellCard extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     final locale = ref.watch(localeProvider);
     String s(String key) => tr(locale, key);
+    final progress = ref.read(wellsControllerProvider.notifier).todayProgress(well.id);
 
     return Card(
       child: InkWell(
@@ -284,15 +286,42 @@ class _WellCard extends ConsumerWidget {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: (well.active ? accentColor : scheme.outline).withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(14),
+              if (well.active && progress.$2 > 0)
+                SizedBox(
+                  width: 50,
+                  height: 50,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      SizedBox.expand(
+                        child: CircularProgressIndicator(
+                          value: progress.$1 / progress.$2,
+                          strokeWidth: 4.5,
+                          strokeCap: StrokeCap.round,
+                          backgroundColor: scheme.surfaceContainerHigh,
+                          valueColor: AlwaysStoppedAnimation(
+                            progress.$1 == progress.$2 ? AppStatus.ok.color(scheme) : accentColor,
+                          ),
+                        ),
+                      ),
+                      Icon(
+                        progress.$1 == progress.$2 ? Icons.check_rounded : Icons.water_drop_outlined,
+                        size: 20,
+                        color: progress.$1 == progress.$2 ? AppStatus.ok.color(scheme) : accentColor,
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: (well.active ? accentColor : scheme.outline).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(Icons.water_drop_outlined, color: well.active ? accentColor : scheme.outline),
                 ),
-                child: Icon(Icons.water_drop_outlined, color: well.active ? accentColor : scheme.outline),
-              ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -306,7 +335,7 @@ class _WellCard extends ConsumerWidget {
                       children: [
                         _StatusChip(
                           label: s(well.active ? 'wellStatusActive' : 'wellStatusStopped'),
-                          color: well.active ? Colors.green.shade600 : scheme.outline,
+                          color: well.active ? AppStatus.ok.color(scheme) : scheme.outline,
                         ),
                         if (summary.$1.isNotEmpty) ...[
                           const SizedBox(width: 8),

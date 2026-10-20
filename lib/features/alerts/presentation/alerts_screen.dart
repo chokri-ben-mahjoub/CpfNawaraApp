@@ -16,6 +16,7 @@ import '../../../core/models/well.dart';
 import '../../../core/plant/plant_catalog.dart';
 import '../../../core/plant/plant_repository.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/status_style.dart';
 import '../../../core/widgets/responsive.dart';
 
 /// Exporte les analyses en retard et les dernières valeurs hors seuil, tous
@@ -211,6 +212,33 @@ class AlertsScreen extends ConsumerWidget {
               ),
             ),
           ),
+        if (hasAlerts) ...[
+          Row(
+            children: [
+              _KpiTile(
+                value: outOfRange.length + plantOut.length,
+                label: s('alertsKpiOut'),
+                status: AppStatus.out,
+                icon: Icons.error_outline,
+              ),
+              const SizedBox(width: 10),
+              _KpiTile(
+                value: drifts.length,
+                label: s('alertsKpiDrift'),
+                status: AppStatus.todo,
+                icon: Icons.trending_up,
+              ),
+              const SizedBox(width: 10),
+              _KpiTile(
+                value: overdue.length + plantMissing.length,
+                label: s('alertsKpiLate'),
+                status: AppStatus.late,
+                icon: Icons.hourglass_empty_rounded,
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+        ],
         if (plantOut.isNotEmpty) ...[
           _SectionTitle(s('alertsPlantOutSection')),
           const SizedBox(height: 8),
@@ -395,6 +423,47 @@ class AlertsScreen extends ConsumerWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+/// Tuile de bilan en tête des alertes : gros chiffre coloré (gris si zéro).
+class _KpiTile extends StatelessWidget {
+  final int value;
+  final String label;
+  final AppStatus status;
+  final IconData icon;
+
+  const _KpiTile({required this.value, required this.label, required this.status, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final color = value == 0 ? scheme.outline : status.color(scheme);
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(height: 8),
+            Text('$value', style: TextStyle(color: color, fontSize: 26, fontWeight: FontWeight.w800, height: 1)),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 11.5, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
