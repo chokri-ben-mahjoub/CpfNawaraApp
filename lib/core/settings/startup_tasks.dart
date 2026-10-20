@@ -53,6 +53,8 @@ Future<void> refreshReminders(WidgetRef ref) async {
       channelName: s('reminderChannelName'),
       title: s('reminderTitle'),
       body: s('reminderBody'),
+      // Rappel du jour : un seul message avec le nombre restant à saisir.
+      bodyToday: total > done ? fill(s('reminderBodyCount'), {'n': '${total - done}'}) : null,
     );
   } catch (_) {
     // Notifications indisponibles (permission refusée, plateforme...) :

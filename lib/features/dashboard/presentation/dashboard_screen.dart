@@ -16,7 +16,9 @@ import '../../../core/models/production_types.dart';
 import '../../../core/models/user_role.dart';
 import '../../../core/models/well.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/status_style.dart';
 import '../../../core/widgets/responsive.dart';
+import '../../../core/widgets/sparkline.dart';
 import 'widgets/aggregate_trend_chart.dart';
 import '../../../core/widgets/profile_avatar.dart';
 
@@ -330,6 +332,8 @@ class _DayView extends StatelessWidget {
       var totalOverdue = 0;
       final overdueByWell = <String, int>{};
       final openByWell = <String, int>{};
+      final overdueItems = <(Well, AnalysisType)>[];
+      final pendingItems = <(Well, AnalysisType)>[];
       for (final well in wells) {
         for (final type in dueTypes) {
           totalDue++;
@@ -337,10 +341,12 @@ class _DayView extends StatelessWidget {
             case DailyStatus.done:
               totalDone++;
             case DailyStatus.overdue:
+              overdueItems.add((well, type));
               totalOverdue++;
               overdueByWell[well.id] = (overdueByWell[well.id] ?? 0) + 1;
               openByWell[well.id] = (openByWell[well.id] ?? 0) + 1;
             case DailyStatus.pending:
+              pendingItems.add((well, type));
               openByWell[well.id] = (openByWell[well.id] ?? 0) + 1;
           }
         }
@@ -357,28 +363,6 @@ class _DayView extends StatelessWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _ProgressBanner(done: totalDone, total: totalDue, allDoneKey: 'dashboardAllDone'),
-          if (totalDue > 0) ...[
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                if (totalOverdue > 0)
-                  _CountChip(
-                    label: fill(s('dashboardCountOverdue'), {'n': '$totalOverdue'}),
-                    color: Theme.of(context).colorScheme.error,
-                  ),
-                if (totalPending > 0)
-                  _CountChip(label: fill(s('dashboardCountPending'), {'n': '$totalPending'}), color: accentColor),
-                _CountChip(
-                  label: fill(s('dashboardCountDone'), {'n': '$totalDone'}),
-                  color: Colors.green.shade600,
-                ),
-              ],
-            ),
-          ],
-          const SizedBox(height: 20),
           if (totalDue == 0)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 40),
@@ -386,16 +370,48 @@ class _DayView extends StatelessWidget {
                 child: Text(s('dashboardEmpty'), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
               ),
             )
-          else
-            ResponsiveWrapGrid(
-              spacing: 16,
-              runSpacing: 0,
-              minItemWidth: 420,
-              maxColumns: 2,
-              children: [
-                for (final well in sortedWells) _WellDashboardSection(well: well, dueTypes: dueTypes, today: today),
-              ],
+          else ...[
+            _MissionHeader(done: totalDone, total: totalDue, overdue: totalOverdue, pending: totalPending),
+            if (overdueItems.isNotEmpty) ...[
+              _MissionSection(
+                title: fill(s('dashboardCountOverdue'), {'n': '$totalOverdue'}),
+                status: AppStatus.late,
+                items: overdueItems,
+                today: today,
+              ),
+            ],
+            if (pendingItems.isNotEmpty) ...[
+              _MissionSection(
+                title: s('dashboardNowTitle'),
+                status: AppStatus.todo,
+                items: pendingItems,
+                today: today,
+              ),
+            ],
+            const SizedBox(height: 8),
+            Card(
+              child: Theme(
+                data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                child: ExpansionTile(
+                  leading: const Icon(Icons.view_list_outlined),
+                  title: Text(s('dashboardAllByWell'), style: const TextStyle(fontWeight: FontWeight.w700)),
+                  childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+                  children: [
+                    ResponsiveWrapGrid(
+                      spacing: 16,
+                      runSpacing: 0,
+                      minItemWidth: 420,
+                      maxColumns: 2,
+                      children: [
+                        for (final well in sortedWells)
+                          _WellDashboardSection(well: well, dueTypes: dueTypes, today: today),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
+          ],
         ],
       );
     });
@@ -655,6 +671,239 @@ class _WellDashboardSection extends ConsumerWidget {
   }
 }
 
+/// En-tête "mission du jour" : anneau de progression et bilan en un coup d'œil.
+class _MissionHeader extends ConsumerWidget {
+  final int done;
+  final int total;
+  final int overdue;
+  final int pending;
+
+  const _MissionHeader({required this.done, required this.total, required this.overdue, required this.pending});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final locale = ref.watch(localeProvider);
+    String s(String key) => tr(locale, key);
+    final allDone = total > 0 && done == total;
+    final ratio = total == 0 ? 1.0 : done / total;
+    final ringColor = allDone ? AppStatus.ok.color(scheme) : (overdue > 0 ? AppStatus.late.color(scheme) : accentColor);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 92,
+              height: 92,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  SizedBox.expand(
+                    child: CircularProgressIndicator(
+                      value: ratio,
+                      strokeWidth: 10,
+                      strokeCap: StrokeCap.round,
+                      backgroundColor: scheme.surfaceContainerHigh,
+                      valueColor: AlwaysStoppedAnimation(ringColor),
+                    ),
+                  ),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('$done', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, height: 1)),
+                      Text('/ $total', style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 18),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    allDone ? s('dashboardAllDone') : s('dashboardMissionTitle'),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      if (overdue > 0)
+                        _CountChip(
+                          label: fill(s('dashboardCountOverdue'), {'n': '$overdue'}),
+                          color: AppStatus.late.color(scheme),
+                        ),
+                      if (pending > 0)
+                        _CountChip(
+                          label: fill(s('dashboardCountPending'), {'n': '$pending'}),
+                          color: AppStatus.todo.color(scheme),
+                        ),
+                      _CountChip(
+                        label: fill(s('dashboardCountDone'), {'n': '$done'}),
+                        color: AppStatus.ok.color(scheme),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Bloc de cartes d'analyses à saisir (3 au plus) ; le reste est dans la
+/// liste complète par puits, plus bas.
+class _MissionSection extends ConsumerWidget {
+  final String title;
+  final AppStatus status;
+  final List<(Well, AnalysisType)> items;
+  final DateTime today;
+
+  static const _maxShown = 3;
+
+  const _MissionSection({required this.title, required this.status, required this.items, required this.today});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final locale = ref.watch(localeProvider);
+    String s(String key) => tr(locale, key);
+    final shown = items.take(_maxShown).toList();
+    final more = items.length - shown.length;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(status.icon, color: status.color(scheme), size: 20),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          for (final (well, type) in shown) _NowCard(well: well, type: type, status: status, today: today),
+          if (more > 0)
+            Padding(
+              padding: const EdgeInsets.only(left: 4, top: 2),
+              child: Text(
+                fill(s('dashboardMoreItems'), {'n': '$more'}),
+                style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12.5, fontWeight: FontWeight.w600),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NowCard extends ConsumerWidget {
+  final Well well;
+  final AnalysisType type;
+  final AppStatus status;
+  final DateTime today;
+
+  const _NowCard({required this.well, required this.type, required this.status, required this.today});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final locale = ref.watch(localeProvider);
+    final role = ref.watch(currentRoleProvider);
+    final controller = ref.read(wellsControllerProvider.notifier);
+    String s(String key) => tr(locale, key);
+    final color = status.color(scheme);
+    final values = controller.recentValues(well.id, type.id);
+    final last = values.isEmpty ? null : values.last;
+    final prev = values.length < 2 ? null : values[values.length - 2];
+    final trendIcon = last == null || prev == null || last == prev
+        ? null
+        : (last > prev ? Icons.arrow_upward : Icons.arrow_downward);
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () => context.push('/wells/${well.id}'),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+          child: Row(
+            children: [
+              Container(
+                width: 4,
+                height: 48,
+                decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(type.label, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+                    Text(
+                      '${well.name} · ${well.code}',
+                      style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12.5),
+                    ),
+                    if (last != null) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Text(
+                            '${s('dashboardLastValue')} ',
+                            style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 11.5),
+                          ),
+                          Text(
+                            '$last ${type.unit}',
+                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                          ),
+                          if (trendIcon != null) ...[
+                            const SizedBox(width: 2),
+                            Icon(trendIcon, size: 14, color: scheme.onSurfaceVariant),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (values.length >= 2) ...[
+                Sparkline(values: values, color: scheme.onSurfaceVariant),
+                const SizedBox(width: 10),
+              ],
+              if (role.canEnterData)
+                FilledButton(
+                  onPressed: () => context.push('/entry?wellId=${well.id}&typeId=${type.id}'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: color,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: Text(s('dashboardEnter'), style: const TextStyle(fontWeight: FontWeight.w800)),
+                )
+              else
+                Icon(Icons.visibility_outlined, color: scheme.onSurfaceVariant),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _CountChip extends StatelessWidget {
   final String label;
   final Color color;
@@ -694,18 +943,18 @@ class _AnalysisStatusRow extends ConsumerWidget {
     late final String label;
     switch (status) {
       case DailyStatus.done:
-        color = Colors.green.shade600;
-        icon = Icons.check_circle_outline;
+        color = AppStatus.ok.color(scheme);
+        icon = AppStatus.ok.icon;
         label = s('dashboardDone');
         break;
       case DailyStatus.pending:
-        color = accentColor;
-        icon = Icons.hourglass_empty_rounded;
+        color = AppStatus.todo.color(scheme);
+        icon = AppStatus.todo.icon;
         label = s('dashboardPending');
         break;
       case DailyStatus.overdue:
-        color = scheme.error;
-        icon = Icons.warning_amber_rounded;
+        color = AppStatus.late.color(scheme);
+        icon = AppStatus.late.icon;
         label = s('dashboardOverdue');
         break;
     }

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/l10n/app_strings.dart';
 import '../../../../core/plant/plant_catalog.dart';
 import '../../../../core/plant/plant_repository.dart';
+import '../../../../core/theme/status_style.dart';
 
 /// Diamètre des points de prélèvement (unités du schéma, largeur 1000).
 const _markerSize = 40.0;
@@ -15,9 +16,9 @@ const _markerSize = 40.0;
 const _drawnCircuitIds = {'condensate', 'water', 'gas', 'amine'};
 
 Color plantStatusColor(PlantStatus status, ColorScheme scheme) => switch (status) {
-  PlantStatus.ok => Colors.green.shade600,
-  PlantStatus.outOfRange => scheme.error,
-  PlantStatus.missing => scheme.outline,
+  PlantStatus.ok => AppStatus.ok.color(scheme),
+  PlantStatus.outOfRange => AppStatus.out.color(scheme),
+  PlantStatus.missing => AppStatus.none.color(scheme),
 };
 
 /// Schéma de l'usine affiché dans l'onglet Usine : points de prélèvement

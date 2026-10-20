@@ -60,6 +60,7 @@ class ReminderService {
     required String channelName,
     required String title,
     required String body,
+    String? bodyToday,
   }) async {
     if (!isSupported) return;
     await _init(channelName);
@@ -76,7 +77,7 @@ class ReminderService {
       await _plugin.zonedSchedule(
         _firstId + i,
         title,
-        body,
+        i == 0 ? (bodyToday ?? body) : body,
         tz.TZDateTime.from(day, tz.UTC),
         NotificationDetails(
           android: AndroidNotificationDetails(

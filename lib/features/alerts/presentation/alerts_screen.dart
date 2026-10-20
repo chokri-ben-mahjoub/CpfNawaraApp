@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/analysis/drift_detector.dart';
+import '../../../core/analysis/series.dart' show formatNumber, formatPercent;
 import '../../../core/auth/auth_providers.dart';
 import '../../../core/config/shared_config.dart';
 import '../../../core/data/wells_repository.dart';
@@ -123,6 +125,13 @@ class _OverdueItem {
   const _OverdueItem(this.well, this.type, {this.today = false});
 }
 
+class _DriftItem {
+  final Well well;
+  final AnalysisType type;
+  final Drift drift;
+  const _DriftItem(this.well, this.type, this.drift);
+}
+
 class _OutOfRangeItem {
   final Well well;
   final AnalysisType type;
@@ -150,6 +159,7 @@ class AlertsScreen extends ConsumerWidget {
 
     final overdue = <_OverdueItem>[];
     final outOfRange = <_OutOfRangeItem>[];
+    final drifts = <_DriftItem>[];
     for (final well in activeWells) {
       for (final type in data.analysisTypes) {
         final status = type.isDueOn(today) ? controller.statusFor(well.id, type.id, now: today) : null;
@@ -161,6 +171,10 @@ class AlertsScreen extends ConsumerWidget {
         final last = controller.lastRecord(well.id, type.id);
         if (last != null && type.isOutOfRange(last.value) && last.isSameDay(today)) {
           outOfRange.add(_OutOfRangeItem(well, type, last.value));
+        } else if (last != null && last.isSameDay(today)) {
+          // Dans les seuils, mais anormale par rapport aux mesures récentes.
+          final drift = detectDrift(controller.recentValues(well.id, type.id, n: driftWindow + 1));
+          if (drift != null) drifts.add(_DriftItem(well, type, drift));
         }
       }
     }
@@ -181,7 +195,7 @@ class AlertsScreen extends ConsumerWidget {
       }
     }
 
-    final hasAlerts = overdue.isNotEmpty || outOfRange.isNotEmpty || plantOut.isNotEmpty || plantMissing.isNotEmpty;
+    final hasAlerts = drifts.isNotEmpty || overdue.isNotEmpty || outOfRange.isNotEmpty || plantOut.isNotEmpty || plantMissing.isNotEmpty;
 
     return ListView(
       padding: pagePadding(context, top: 8, bottom: 24),
@@ -223,6 +237,43 @@ class AlertsScreen extends ConsumerWidget {
                     ),
                     trailing: const Icon(Icons.visibility_outlined),
                     onTap: () => context.push('/plant/point/${plantOut[i].$1.id}'),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+        ],
+        if (drifts.isNotEmpty) ...[
+          _SectionTitle(s('alertsDriftSection')),
+          const SizedBox(height: 8),
+          Card(
+            child: Column(
+              children: [
+                for (var i = 0; i < drifts.length; i++) ...[
+                  if (i > 0) Divider(height: 1, color: scheme.outlineVariant),
+                  ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: accentColor.withValues(alpha: 0.12),
+                      child: Icon(
+                        drifts[i].drift.isUp ? Icons.trending_up : Icons.trending_down,
+                        color: accentColor,
+                      ),
+                    ),
+                    title: Text(
+                      '${drifts[i].well.name} · ${drifts[i].type.label}',
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    subtitle: Text(
+                      fill(s('alertsDriftSubtitle'), {
+                        'value': formatNumber(drifts[i].drift.value),
+                        'unit': drifts[i].type.unit,
+                        'pct': drifts[i].drift.percent == null ? '' : formatPercent(drifts[i].drift.percent!, decimals: 0),
+                        'mean': formatNumber(drifts[i].drift.mean),
+                      }),
+                    ),
+                    trailing: const Icon(Icons.visibility_outlined),
+                    onTap: () => context.push('/wells/${drifts[i].well.id}/trend/${drifts[i].type.id}'),
                   ),
                 ],
               ],

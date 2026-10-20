@@ -21,6 +21,7 @@ import 'package:puitstrack/features/alerts/presentation/alerts_screen.dart';
 import 'package:puitstrack/features/setup/presentation/setup_screen.dart';
 import 'package:puitstrack/features/setup/presentation/widgets/firebase_project_picker.dart';
 import 'package:puitstrack/core/widgets/app_loader.dart';
+import 'package:puitstrack/features/dashboard/presentation/dashboard_screen.dart';
 import 'package:puitstrack/features/home/presentation/home_shell.dart';
 import 'package:puitstrack/features/home/presentation/widgets/notification_bell.dart';
 import 'package:puitstrack/features/splash/splash_screen.dart';
@@ -445,6 +446,12 @@ void main() {
     await t.tap(find.text('Rejoindre mon entreprise'));
     await t.pumpAndSettle();
     expect(find.text("Code d'invitation"), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
+  testWidgets('aujourd hui : mission du jour', (t) async {
+    await _render(t, const Scaffold(body: DashboardScreen()), height: 2400);
+    expect(find.text('Mission du jour'), findsOneWidget);
+    expect(find.text('Saisir'), findsWidgets);
     expect(t.takeException(), isNull);
   });
   testWidgets('alertes (heure limite passée)', (t) async {

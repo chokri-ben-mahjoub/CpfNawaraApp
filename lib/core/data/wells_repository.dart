@@ -167,6 +167,15 @@ class WellsController extends StateNotifier<WellsState> {
     return matches.isEmpty ? null : matches.first;
   }
 
+  /// Les [n] dernières valeurs (ordre chronologique) d'un puits pour un type
+  /// d'analyse — tendances en mini-courbe et détection de dérive.
+  List<double> recentValues(String wellId, String typeId, {int n = 12}) {
+    final list = state.records.where((r) => r.wellId == wellId && r.typeId == typeId).toList()
+      ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
+    final tail = list.length > n ? list.sublist(list.length - n) : list;
+    return [for (final r in tail) r.value];
+  }
+
   /// Enregistrement du jour pour un puits et un type, s'il existe déjà.
   AnalysisRecord? todayRecord(String wellId, String typeId, {DateTime? now}) {
     final today = now ?? DateTime.now();
