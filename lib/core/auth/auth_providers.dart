@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
+import '../branding/app_logo.dart';
 import '../l10n/app_strings.dart';
 import '../models/user_role.dart';
 import '../settings/app_settings.dart';
@@ -218,6 +219,7 @@ final authReadyProvider = FutureProvider<void>((ref) async {
   await ref.read(onboardingDoneProvider.notifier).load();
   await ref.read(localeProvider.notifier).load();
   await ref.read(appNameProvider.notifier).load();
+  await ref.read(appLogoProvider.notifier).load();
   // Projet Firebase configuré, et système d'unités (lu par les contrôleurs
   // de données dès leur premier chargement).
   await ref.read(firebaseConfigProvider.notifier).ready;

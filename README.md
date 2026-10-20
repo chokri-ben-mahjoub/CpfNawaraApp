@@ -463,7 +463,11 @@ Inspirés de l'app de référence `E:\mobile-locations`, stockés sur l'appareil
 (`lib/core/settings/app_settings.dart`, SharedPreferences) :
 - **Profil** : modifier nom, service, téléphone (le code à 4 chiffres reste
   valable)
-- **Apparence** : thème Clair / Auto (suit le téléphone) / Sombre, langue
+- **Apparence** : thème Clair / Auto (suit le téléphone) / Sombre, langue, nom
+  de l'app personnalisable, et **logo de l'entreprise**
+  (`lib/core/branding/app_logo.dart` : JPEG, PNG ou ICO, redimensionné et
+  ré-encodé en PNG hors du fil d'interface) affiché dans les rapports PDF
+  générés par l'app (`pdf_table_exporter.dart`, `plant_report.dart`)
 - **Sécurité** : déverrouillage par empreinte (activable), changer le code,
   **verrouillage automatique** (immédiat, 30 s, 1, 5 ou 15 min en
   arrière-plan), **écran protégé** (bloque les captures, masque l'app dans les

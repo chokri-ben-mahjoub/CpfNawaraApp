@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,6 +13,7 @@ import '../../../core/app_info.dart';
 import '../../../core/auth/app_lock.dart';
 import '../../../core/auth/auth_providers.dart';
 import '../../../core/backup/backup_service.dart';
+import '../../../core/branding/app_logo.dart';
 import '../../../core/data/local_database.dart';
 import '../../../core/data/stock_repository.dart';
 import '../../../core/data/wells_repository.dart';
@@ -27,6 +29,7 @@ import '../../../core/settings/app_settings.dart';
 import '../../../core/settings/startup_tasks.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/units/unit_system.dart';
+import '../../../core/widgets/app_loader.dart';
 import '../../../core/widgets/filter_pills.dart';
 import 'sync_section.dart';
 import '../../../core/widgets/responsive.dart';
@@ -272,6 +275,12 @@ class _AppearanceSection extends ConsumerWidget {
         const SizedBox(height: 6),
         _Hint(s('settingsAppNameHint')),
         const SizedBox(height: 16),
+        _Label(s('settingsAppLogoLabel')),
+        const SizedBox(height: 8),
+        const _AppLogoField(),
+        const SizedBox(height: 6),
+        _Hint(s('settingsAppLogoHint')),
+        const SizedBox(height: 16),
         _Label(s('settingsTheme')),
         const SizedBox(height: 8),
         SizedBox(
@@ -394,6 +403,87 @@ class _AppNameFieldState extends ConsumerState<_AppNameField> {
           onPressed: _save,
         ),
       ),
+    );
+  }
+}
+
+/// Logo personnalisé de l'entreprise (Réglages › Apparence) : aperçu,
+/// import (JPEG/PNG/ICO, compressé et ré-encodé en PNG hors du fil
+/// d'interface) et retrait — affiché ensuite dans les rapports PDF.
+class _AppLogoField extends ConsumerWidget {
+  const _AppLogoField();
+
+  Future<void> _import(BuildContext context, WidgetRef ref) async {
+    final locale = ref.read(localeProvider);
+    String s(String key) => tr(locale, key);
+    final messenger = ScaffoldMessenger.of(context);
+    FilePickerResult? picked;
+    try {
+      picked = await LockGuard.run(
+        () => FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['png', 'jpg', 'jpeg', 'ico'], withData: true),
+      );
+    } catch (_) {
+      messenger.showSnackBar(SnackBar(content: Text(s('settingsAppLogoError'))));
+      return;
+    }
+    final bytes = picked?.files.single.bytes;
+    if (bytes == null || !context.mounted) return;
+    final logo = await runWithLoading(context, s('settingsAppLogoLoading'), () => compute(compressLogo, bytes));
+    if (logo == null) {
+      if (context.mounted) messenger.showSnackBar(SnackBar(content: Text(s('settingsAppLogoError'))));
+      return;
+    }
+    await ref.read(appLogoProvider.notifier).setLogo(logo.bytes);
+    messenger.showSnackBar(SnackBar(content: Text(s('settingsAppLogoSaved'))));
+  }
+
+  Future<void> _remove(WidgetRef ref, String Function(String) s, ScaffoldMessengerState messenger) async {
+    await ref.read(appLogoProvider.notifier).setLogo(null);
+    messenger.showSnackBar(SnackBar(content: Text(s('settingsAppLogoRemoved'))));
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final locale = ref.watch(localeProvider);
+    final logo = ref.watch(appLogoProvider);
+    final scheme = Theme.of(context).colorScheme;
+    String s(String key) => tr(locale, key);
+
+    return Row(
+      children: [
+        Container(
+          width: 56,
+          height: 56,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: scheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: scheme.outlineVariant),
+          ),
+          child: logo == null
+              ? Icon(Icons.image_outlined, color: scheme.onSurfaceVariant)
+              : ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.memory(logo, fit: BoxFit.contain, width: 48, height: 48),
+                ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: () => _import(context, ref),
+            icon: const Icon(Icons.upload_outlined),
+            label: Text(s(logo == null ? 'settingsAppLogoImport' : 'settingsAppLogoChange')),
+          ),
+        ),
+        if (logo != null) ...[
+          const SizedBox(width: 8),
+          IconButton(
+            tooltip: s('settingsAppLogoRemove'),
+            icon: Icon(Icons.delete_outline, color: scheme.error),
+            onPressed: () => _remove(ref, s, ScaffoldMessenger.of(context)),
+          ),
+        ],
+      ],
     );
   }
 }

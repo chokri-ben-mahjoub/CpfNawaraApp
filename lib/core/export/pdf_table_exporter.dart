@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
+import '../branding/app_logo.dart';
 import '../l10n/app_strings.dart';
 import 'export_table.dart';
 
@@ -25,6 +26,8 @@ class PdfTableExporter {
   static Future<Uint8List> encode(List<ExportTable> tables, {required String title, String operatorName = ''}) async {
     final safeTitle = _safe(title);
     final doc = pw.Document(title: safeTitle, author: currentAppName);
+    final logo = currentAppLogo;
+    final logoImage = logo == null ? null : pw.MemoryImage(logo);
     final generated = DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now());
 
     // Beaucoup de colonnes (analyses usine...) : texte plus petit et marge
@@ -73,6 +76,7 @@ class PdfTableExporter {
           children: [
             pw.Row(
               children: [
+                if (logoImage != null) ...[pw.Image(logoImage, height: 20), pw.SizedBox(width: 8)],
                 pw.Text(currentAppName, style: pw.TextStyle(color: _accent, fontWeight: pw.FontWeight.bold, fontSize: 12)),
                 pw.Spacer(),
                 pw.Text(safeTitle, style: const pw.TextStyle(color: _grey, fontSize: 9)),

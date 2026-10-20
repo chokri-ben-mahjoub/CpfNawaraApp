@@ -5,6 +5,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import '../../core/analysis/series.dart';
+import '../../core/branding/app_logo.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/plant/plant_catalog.dart';
 import '../../core/plant/plant_repository.dart';
@@ -32,6 +33,8 @@ Future<Uint8List> buildPlantDailyReport({
   // Polices standard du PDF : pas de tiret long ni de ≤ / ≥.
   String t(String key) => _safe(s(key));
   final doc = pw.Document(title: t('plantReportTitle'), author: currentAppName);
+  final logo = currentAppLogo;
+  final logoImage = logo == null ? null : pw.MemoryImage(logo);
   final dateLabel = DateFormat('EEEE d MMMM yyyy', languageCode).format(day);
   final generated = DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now());
 
@@ -158,6 +161,7 @@ Future<Uint8List> buildPlantDailyReport({
         children: [
           pw.Row(
             children: [
+              if (logoImage != null) ...[pw.Image(logoImage, height: 20), pw.SizedBox(width: 8)],
               pw.Text(
                 currentAppName,
                 style: pw.TextStyle(color: _accent, fontWeight: pw.FontWeight.bold, fontSize: 12),
