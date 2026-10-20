@@ -1,7 +1,11 @@
-# Mise en ligne de PuitsTrack (projet Firebase "puitstrack") en une commande :
+# Mise en ligne de CPF Laboratory NAWARA (projet Firebase "puitstrack") en une
+# commande :
 #   powershell -ExecutionPolicy Bypass -File tool\deploy.ps1            # règles + site web
 #   powershell -ExecutionPolicy Bypass -File tool\deploy.ps1 -Functions # + Cloud Functions (forfait Blaze)
 # Prérequis, une seule fois : firebase login (compte Google propriétaire du projet).
+# Déploie deux sites : cpflaboratorynawara.web.app (l'app, site principal) et
+# puitstrack.web.app (site par défaut du projet, imposé par Firebase et non
+# supprimable — ne sert plus qu'une page de redirection, voir web_redirect/).
 param([switch]$Functions, [switch]$SkipWebBuild, [string]$Project = 'puitstrack')
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
