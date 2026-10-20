@@ -327,17 +327,57 @@ class _DayView extends StatelessWidget {
 
       var totalDue = 0;
       var totalDone = 0;
+      var totalOverdue = 0;
+      final overdueByWell = <String, int>{};
+      final openByWell = <String, int>{};
       for (final well in wells) {
         for (final type in dueTypes) {
           totalDue++;
-          if (controller.statusFor(well.id, type.id, now: today) == DailyStatus.done) totalDone++;
+          switch (controller.statusFor(well.id, type.id, now: today)) {
+            case DailyStatus.done:
+              totalDone++;
+            case DailyStatus.overdue:
+              totalOverdue++;
+              overdueByWell[well.id] = (overdueByWell[well.id] ?? 0) + 1;
+              openByWell[well.id] = (openByWell[well.id] ?? 0) + 1;
+            case DailyStatus.pending:
+              openByWell[well.id] = (openByWell[well.id] ?? 0) + 1;
+          }
         }
       }
+      final totalPending = totalDue - totalDone - totalOverdue;
+      // Les puits qui demandent encore du travail d'abord, les retards en tête.
+      final sortedWells = [...wells]
+        ..sort((a, b) {
+          final byOverdue = (overdueByWell[b.id] ?? 0).compareTo(overdueByWell[a.id] ?? 0);
+          if (byOverdue != 0) return byOverdue;
+          return (openByWell[b.id] ?? 0).compareTo(openByWell[a.id] ?? 0);
+        });
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _ProgressBanner(done: totalDone, total: totalDue, allDoneKey: 'dashboardAllDone'),
+          if (totalDue > 0) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (totalOverdue > 0)
+                  _CountChip(
+                    label: fill(s('dashboardCountOverdue'), {'n': '$totalOverdue'}),
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                if (totalPending > 0)
+                  _CountChip(label: fill(s('dashboardCountPending'), {'n': '$totalPending'}), color: accentColor),
+                _CountChip(
+                  label: fill(s('dashboardCountDone'), {'n': '$totalDone'}),
+                  color: Colors.green.shade600,
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 20),
           if (totalDue == 0)
             Padding(
@@ -353,7 +393,7 @@ class _DayView extends StatelessWidget {
               minItemWidth: 420,
               maxColumns: 2,
               children: [
-                for (final well in wells) _WellDashboardSection(well: well, dueTypes: dueTypes, today: today),
+                for (final well in sortedWells) _WellDashboardSection(well: well, dueTypes: dueTypes, today: today),
               ],
             ),
         ],
@@ -536,6 +576,26 @@ class _WellDashboardSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
+    final locale = ref.watch(localeProvider);
+    final controller = ref.read(wellsControllerProvider.notifier);
+    String s(String key) => tr(locale, key);
+
+    final overdue = <AnalysisType>[];
+    final pending = <AnalysisType>[];
+    final done = <AnalysisType>[];
+    for (final type in dueTypes) {
+      switch (controller.statusFor(well.id, type.id, now: today)) {
+        case DailyStatus.overdue:
+          overdue.add(type);
+        case DailyStatus.pending:
+          pending.add(type);
+        case DailyStatus.done:
+          done.add(type);
+      }
+    }
+    final open = [...overdue, ...pending];
+    final allDone = open.isEmpty;
+    final green = Colors.green.shade600;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -549,23 +609,64 @@ class _WellDashboardSection extends ConsumerWidget {
                 onTap: () => context.push('/wells/${well.id}'),
                 child: Row(
                   children: [
+                    if (allDone) ...[Icon(Icons.check_circle, color: green, size: 20), const SizedBox(width: 8)],
                     Expanded(
                       child: Text(
                         '${well.name} · ${well.code}',
                         style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
                     ),
+                    Text(
+                      allDone ? s('dashboardWellAllDone') : '${done.length}/${dueTypes.length}',
+                      style: TextStyle(
+                        color: allDone ? green : scheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                      ),
+                    ),
                     Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
                   ],
                 ),
               ),
-              const Divider(height: 18),
-              for (final type in dueTypes)
-                _AnalysisStatusRow(well: well, type: type, today: today),
+              if (open.isNotEmpty) ...[
+                const Divider(height: 18),
+                for (final type in open) _AnalysisStatusRow(well: well, type: type, today: today),
+              ],
+              if (done.isNotEmpty)
+                Theme(
+                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                  child: ExpansionTile(
+                    tilePadding: EdgeInsets.zero,
+                    dense: true,
+                    visualDensity: VisualDensity.compact,
+                    childrenPadding: EdgeInsets.zero,
+                    title: Text(
+                      fill(s('dashboardShowDone'), {'n': '${done.length}'}),
+                      style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12.5, fontWeight: FontWeight.w600),
+                    ),
+                    children: [for (final type in done) _AnalysisStatusRow(well: well, type: type, today: today)],
+                  ),
+                ),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class _CountChip extends StatelessWidget {
+  final String label;
+  final Color color;
+
+  const _CountChip({required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(100)),
+      child: Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 12.5)),
     );
   }
 }

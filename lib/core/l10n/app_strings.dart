@@ -155,6 +155,12 @@ final _strings = <String, Map<String, String>>{
   'dashboardDone': {'fr': 'Fait', 'en': 'Done'},
   'dashboardPending': {'fr': 'À faire', 'en': 'Pending'},
   'dashboardOverdue': {'fr': 'En retard', 'en': 'Overdue'},
+  'dashboardCountOverdue': {'fr': '{n} en retard', 'en': '{n} overdue'},
+  'dashboardCountPending': {'fr': '{n} à faire', 'en': '{n} to do'},
+  'dashboardCountDone': {'fr': '{n} faites', 'en': '{n} done'},
+  'dashboardWellAllDone': {'fr': 'Tout est fait', 'en': 'All done'},
+  'dashboardShowDone': {'fr': '{n} analyses faites', 'en': '{n} analyses done'},
+  'alertsOverdueCount': {'fr': '{n} analyses en retard', 'en': '{n} overdue analyses'},
   'dashboardEmpty': {'fr': 'Aucune analyse prévue aujourd\'hui.', 'en': 'No analysis scheduled today.'},
   'dashboardDoneBy': {'fr': 'par', 'en': 'by'},
   'dashboardAllDone': {

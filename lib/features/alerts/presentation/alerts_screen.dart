@@ -264,43 +264,64 @@ class AlertsScreen extends ConsumerWidget {
         if (overdue.isNotEmpty) ...[
           _SectionTitle(s('alertsOverdueSection')),
           const SizedBox(height: 8),
-          Card(
-            child: Column(
-              children: [
-                for (var i = 0; i < overdue.length; i++) ...[
-                  if (i > 0) Divider(height: 1, color: scheme.outlineVariant),
-                  ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: accentColor.withValues(alpha: 0.12),
-                      child: const Icon(Icons.hourglass_empty_rounded, color: accentColor),
-                    ),
-                    title: Text(
-                      '${overdue[i].well.name} · ${overdue[i].type.label}',
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    subtitle: Text(
-                      overdue[i].today ? fill(s('alertsNotReceived'), {'time': deadline}) : s('alertsOverdueSince'),
-                      style: TextStyle(color: scheme.onSurfaceVariant),
-                    ),
-                    trailing: role.canEnterData
-                        ? FilledButton(
-                            onPressed: () =>
-                                context.push('/entry?wellId=${overdue[i].well.id}&typeId=${overdue[i].type.id}'),
-                            style: FilledButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-                            ),
-                            child: Text(s('wellDetailAddAnalysis')),
-                          )
-                        : null,
+          // Regroupé par puits : une ligne par puits, le détail se déplie.
+          Builder(
+            builder: (context) {
+              final byWell = <Well, List<_OverdueItem>>{};
+              for (final item in overdue) {
+                byWell.putIfAbsent(item.well, () => []).add(item);
+              }
+              final groups = byWell.entries.toList()..sort((a, b) => b.value.length.compareTo(a.value.length));
+              return Card(
+                child: Theme(
+                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                  child: Column(
+                    children: [
+                      for (var g = 0; g < groups.length; g++) ...[
+                        if (g > 0) Divider(height: 1, color: scheme.outlineVariant),
+                        ExpansionTile(
+                          initiallyExpanded: groups.length == 1,
+                          leading: CircleAvatar(
+                            backgroundColor: accentColor.withValues(alpha: 0.12),
+                            child: const Icon(Icons.hourglass_empty_rounded, color: accentColor),
+                          ),
+                          title: Text(
+                            '${groups[g].key.name} · ${groups[g].key.code}',
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                          subtitle: Text(
+                            fill(s('alertsOverdueCount'), {'n': '${groups[g].value.length}'}),
+                            style: TextStyle(color: scheme.onSurfaceVariant),
+                          ),
+                          children: [
+                            for (final item in groups[g].value)
+                              ListTile(
+                                dense: true,
+                                title: Text(item.type.label, style: const TextStyle(fontWeight: FontWeight.w600)),
+                                subtitle: Text(
+                                  item.today ? fill(s('alertsNotReceived'), {'time': deadline}) : s('alertsOverdueSince'),
+                                ),
+                                trailing: role.canEnterData
+                                    ? FilledButton(
+                                        onPressed: () => context.push('/entry?wellId=${item.well.id}&typeId=${item.type.id}'),
+                                        style: FilledButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                          minimumSize: Size.zero,
+                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                          textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                                        ),
+                                        child: Text(s('wellDetailAddAnalysis')),
+                                      )
+                                    : null,
+                              ),
+                          ],
+                        ),
+                      ],
+                    ],
                   ),
-                ],
-              ],
-            ),
+                ),
+              );
+            },
           ),
         ],
         if (plantMissing.isNotEmpty) ...[
