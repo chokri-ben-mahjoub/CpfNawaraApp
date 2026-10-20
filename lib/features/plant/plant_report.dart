@@ -6,8 +6,10 @@ import 'package:pdf/widgets.dart' as pw;
 
 import '../../core/analysis/series.dart';
 import '../../core/branding/app_logo.dart';
+import '../../core/export/pdf_chart.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/plant/plant_catalog.dart';
+import '../../core/plant/plant_point_charts.dart';
 import '../../core/plant/plant_repository.dart';
 
 const _accent = PdfColor.fromInt(0xFFFF7A33);
@@ -149,6 +151,10 @@ Future<Uint8List> buildPlantDailyReport({
           child: pw.Text(meta, style: const pw.TextStyle(color: _grey, fontSize: 8.5)),
         ),
       );
+      for (final chart in plantPointCharts(controller, point, t)) {
+        sections.add(pw.SizedBox(height: 8));
+        sections.add(buildPdfChartSection(chart, height: 110));
+      }
     }
   }
 
