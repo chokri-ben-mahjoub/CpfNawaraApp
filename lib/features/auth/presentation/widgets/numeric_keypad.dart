@@ -39,7 +39,14 @@ class NumericKeypad extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 6),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [for (final digit in row) _KeypadButton(label: digit, glass: glass, onTap: () => onDigit(digit))],
+              children: [
+                for (final digit in row)
+                  _KeypadButton(
+                    label: digit,
+                    glass: glass,
+                    onTap: () => onDigit(digit),
+                  ),
+              ],
             ),
           ),
         Padding(
@@ -48,11 +55,23 @@ class NumericKeypad extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               if (onBiometric != null)
-                _KeypadButton(icon: Icons.fingerprint, glass: glass, onTap: onBiometric!)
+                _KeypadButton(
+                  icon: Icons.fingerprint,
+                  glass: glass,
+                  onTap: onBiometric!,
+                )
               else
                 const SizedBox(width: 72, height: 72),
-              _KeypadButton(label: '0', glass: glass, onTap: () => onDigit('0')),
-              _KeypadButton(icon: Icons.backspace_outlined, glass: glass, onTap: onBackspace),
+              _KeypadButton(
+                label: '0',
+                glass: glass,
+                onTap: () => onDigit('0'),
+              ),
+              _KeypadButton(
+                icon: Icons.backspace_outlined,
+                glass: glass,
+                onTap: onBackspace,
+              ),
             ],
           ),
         ),
@@ -67,14 +86,21 @@ class _KeypadButton extends StatelessWidget {
   final bool glass;
   final VoidCallback onTap;
 
-  const _KeypadButton({this.label, this.icon, this.glass = false, required this.onTap});
+  const _KeypadButton({
+    this.label,
+    this.icon,
+    this.glass = false,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final iconColor = icon == Icons.fingerprint
         ? accentColor
-        : (glass ? Colors.white.withValues(alpha: 0.75) : scheme.onSurfaceVariant);
+        : (glass
+              ? Colors.white.withValues(alpha: 0.75)
+              : scheme.onSurfaceVariant);
     final content = Center(
       child: label != null
           ? Text(
@@ -107,8 +133,14 @@ class _KeypadButton extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
         child: Material(
-          color: filled ? Colors.white.withValues(alpha: 0.09) : Colors.transparent,
-          shape: CircleBorder(side: BorderSide(color: Colors.white.withValues(alpha: filled ? 0.16 : 0))),
+          color: filled
+              ? Colors.white.withValues(alpha: 0.09)
+              : Colors.transparent,
+          shape: CircleBorder(
+            side: BorderSide(
+              color: Colors.white.withValues(alpha: filled ? 0.16 : 0),
+            ),
+          ),
           child: InkWell(
             customBorder: const CircleBorder(),
             splashColor: accentColor.withValues(alpha: 0.35),

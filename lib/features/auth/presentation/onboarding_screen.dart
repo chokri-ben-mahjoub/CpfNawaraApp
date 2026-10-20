@@ -33,19 +33,34 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Align(alignment: Alignment.topRight, child: LanguageSwitch()),
+                const Align(
+                  alignment: Alignment.topRight,
+                  child: LanguageSwitch(dark: true),
+                ),
                 const Spacer(),
                 Container(
                   width: 92,
                   height: 92,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(26),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.16), width: 1.5),
-                    boxShadow: [BoxShadow(color: accentColor.withValues(alpha: 0.35), blurRadius: 40, spreadRadius: -6)],
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.16),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: accentColor.withValues(alpha: 0.35),
+                        blurRadius: 40,
+                        spreadRadius: -6,
+                      ),
+                    ],
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(26),
-                    child: Image.asset('assets/icon/icon.png', fit: BoxFit.cover),
+                    child: Image.asset(
+                      'assets/icon/icon.png',
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 28),
@@ -74,17 +89,25 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     style: FilledButton.styleFrom(
                       backgroundColor: accentColor,
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
                     ),
                     child: _saving
                         ? const SizedBox(
                             height: 20,
                             width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
                           )
                         : Text(
                             s('onboardingCta'),
-                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 16,
+                            ),
                           ),
                   ),
                 ),

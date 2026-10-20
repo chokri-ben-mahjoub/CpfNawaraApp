@@ -21,6 +21,8 @@ import 'package:puitstrack/features/alerts/presentation/alerts_screen.dart';
 import 'package:puitstrack/features/setup/presentation/setup_screen.dart';
 import 'package:puitstrack/features/setup/presentation/widgets/firebase_project_picker.dart';
 import 'package:puitstrack/core/widgets/app_loader.dart';
+import 'package:puitstrack/features/auth/presentation/pin_setup_screen.dart';
+import 'package:puitstrack/features/auth/presentation/profile_setup_screen.dart';
 import 'package:puitstrack/features/auth/presentation/unlock_screen.dart';
 import 'package:puitstrack/features/dashboard/presentation/dashboard_screen.dart';
 import 'package:puitstrack/features/qr/presentation/qr_screen.dart';
@@ -454,6 +456,17 @@ void main() {
     await _render(t, const Scaffold(body: DashboardScreen()), height: 2400);
     expect(find.text('Mission du jour'), findsOneWidget);
     expect(find.text('Saisir'), findsWidgets);
+    expect(t.takeException(), isNull);
+  });
+  testWidgets('code PIN : création', (t) async {
+    await _render(t, const PinSetupScreen(), height: 844);
+    await t.tap(find.text('1'));
+    await t.pump(const Duration(milliseconds: 300));
+    expect(t.takeException(), isNull);
+  });
+  testWidgets('inscription locale (profil)', (t) async {
+    await _render(t, const ProfileSetupScreen(), height: 844);
+    expect(find.byType(TextFormField), findsWidgets);
     expect(t.takeException(), isNull);
   });
   testWidgets('déverrouillage', (t) async {

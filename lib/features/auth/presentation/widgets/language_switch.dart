@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/l10n/app_strings.dart';
+import '../../../../core/theme/app_theme.dart';
 
 /// Petit sélecteur FR/EN affiché en haut des écrans d'authentification.
 class LanguageSwitch extends ConsumerWidget {
-  const LanguageSwitch({super.key});
+  /// Variante pour fond sombre (verre dépoli, sélection orange).
+  final bool dark;
+
+  const LanguageSwitch({super.key, this.dark = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -15,7 +19,9 @@ class LanguageSwitch extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: scheme.surfaceContainerHigh,
+        color: dark
+            ? Colors.white.withValues(alpha: 0.12)
+            : scheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(100),
       ),
       child: Row(
@@ -25,6 +31,7 @@ class LanguageSwitch extends ConsumerWidget {
             _LangChip(
               label: l.languageCode.toUpperCase(),
               selected: l.languageCode == locale.languageCode,
+              dark: dark,
               onTap: () => ref.read(localeProvider.notifier).setLocale(l),
             ),
         ],
@@ -36,9 +43,15 @@ class LanguageSwitch extends ConsumerWidget {
 class _LangChip extends StatelessWidget {
   final String label;
   final bool selected;
+  final bool dark;
   final VoidCallback onTap;
 
-  const _LangChip({required this.label, required this.selected, required this.onTap});
+  const _LangChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    this.dark = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -50,7 +63,9 @@ class _LangChip extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: selected ? scheme.primary : Colors.transparent,
+          color: selected
+              ? (dark ? accentColor : scheme.primary)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(100),
         ),
         child: Text(
@@ -58,7 +73,11 @@ class _LangChip extends StatelessWidget {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w700,
-            color: selected ? scheme.onPrimary : scheme.onSurfaceVariant,
+            color: selected
+                ? (dark ? Colors.white : scheme.onPrimary)
+                : (dark
+                      ? Colors.white.withValues(alpha: 0.7)
+                      : scheme.onSurfaceVariant),
           ),
         ),
       ),

@@ -10,6 +10,7 @@ import '../../../core/sync/firebase_config_provider.dart';
 import '../../../core/sync/sync_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/responsive.dart';
+import '../../auth/presentation/widgets/auth_header.dart';
 import '../../auth/presentation/widgets/language_switch.dart';
 import 'widgets/firebase_project_picker.dart';
 import 'widgets/team_account_form.dart';
@@ -44,7 +45,10 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       // Compte déjà connecté (app fermée pendant l'installation) : relit son
       // adhésion.
       WidgetsBinding.instance.addPostFrameCallback(
-        (_) => ref.read(syncControllerProvider.notifier).refreshMember().catchError((_) => MemberStatus.unknown),
+        (_) => ref
+            .read(syncControllerProvider.notifier)
+            .refreshMember()
+            .catchError((_) => MemberStatus.unknown),
       );
     }
   }
@@ -59,7 +63,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     await ref
         .read(authServiceProvider)
         .createProfile(
-          fullName: member.name.isEmpty ? member.email.split('@').first : member.name,
+          fullName: member.name.isEmpty
+              ? member.email.split('@').first
+              : member.name,
           phone: '',
           serviceKey: member.service,
         );
@@ -71,9 +77,15 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            fill(tr(ref.read(localeProvider), sync.member?.role == UserRole.admin ? 'companyWelcomeAdmin' : 'companyWelcome'), {
-              'company': sync.company?.name ?? '',
-            }),
+            fill(
+              tr(
+                ref.read(localeProvider),
+                sync.member?.role == UserRole.admin
+                    ? 'companyWelcomeAdmin'
+                    : 'companyWelcome',
+              ),
+              {'company': sync.company?.name ?? ''},
+            ),
           ),
         ),
       );
@@ -102,16 +114,38 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     String s(String key) => tr(locale, key);
 
     ref.listen(syncControllerProvider, (previous, next) {
-      if (next.memberStatus == MemberStatus.active && _step == _Step.status) _finish();
+      if (next.memberStatus == MemberStatus.active && _step == _Step.status) {
+        _finish();
+      }
     });
 
     final (titleKey, subtitleKey, icon) = switch (_step) {
-      _Step.mode => ('setupTitle', 'setupSubtitle', Icons.rocket_launch_outlined),
-      _Step.create => ('companyCreateTitle', 'companyCreateSubtitle', Icons.add_business_outlined),
-      _Step.join => ('companyJoinTitle', 'companyJoinSubtitle', Icons.group_add_outlined),
+      _Step.mode => (
+        'setupTitle',
+        'setupSubtitle',
+        Icons.rocket_launch_outlined,
+      ),
+      _Step.create => (
+        'companyCreateTitle',
+        'companyCreateSubtitle',
+        Icons.add_business_outlined,
+      ),
+      _Step.join => (
+        'companyJoinTitle',
+        'companyJoinSubtitle',
+        Icons.group_add_outlined,
+      ),
       _Step.signIn => ('syncSignIn', 'teamSignInHint', Icons.login_rounded),
-      _Step.status => ('setupStatusTitle', 'setupStatusSubtitle', Icons.business_outlined),
-      _Step.project => ('setupProjectTitle', 'setupProjectSubtitle', Icons.cloud_outlined),
+      _Step.status => (
+        'setupStatusTitle',
+        'setupStatusSubtitle',
+        Icons.business_outlined,
+      ),
+      _Step.project => (
+        'setupProjectTitle',
+        'setupProjectSubtitle',
+        Icons.cloud_outlined,
+      ),
     };
 
     final Widget body = switch (_step) {
@@ -160,27 +194,50 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
           ),
         ],
       ),
-      _Step.create => TeamAccountForm(mode: TeamFormMode.create, onDone: _onDone),
+      _Step.create => TeamAccountForm(
+        mode: TeamFormMode.create,
+        onDone: _onDone,
+      ),
       _Step.join => TeamAccountForm(mode: TeamFormMode.join, onDone: _onDone),
-      _Step.signIn => TeamAccountForm(mode: TeamFormMode.signIn, onDone: _onDone),
+      _Step.signIn => TeamAccountForm(
+        mode: TeamFormMode.signIn,
+        onDone: _onDone,
+      ),
       _Step.status => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(ref.watch(syncControllerProvider).email ?? '', style: const TextStyle(fontWeight: FontWeight.w700)),
+          Text(
+            ref.watch(syncControllerProvider).email ?? '',
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
           const SizedBox(height: 12),
-          if (ref.watch(syncControllerProvider).memberStatus == MemberStatus.unknown)
-            const Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator()))
+          if (ref.watch(syncControllerProvider).memberStatus ==
+              MemberStatus.unknown)
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: Center(child: CircularProgressIndicator()),
+            )
           else ...[
             NoCompanyOrStatus(onDone: _onDone),
           ],
           const SizedBox(height: 16),
-          TextButton(onPressed: _useAnotherAccount, child: Text(s('setupUseAnotherAccount'))),
+          TextButton(
+            onPressed: _useAnotherAccount,
+            child: Text(s('setupUseAnotherAccount')),
+          ),
         ],
       ),
       _Step.project => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(s('setupAdvancedBody'), style: TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant, height: 1.4)),
+          Text(
+            s('setupAdvancedBody'),
+            style: TextStyle(
+              fontSize: 12.5,
+              color: scheme.onSurfaceVariant,
+              height: 1.4,
+            ),
+          ),
           const SizedBox(height: 14),
           FirebaseProjectPicker(onSelected: _selectProject),
         ],
@@ -188,47 +245,28 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     };
 
     return Scaffold(
-      body: NarrowSafeArea(
-        maxWidth: 560,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-          children: [
-            Row(
-              children: [
-                if (_step != _Step.mode && _step != _Step.status)
-                  IconButton(
-                    tooltip: s('back'),
-                    onPressed: () => setState(() => _step = _Step.mode),
-                    icon: const Icon(Icons.arrow_back),
-                  ),
-                const Spacer(),
-                const LanguageSwitch(),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Icon(icon, color: accentColor, size: 26),
+      body: Column(
+        children: [
+          AuthHeaderBand(
+            icon: icon,
+            title: s(titleKey),
+            subtitle: s(subtitleKey),
+            onBack: _step != _Step.mode && _step != _Step.status
+                ? () => setState(() => _step = _Step.mode)
+                : null,
+            backTooltip: s('back'),
+            trailing: const LanguageSwitch(dark: true),
+          ),
+          Expanded(
+            child: NarrowSafeArea(
+              maxWidth: 560,
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(20, 22, 20, 28),
+                children: [body],
               ),
             ),
-            const SizedBox(height: 16),
-            Text(s(titleKey), style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
-            const SizedBox(height: 6),
-            Text(
-              s(subtitleKey),
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant, height: 1.45),
-            ),
-            const SizedBox(height: 22),
-            body,
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -242,8 +280,12 @@ class NoCompanyOrStatus extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final status = ref.watch(syncControllerProvider.select((s) => s.memberStatus));
-    return status == MemberStatus.noCompany ? NoCompanyPanel(onDone: onDone) : const MemberStatusBanner();
+    final status = ref.watch(
+      syncControllerProvider.select((s) => s.memberStatus),
+    );
+    return status == MemberStatus.noCompany
+        ? NoCompanyPanel(onDone: onDone)
+        : const MemberStatusBanner();
   }
 }
 
@@ -266,10 +308,16 @@ class _ModeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Material(
-      color: highlighted ? accentColor.withValues(alpha: 0.08) : scheme.surfaceContainerLow,
+      color: highlighted
+          ? accentColor.withValues(alpha: 0.08)
+          : scheme.surfaceContainerLow,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: highlighted ? accentColor.withValues(alpha: 0.6) : scheme.outlineVariant),
+        side: BorderSide(
+          color: highlighted
+              ? accentColor.withValues(alpha: 0.6)
+              : scheme.outlineVariant,
+        ),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
@@ -285,9 +333,22 @@ class _ModeCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15.5)),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 15.5,
+                      ),
+                    ),
                     const SizedBox(height: 3),
-                    Text(body, style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12.5, height: 1.4)),
+                    Text(
+                      body,
+                      style: TextStyle(
+                        color: scheme.onSurfaceVariant,
+                        fontSize: 12.5,
+                        height: 1.4,
+                      ),
+                    ),
                   ],
                 ),
               ),
