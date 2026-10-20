@@ -716,7 +716,6 @@ class _DaySummaryCard extends ConsumerWidget {
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
                     ),
                   ),
-                  TextButton(onPressed: () => context.push('/assistant'), child: Text(s('summaryAsk'))),
                 ],
               ),
               for (final line in summary.lines)

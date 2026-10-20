@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,7 +15,7 @@ import '../../../core/widgets/profile_avatar.dart';
 
 const _codeLength = 4;
 
-/// Déverrouillage rapide à chaque réouverture de l'app : code à 4 chiffres
+/// DÃ©verrouillage rapide Ã  chaque rÃ©ouverture de l'app : code Ã  4 chiffres
 /// ou empreinte.
 class UnlockScreen extends ConsumerStatefulWidget {
   const UnlockScreen({super.key});
@@ -39,7 +39,7 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> with SingleTickerPr
 
   Future<void> _checkBiometrics() async {
     await ref.read(appSettingsProvider.notifier).ready;
-    // Désactivable dans Réglages › Sécurité : seul le code est alors proposé.
+    // DÃ©sactivable dans RÃ©glages â€º SÃ©curitÃ© : seul le code est alors proposÃ©.
     final available = ref.read(appSettingsProvider).biometricEnabled && await BiometricAuth.isAvailable;
     if (!mounted) return;
     setState(() => _biometricAvailable = available);
@@ -109,113 +109,133 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> with SingleTickerPr
     });
   }
 
+  String _greeting(String Function(String) s) {
+    final hour = DateTime.now().hour;
+    return s(hour < 12 ? 'unlockGreetMorning' : (hour < 18 ? 'unlockGreetAfternoon' : 'unlockGreetEvening'));
+  }
+
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final locale = ref.watch(localeProvider);
     final name = ref.watch(profileProvider)?.fullName;
     String s(String key) => tr(locale, key);
+    final firstName = (name ?? '').trim().split(' ').first;
 
     return Scaffold(
-      body: Column(
-        children: [
-          BrandBackdrop(
-            bottomRadius: 32,
-            child: SizedBox(
-              width: double.infinity,
-              child: SafeArea(
-                bottom: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
-                  child: Column(
+      backgroundColor: deepNavy,
+      body: BrandBackdrop(
+        child: NarrowSafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              children: [
+                const SizedBox(height: 28),
+                // Avatar : anneau dÃ©gradÃ© et halo orange.
+                Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [accentColor, Color(0xFFFFC107)],
+                    ),
+                    boxShadow: [BoxShadow(color: accentColor.withValues(alpha: 0.45), blurRadius: 36, spreadRadius: -4)],
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: const BoxDecoration(shape: BoxShape.circle, color: deepNavy),
+                    child: const ProfileAvatar(radius: 40),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  _greeting(s),
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.65), fontSize: 15, letterSpacing: 0.4),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  firstName.isEmpty ? s('unlockTitle') : firstName,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.w800, height: 1.15),
+                ),
+                const SizedBox(height: 26),
+                AnimatedBuilder(
+                  animation: _shakeController,
+                  builder: (context, child) {
+                    final t = _shakeController.value;
+                    final offset = (t == 0) ? 0.0 : (16 * (1 - t)) * ((t * 10).floor().isEven ? 1 : -1);
+                    return Transform.translate(offset: Offset(offset, 0), child: child);
+                  },
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const ProfileAvatar(radius: 38),
-                      const SizedBox(height: 14),
-                      Text(
-                        name == null || name.isEmpty ? s('unlockTitle') : '${s('unlockTitle')}, $name',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
+                      for (var i = 0; i < _codeLength; i++)
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 180),
+                          curve: Curves.easeOutBack,
+                          margin: const EdgeInsets.symmetric(horizontal: 8),
+                          width: i < _digits.length ? 34 : 14,
+                          height: 14,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(10),
+                            color: _error != null
+                                ? const Color(0xFFFF6B6B)
+                                : (i < _digits.length ? accentColor : Colors.white.withValues(alpha: 0.18)),
+                            boxShadow: i < _digits.length && _error == null
+                                ? [BoxShadow(color: accentColor.withValues(alpha: 0.6), blurRadius: 12, spreadRadius: -2)]
+                                : null,
+                          ),
                         ),
+                    ],
+                  ),
+                ),
+                SizedBox(
+                  height: 34,
+                  child: Center(
+                    child: Text(
+                      _error ?? s('unlockSubtitle'),
+                      style: TextStyle(
+                        color: _error != null ? const Color(0xFFFF8A80) : Colors.white.withValues(alpha: 0.55),
+                        fontSize: 13,
+                        fontWeight: _error != null ? FontWeight.w700 : FontWeight.w500,
                       ),
-                      const SizedBox(height: 6),
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                NumericKeypad(
+                  glass: true,
+                  onDigit: _onDigit,
+                  onBackspace: _onBackspace,
+                  onBiometric: _biometricAvailable ? _tryBiometric : null,
+                ),
+                const SizedBox(height: 10),
+                TextButton(
+                  onPressed: _forgotCode,
+                  child: Text(
+                    s('unlockForgotPin'),
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontWeight: FontWeight.w600),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12, top: 2),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.lock_outline_rounded, size: 13, color: Colors.white.withValues(alpha: 0.4)),
+                      const SizedBox(width: 6),
                       Text(
-                        s('unlockSubtitle'),
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.white.withValues(alpha: 0.72)),
-                      ),
-                      const SizedBox(height: 22),
-                      AnimatedBuilder(
-                        animation: _shakeController,
-                        builder: (context, child) {
-                          final t = _shakeController.value;
-                          final offset = (t == 0) ? 0.0 : (16 * (1 - t)) * ((t * 10).floor().isEven ? 1 : -1);
-                          return Transform.translate(offset: Offset(offset, 0), child: child);
-                        },
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            for (var i = 0; i < _codeLength; i++)
-                              AnimatedContainer(
-                                duration: const Duration(milliseconds: 140),
-                                margin: const EdgeInsets.symmetric(horizontal: 9),
-                                width: 16,
-                                height: 16,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: i < _digits.length ? accentColor : Colors.transparent,
-                                  border: Border.all(
-                                    color: i < _digits.length ? accentColor : Colors.white.withValues(alpha: 0.5),
-                                    width: 1.8,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(
-                        height: 28,
-                        child: _error != null
-                            ? Padding(
-                                padding: const EdgeInsets.only(top: 10),
-                                child: Text(
-                                  _error!,
-                                  style: const TextStyle(color: Color(0xFFFF8A80), fontSize: 13, fontWeight: FontWeight.w700),
-                                ),
-                              )
-                            : null,
+                        currentAppName,
+                        style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 11.5, letterSpacing: 0.3),
                       ),
                     ],
                   ),
                 ),
-              ),
+              ],
             ),
           ),
-          Expanded(
-            child: NarrowSafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  children: [
-                    const Spacer(),
-                    NumericKeypad(
-                      onDigit: _onDigit,
-                      onBackspace: _onBackspace,
-                      onBiometric: _biometricAvailable ? _tryBiometric : null,
-                    ),
-                    const SizedBox(height: 12),
-                    TextButton(
-                      onPressed: _forgotCode,
-                      child: Text(s('unlockForgotPin'), style: TextStyle(color: scheme.onSurfaceVariant)),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

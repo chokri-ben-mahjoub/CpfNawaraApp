@@ -173,39 +173,14 @@ final _strings = <String, Map<String, String>>{
   'plantHeroCircuits': {'fr': 'circuits', 'en': 'circuits'},
   'plantHeroAllDone': {'fr': 'Tout analysé', 'en': 'All analysed'},
   'plantHeroInProgress': {'fr': 'Analyses en cours', 'en': 'In progress'},
+  'unlockGreetMorning': {'fr': 'Bonjour', 'en': 'Good morning'},
+  'unlockGreetAfternoon': {'fr': 'Bon après-midi', 'en': 'Good afternoon'},
+  'unlockGreetEvening': {'fr': 'Bonsoir', 'en': 'Good evening'},
   'summaryTitle': {'fr': 'Résumé du jour', 'en': 'Today\'s summary'},
-  'summaryAsk': {'fr': 'Assistant', 'en': 'Assistant'},
   'summaryOverdue': {'fr': '{n} analyses en retard', 'en': '{n} overdue analyses'},
   'summaryOutOfRange': {'fr': 'Hors seuil', 'en': 'Out of range'},
   'summaryPlantOut': {'fr': 'Usine hors seuil', 'en': 'Plant out of range'},
   'summaryDrift': {'fr': 'Dérive à surveiller', 'en': 'Drift to watch'},
-  'aiTitle': {'fr': 'Assistant', 'en': 'Assistant'},
-  'aiIntroTitle': {'fr': 'Demande à ton labo', 'en': 'Ask your lab'},
-  'aiIntroBody': {
-    'fr': 'Posez vos questions en langage naturel sur les analyses, les seuils et le stock. '
-        'Il faut une clé d\'API Anthropic : elle reste sur cet appareil.',
-    'en': 'Ask questions in plain language about analyses, thresholds and stock. '
-        'An Anthropic API key is required: it stays on this device.',
-  },
-  'aiKeyTitle': {'fr': 'Clé d\'API', 'en': 'API key'},
-  'aiKeyBody': {
-    'fr': 'Collez votre clé d\'API Anthropic. Elle est stockée sur cet appareil uniquement. '
-        'Seules vos questions et un extrait des données récentes sont envoyés au service.',
-    'en': 'Paste your Anthropic API key. It is stored on this device only. '
-        'Only your questions and an excerpt of recent data are sent to the service.',
-  },
-  'aiKeyRemove': {'fr': 'Supprimer la clé', 'en': 'Remove key'},
-  'aiAskHint': {'fr': 'Que voulez-vous savoir ?', 'en': 'What do you want to know?'},
-  'aiInputHint': {'fr': 'Posez votre question…', 'en': 'Ask your question…'},
-  'aiSend': {'fr': 'Envoyer', 'en': 'Send'},
-  'aiSuggestSummary': {'fr': 'Résumé du jour', 'en': 'Summary of the day'},
-  'aiSuggestOut': {'fr': 'Quels hors seuil cette semaine ?', 'en': 'What was out of range this week?'},
-  'aiSuggestTrends': {'fr': 'Quelles tendances surveiller ?', 'en': 'Which trends should I watch?'},
-  'aiSuggestStock': {'fr': 'Que faut-il commander ?', 'en': 'What should I order?'},
-  'aiErrorKey': {'fr': 'Clé d\'API refusée. Vérifiez-la.', 'en': 'API key rejected. Check it.'},
-  'aiErrorRate': {'fr': 'Trop de demandes, réessayez dans un instant.', 'en': 'Too many requests, try again shortly.'},
-  'aiErrorNetwork': {'fr': 'Pas de connexion au service.', 'en': 'Cannot reach the service.'},
-  'aiErrorGeneric': {'fr': 'Réponse impossible pour le moment.', 'en': 'Cannot answer right now.'},
   'qrTitle': {'fr': 'QR codes', 'en': 'QR codes'},
   'qrScanTitle': {'fr': 'Scanner un QR code', 'en': 'Scan a QR code'},
   'qrScanBody': {

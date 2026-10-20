@@ -21,7 +21,7 @@ import 'package:puitstrack/features/alerts/presentation/alerts_screen.dart';
 import 'package:puitstrack/features/setup/presentation/setup_screen.dart';
 import 'package:puitstrack/features/setup/presentation/widgets/firebase_project_picker.dart';
 import 'package:puitstrack/core/widgets/app_loader.dart';
-import 'package:puitstrack/features/assistant/presentation/assistant_screen.dart';
+import 'package:puitstrack/features/auth/presentation/unlock_screen.dart';
 import 'package:puitstrack/features/dashboard/presentation/dashboard_screen.dart';
 import 'package:puitstrack/features/qr/presentation/qr_screen.dart';
 import 'package:puitstrack/features/home/presentation/home_shell.dart';
@@ -456,9 +456,12 @@ void main() {
     expect(find.text('Saisir'), findsWidgets);
     expect(t.takeException(), isNull);
   });
-  testWidgets('assistant : clé requise', (t) async {
-    await _render(t, const AssistantScreen(), height: 1200);
-    expect(find.text('Demande à ton labo'), findsOneWidget);
+  testWidgets('déverrouillage', (t) async {
+    await _render(t, const UnlockScreen(), height: 844);
+    expect(find.text('0'), findsOneWidget);
+    expect(find.text('1'), findsOneWidget);
+    await t.tap(find.text('1'));
+    await t.pump(const Duration(milliseconds: 300));
     expect(t.takeException(), isNull);
   });
   testWidgets('QR codes : scan et étiquettes', (t) async {

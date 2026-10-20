@@ -1,4 +1,7 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show HapticFeedback;
 
 import '../../../../core/theme/app_theme.dart';
 
@@ -9,11 +12,15 @@ class NumericKeypad extends StatelessWidget {
   final VoidCallback onBackspace;
   final VoidCallback? onBiometric;
 
+  /// Touches en verre dépoli, pour les fonds sombres (écran de verrouillage).
+  final bool glass;
+
   const NumericKeypad({
     super.key,
     required this.onDigit,
     required this.onBackspace,
     this.onBiometric,
+    this.glass = false,
   });
 
   @override
@@ -32,7 +39,7 @@ class NumericKeypad extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 6),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [for (final digit in row) _KeypadButton(label: digit, onTap: () => onDigit(digit))],
+              children: [for (final digit in row) _KeypadButton(label: digit, glass: glass, onTap: () => onDigit(digit))],
             ),
           ),
         Padding(
@@ -41,11 +48,11 @@ class NumericKeypad extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               if (onBiometric != null)
-                _KeypadButton(icon: Icons.fingerprint, onTap: onBiometric!)
+                _KeypadButton(icon: Icons.fingerprint, glass: glass, onTap: onBiometric!)
               else
                 const SizedBox(width: 72, height: 72),
-              _KeypadButton(label: '0', onTap: () => onDigit('0')),
-              _KeypadButton(icon: Icons.backspace_outlined, onTap: onBackspace),
+              _KeypadButton(label: '0', glass: glass, onTap: () => onDigit('0')),
+              _KeypadButton(icon: Icons.backspace_outlined, glass: glass, onTap: onBackspace),
             ],
           ),
         ),
@@ -57,26 +64,60 @@ class NumericKeypad extends StatelessWidget {
 class _KeypadButton extends StatelessWidget {
   final String? label;
   final IconData? icon;
+  final bool glass;
   final VoidCallback onTap;
 
-  const _KeypadButton({this.label, this.icon, required this.onTap});
+  const _KeypadButton({this.label, this.icon, this.glass = false, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Material(
-      color: Colors.transparent,
-      shape: const CircleBorder(),
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: onTap,
-        child: SizedBox(
-          width: 72,
-          height: 72,
-          child: Center(
-            child: label != null
-                ? Text(label!, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700))
-                : Icon(icon, color: icon == Icons.fingerprint ? accentColor : scheme.onSurfaceVariant, size: 26),
+    final iconColor = icon == Icons.fingerprint
+        ? accentColor
+        : (glass ? Colors.white.withValues(alpha: 0.75) : scheme.onSurfaceVariant);
+    final content = Center(
+      child: label != null
+          ? Text(
+              label!,
+              style: TextStyle(
+                fontSize: glass ? 29 : 24,
+                fontWeight: glass ? FontWeight.w500 : FontWeight.w700,
+                color: glass ? Colors.white : null,
+              ),
+            )
+          : Icon(icon, color: iconColor, size: 26),
+    );
+
+    if (!glass) {
+      return Material(
+        color: Colors.transparent,
+        shape: const CircleBorder(),
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onTap,
+          child: SizedBox(width: 72, height: 72, child: content),
+        ),
+      );
+    }
+
+    // Verre dépoli : disque translucide, fin liseré clair, flou de l'arrière-plan.
+    // Les touches sans libellé (empreinte, effacer) restent sans fond.
+    final filled = label != null;
+    return ClipOval(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        child: Material(
+          color: filled ? Colors.white.withValues(alpha: 0.09) : Colors.transparent,
+          shape: CircleBorder(side: BorderSide(color: Colors.white.withValues(alpha: filled ? 0.16 : 0))),
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            splashColor: accentColor.withValues(alpha: 0.35),
+            highlightColor: Colors.white.withValues(alpha: 0.08),
+            onTap: () {
+              HapticFeedback.selectionClick();
+              onTap();
+            },
+            child: SizedBox(width: 76, height: 76, child: content),
           ),
         ),
       ),
