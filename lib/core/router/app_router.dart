@@ -19,7 +19,9 @@ import '../../features/admin/presentation/wells_manage_screen.dart';
 import '../../features/analysis/presentation/compare_screen.dart';
 import '../../features/analysis/presentation/decline_screen.dart';
 import '../../features/analysis/presentation/ratio_trend_screen.dart';
+import '../../features/assistant/presentation/assistant_screen.dart';
 import '../../features/entry/presentation/quick_entry_screen.dart';
+import '../../features/qr/presentation/qr_screen.dart';
 import '../../features/home/presentation/home_shell.dart';
 import '../../features/interventions/presentation/interventions_screen.dart';
 import '../../features/plant/presentation/plant_entry_screen.dart';
@@ -146,6 +148,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/settings', builder: (context, state) => const SettingsScreen()),
       GoRoute(path: '/stock', builder: (context, state) => const StockScreen()),
+      GoRoute(path: '/assistant', builder: (context, state) => const AssistantScreen()),
+      GoRoute(path: '/qr', builder: (context, state) => const QrScreen()),
       GoRoute(
         path: '/stock/:id',
         builder: (context, state) => StockItemDetailScreen(itemId: state.pathParameters['id']!),

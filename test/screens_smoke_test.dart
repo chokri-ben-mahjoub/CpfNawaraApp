@@ -21,7 +21,9 @@ import 'package:puitstrack/features/alerts/presentation/alerts_screen.dart';
 import 'package:puitstrack/features/setup/presentation/setup_screen.dart';
 import 'package:puitstrack/features/setup/presentation/widgets/firebase_project_picker.dart';
 import 'package:puitstrack/core/widgets/app_loader.dart';
+import 'package:puitstrack/features/assistant/presentation/assistant_screen.dart';
 import 'package:puitstrack/features/dashboard/presentation/dashboard_screen.dart';
+import 'package:puitstrack/features/qr/presentation/qr_screen.dart';
 import 'package:puitstrack/features/home/presentation/home_shell.dart';
 import 'package:puitstrack/features/home/presentation/widgets/notification_bell.dart';
 import 'package:puitstrack/features/splash/splash_screen.dart';
@@ -452,6 +454,17 @@ void main() {
     await _render(t, const Scaffold(body: DashboardScreen()), height: 2400);
     expect(find.text('Mission du jour'), findsOneWidget);
     expect(find.text('Saisir'), findsWidgets);
+    expect(t.takeException(), isNull);
+  });
+  testWidgets('assistant : clé requise', (t) async {
+    await _render(t, const AssistantScreen(), height: 1200);
+    expect(find.text('Demande à ton labo'), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
+  testWidgets('QR codes : scan et étiquettes', (t) async {
+    await _render(t, const QrScreen(), height: 1200);
+    expect(find.text('Scanner un QR code'), findsOneWidget);
+    expect(find.text('Générer le PDF'), findsOneWidget);
     expect(t.takeException(), isNull);
   });
   testWidgets('alertes (heure limite passée)', (t) async {

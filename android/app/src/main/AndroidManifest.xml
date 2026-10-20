@@ -10,6 +10,8 @@
          reprogrammée après un redémarrage du téléphone. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Saisie vocale d'une valeur (bouton micro). -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <application
         android:label="CPF Laboratory NAWARA"
         android:name="${applicationName}"
@@ -41,6 +43,13 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- Widget d'accueil : analyses à saisir + stock en alerte. -->
+        <receiver android:name=".TodayWidgetProvider" android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/today_widget_info" />
+        </receiver>
         <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
         <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
             <intent-filter>
@@ -56,6 +65,9 @@
 
          In particular, this is used by the Flutter engine in io.flutter.plugin.text.ProcessTextPlugin. -->
     <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService"/>
+        </intent>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>

@@ -8,6 +8,8 @@ import '../backup/backup_service.dart';
 import '../data/wells_repository.dart';
 import '../export/download_saver.dart';
 import '../l10n/app_strings.dart';
+import '../data/stock_repository.dart';
+import '../notifications/home_widget_service.dart';
 import '../notifications/reminder_service.dart';
 import '../sync/sync_service.dart';
 import 'app_settings.dart';
@@ -46,6 +48,21 @@ Future<void> refreshReminders(WidgetRef ref) async {
       done += d;
       total += t;
     }
+    // Widget d'accueil (Android) : mis à jour avec les rappels, donc à
+    // l'ouverture de l'app et après chaque saisie.
+    final lowStock = ref.read(stockControllerProvider).lowStockItems.length;
+    unawaited(
+      HomeWidgetService.update(
+        title: currentAppName,
+        todo: total == 0
+            ? s('widgetNothingToday')
+            : total > done
+            ? fill(s('reminderBodyCount'), {'n': '${total - done}'})
+            : s('dashboardAllDone'),
+        stock: lowStock == 0 ? '' : fill(s('stockBannerMessageMany'), {'n': '$lowStock'}),
+        alert: total > done,
+      ),
+    );
     await ReminderService.reschedule(
       enabled: settings.dailyReminder && ref.read(sessionAuthenticatedProvider),
       time: settings.reminderTime,

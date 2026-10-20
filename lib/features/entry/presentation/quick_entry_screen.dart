@@ -13,6 +13,8 @@ import '../../../core/settings/app_settings.dart';
 import '../../../core/settings/startup_tasks.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/responsive.dart';
+import '../../../core/voice/spoken_number.dart';
+import '../../../core/voice/voice_number_button.dart';
 
 /// Saisie rapide : puits → type d'analyse → valeur → service → enregistrer.
 /// Si [initialWellId] / [initialTypeId] sont fournis (venant d'une fiche
@@ -212,6 +214,9 @@ class _QuickEntryScreenState extends ConsumerState<QuickEntryScreen> {
                           hintText: s('entryValueHint'),
                           suffixText: selectedType?.unit,
                           prefixIcon: const Icon(Icons.numbers),
+                          suffixIcon: VoiceNumberButton(
+                            onNumber: (v) => setState(() => _valueController.text = spokenNumberText(v)),
+                          ),
                         ),
                         validator: (value) {
                           final parsed = double.tryParse((value ?? '').trim().replaceAll(',', '.'));

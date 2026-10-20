@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 
+import '../../../core/ai/daily_summary.dart';
 import '../../../core/auth/auth_providers.dart';
 import '../../../core/data/stock_repository.dart';
 import '../../../core/data/wells_repository.dart';
@@ -15,6 +16,7 @@ import '../../../core/models/analysis_type.dart';
 import '../../../core/models/production_types.dart';
 import '../../../core/models/user_role.dart';
 import '../../../core/models/well.dart';
+import '../../../core/plant/plant_repository.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/status_style.dart';
 import '../../../core/widgets/responsive.dart';
@@ -372,6 +374,7 @@ class _DayView extends StatelessWidget {
             )
           else ...[
             _MissionHeader(done: totalDone, total: totalDue, overdue: totalOverdue, pending: totalPending),
+            _DaySummaryCard(data: data, wells: controller, today: today),
             if (overdueItems.isNotEmpty) ...[
               _MissionSection(
                 title: fill(s('dashboardCountOverdue'), {'n': '$totalOverdue'}),
@@ -661,6 +664,71 @@ class _WellDashboardSection extends ConsumerWidget {
                       style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12.5, fontWeight: FontWeight.w600),
                     ),
                     children: [for (final type in done) _AnalysisStatusRow(well: well, type: type, today: today)],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Résumé du jour en quelques lignes (hors seuil, dérives, retards), calculé
+/// localement ; mène à l'assistant pour creuser. Masqué quand tout va bien.
+class _DaySummaryCard extends ConsumerWidget {
+  final WellsState data;
+  final WellsController wells;
+  final DateTime today;
+
+  const _DaySummaryCard({required this.data, required this.wells, required this.today});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final locale = ref.watch(localeProvider);
+    String s(String key) => tr(locale, key);
+    final summary = buildDaySummary(
+      data: data,
+      wells: wells,
+      plantState: ref.watch(plantControllerProvider),
+      plant: ref.read(plantControllerProvider.notifier),
+      today: today,
+      s: s,
+    );
+    if (summary.allClear) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 14),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 8, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.auto_awesome, color: accentColor, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      s('summaryTitle'),
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                  TextButton(onPressed: () => context.push('/assistant'), child: Text(s('summaryAsk'))),
+                ],
+              ),
+              for (final line in summary.lines)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6, right: 8),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(line.status.icon, size: 16, color: line.status.color(scheme)),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(line.text, style: const TextStyle(fontSize: 13, height: 1.3))),
+                    ],
                   ),
                 ),
             ],

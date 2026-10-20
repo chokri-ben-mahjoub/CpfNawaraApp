@@ -12,6 +12,8 @@ import '../../../core/plant/plant_repository.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/responsive.dart';
 import 'plant_schema_screens.dart' show pickSchemaImage;
+import '../../../core/voice/spoken_number.dart';
+import '../../../core/voice/voice_number_button.dart';
 
 /// Saisie d'une nouvelle analyse d'un point pour un jour (plusieurs
 /// prélèvements possibles le même jour), ou correction d'une analyse
@@ -210,6 +212,9 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
         decoration: InputDecoration(
           labelText: s(param.labelKey),
           suffixText: param.unit,
+          suffixIcon: VoiceNumberButton(
+            onNumber: (v) => setState(() => _fields[param.key]!.text = spokenNumberText(v)),
+          ),
           helperText: t == null ? null : '${s('trendThreshold')} : ${t.label(formatNumber)}',
           errorText: out == true ? s('plantValueOut') : null,
           errorStyle: TextStyle(color: scheme.error, fontWeight: FontWeight.w700),
