@@ -243,22 +243,25 @@ Une seule commande (PowerShell, depuis la racine du projet) :
 powershell -ExecutionPolicy Bypass -File installer\build_setup.ps1
 ```
 
-→ `installer\Output\PuitsTrack-Setup-<version>.exe` (≈12 Mo), installable sur
+→ `installer\Output\CPF-Laboratory-NAWARA-Setup-<version>.exe` (≈12 Mo), installable sur
 un PC neuf sans rien d'autre (DLL Visual C++ `msvcp140`, `vcruntime140`,
 `vcruntime140_1` et `sqlite3.dll` incluses). Le script fait
 `flutter build windows --release`, copie les DLL VC++ depuis Visual Studio
 (`VC\Redist`), puis compile `installer\puitstrack.iss` (Inno Setup 6 :
 `winget install JRSoftware.InnoSetup`).
 
-- Installation sans droits admin dans `%LOCALAPPDATA%\Programs\PuitsTrack`
-  (`Setup.exe /ALLUSERS` pour `C:\Program Files\PuitsTrack`, droits admin).
-- Raccourcis Bureau + Menu Démarrer, « Lancer PuitsTrack » à la fin,
-  désinstallateur dans « Applications installées ».
+- Installation sans droits admin dans
+  `%LOCALAPPDATA%\Programs\CPF Laboratory NAWARA` (`Setup.exe /ALLUSERS` pour
+  `C:\Program Files\CPF Laboratory NAWARA`, droits admin).
+- Raccourcis Bureau + Menu Démarrer, « Lancer CPF Laboratory NAWARA » à la
+  fin, désinstallateur dans « Applications installées ».
 - Mise à jour : relancer un Setup plus récent (même `AppId`), l'app ouverte
-  est fermée automatiquement. Données dans `%APPDATA%\PuitsTrack\PuitsTrack`,
-  conservées à la désinstallation.
+  est fermée automatiquement. Données dans `%APPDATA%\PuitsTrack\PuitsTrack`
+  (nom de dossier technique, indépendant du nom affiché — non renommé pour ne
+  pas perdre l'accès aux données déjà installées), conservées à la
+  désinstallation.
 - Base locale via `sqflite_common_ffi` (`lib/core/data/db_factory_io.dart`),
-  « Télécharger » → `Téléchargements\PuitsTrack`.
+  « Télécharger » → `Téléchargements\PuitsTrack` (même remarque).
 - `windows/CMakeLists.txt` définit `_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS`
   : `local_auth_windows` compile encore avec `/await`, refusé par défaut par
   Visual Studio 2026.

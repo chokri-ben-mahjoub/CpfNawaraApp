@@ -5,7 +5,7 @@
 #ifndef AppVersion
   #define AppVersion "0.0.0"
 #endif
-#define AppName "PuitsTrack"
+#define AppName "CPF Laboratory NAWARA"
 #define AppExe "puitstrack.exe"
 #define BuildDir "..\build\windows\x64\runner\Release"
 
@@ -39,7 +39,7 @@ SetupIconFile=..\windows\runner\resources\app_icon.ico
 UninstallDisplayIcon={app}\{#AppExe}
 UninstallDisplayName={#AppName}
 OutputDir=Output
-OutputBaseFilename=PuitsTrack-Setup-{#AppVersion}
+OutputBaseFilename=CPF-Laboratory-NAWARA-Setup-{#AppVersion}
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern

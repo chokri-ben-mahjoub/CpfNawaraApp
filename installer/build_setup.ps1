@@ -1,4 +1,4 @@
-﻿# Génère installer\Output\PuitsTrack-Setup-<version>.exe en une commande :
+﻿# Génère installer\Output\CPF-Laboratory-NAWARA-Setup-<version>.exe en une commande :
 #   powershell -ExecutionPolicy Bypass -File installer\build_setup.ps1
 #
 # 1. flutter build windows --release
@@ -47,4 +47,4 @@ if (-not $iscc) { throw "Inno Setup 6 introuvable. Installez-le : winget install
 & $iscc "/DAppVersion=$version" (Join-Path $PSScriptRoot 'puitstrack.iss')
 if ($LASTEXITCODE -ne 0) { throw "Inno Setup a échoué" }
 
-Write-Host "`nInstallateur : $(Join-Path $PSScriptRoot "Output\PuitsTrack-Setup-$version.exe")"
+Write-Host "`nInstallateur : $(Join-Path $PSScriptRoot "Output\CPF-Laboratory-NAWARA-Setup-$version.exe")"

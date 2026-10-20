@@ -5,6 +5,7 @@
 import 'dart:convert';
 import 'dart:math' as math;
 
+import 'package:puitstrack/core/app_info.dart';
 import 'package:puitstrack/core/auth/auth_providers.dart';
 import 'package:puitstrack/core/config/shared_config.dart';
 import 'package:puitstrack/core/sync/firebase_config.dart';
@@ -500,7 +501,7 @@ void main() {
   testWidgets('écran de démarrage', (t) async {
     await t.pumpWidget(MaterialApp(theme: AppTheme.light(), home: const SplashScreen()));
     await t.pump(const Duration(milliseconds: 1200));
-    expect(find.text('PuitsTrack'), findsOneWidget);
+    expect(find.text(appDisplayName), findsOneWidget);
     expect(t.takeException(), isNull);
   });
   testWidgets('fenêtre de chargement + transition de page', (t) async {
