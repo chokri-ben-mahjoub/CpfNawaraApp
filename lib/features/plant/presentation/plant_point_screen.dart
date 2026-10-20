@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import '../../../core/auth/auth_providers.dart';
 import '../../../core/export/export_service.dart';
 import '../../../core/export/export_table.dart';
+import '../../../core/export/pdf_chart.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/user_role.dart';
 import '../../../core/plant/plant_repository.dart';
@@ -93,7 +94,32 @@ Future<void> _exportPoint(WidgetRef ref, BuildContext context, SamplePoint point
         rows: rows,
       ),
     ],
+    charts: _pointCharts(controller, point, s),
   );
+}
+
+/// Une courbe par paramètre numérique du point (valeur au fil du temps,
+/// triée par date) — affichée en tête du PDF exporté.
+List<PdfReportChart> _pointCharts(PlantController controller, SamplePoint point, String Function(String) s) {
+  final history = controller.analysesFor(point.id).toList()..sort((a, b) => a.date.compareTo(b.date));
+  final numericParams = point.params.where((p) => p.isNumeric).toList();
+
+  return [
+    for (var i = 0; i < numericParams.length; i++)
+      PdfReportChart(
+        title: numericParams[i].unit.isEmpty ? s(numericParams[i].labelKey) : '${s(numericParams[i].labelKey)} (${numericParams[i].unit})',
+        series: [
+          PdfChartSeries(
+            label: s(numericParams[i].labelKey),
+            color: pdfChartPalette[i % pdfChartPalette.length],
+            points: [
+              for (final a in history)
+                if (a.number(numericParams[i].key) != null) (a.date, a.number(numericParams[i].key)!),
+            ],
+          ),
+        ],
+      ),
+  ];
 }
 
 /// Fiche d'un point de prélèvement : analyse du jour consulté (ou la plus
