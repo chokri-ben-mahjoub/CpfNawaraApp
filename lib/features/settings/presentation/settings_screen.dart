@@ -19,6 +19,7 @@ import '../../../core/data/stock_repository.dart';
 import '../../../core/data/wells_repository.dart';
 import '../../../core/export/download_saver.dart';
 import '../../../core/export/share_files.dart';
+import '../../../core/config/shared_config.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/intervention.dart';
 import '../../../core/models/user_role.dart';
@@ -431,18 +432,25 @@ class _AppLogoField extends ConsumerWidget {
       return;
     }
     await ref.read(appLogoProvider.notifier).setLogo(logo.bytes);
+    // L'administrateur publie aussi le logo pour toute l'équipe (PDF de tous les appareils).
+    if (ref.read(currentRoleProvider).canConfigure) {
+      await ref.read(sharedConfigProvider.notifier).set(companyLogoKey, base64Encode(logo.bytes));
+    }
     messenger.showSnackBar(SnackBar(content: Text(s('settingsAppLogoSaved'))));
   }
 
   Future<void> _remove(WidgetRef ref, String Function(String) s, ScaffoldMessengerState messenger) async {
     await ref.read(appLogoProvider.notifier).setLogo(null);
+    if (ref.read(currentRoleProvider).canConfigure) {
+      await ref.read(sharedConfigProvider.notifier).set(companyLogoKey, '');
+    }
     messenger.showSnackBar(SnackBar(content: Text(s('settingsAppLogoRemoved'))));
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final locale = ref.watch(localeProvider);
-    final logo = ref.watch(appLogoProvider);
+    final logo = ref.watch(appLogoProvider) ?? decodeSharedLogo(ref.watch(sharedConfigProvider).values[companyLogoKey]);
     final scheme = Theme.of(context).colorScheme;
     String s(String key) => tr(locale, key);
 

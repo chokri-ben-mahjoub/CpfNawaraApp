@@ -1,16 +1,20 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../auth/auth_providers.dart';
 import '../backup/backup_service.dart';
+import '../branding/app_logo.dart';
+import '../config/shared_config.dart';
 import '../data/wells_repository.dart';
 import '../export/download_saver.dart';
 import '../l10n/app_strings.dart';
 import '../data/stock_repository.dart';
 import '../notifications/home_widget_service.dart';
 import '../notifications/reminder_service.dart';
+import '../models/user_role.dart';
 import '../sync/sync_service.dart';
 import 'app_settings.dart';
 
@@ -28,7 +32,21 @@ Future<void> onAppForeground(WidgetRef ref) async {
   // Récupère les saisies faites sur les autres appareils (sans bloquer).
   unawaited(ref.read(syncControllerProvider.notifier).syncNow());
   await refreshReminders(ref);
+  await publishLogoIfNeeded(ref);
   await runAutoBackupIfDue(ref);
+}
+
+/// Logo configuré sur cet appareil mais pas encore partagé : l'administrateur
+/// le publie dans la configuration d'équipe, pour que les PDF des autres
+/// appareils (téléphone, PC) l'affichent aussi.
+Future<void> publishLogoIfNeeded(WidgetRef ref) async {
+  try {
+    final local = ref.read(appLogoProvider);
+    if (local == null || !ref.read(currentRoleProvider).canConfigure) return;
+    final shared = ref.read(sharedConfigProvider);
+    if (decodeSharedLogo(shared.values[companyLogoKey]) != null) return;
+    await ref.read(sharedConfigProvider.notifier).set(companyLogoKey, base64Encode(local));
+  } catch (_) {}
 }
 
 /// Reprogramme le rappel quotidien ; le rappel du jour est sauté si toutes

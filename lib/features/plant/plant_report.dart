@@ -6,10 +6,8 @@ import 'package:pdf/widgets.dart' as pw;
 
 import '../../core/analysis/series.dart';
 import '../../core/branding/app_logo.dart';
-import '../../core/export/pdf_chart.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/plant/plant_catalog.dart';
-import '../../core/plant/plant_point_charts.dart' show plantCircuitCharts;
 import '../../core/plant/plant_repository.dart';
 
 const _accent = PdfColor.fromInt(0xFFFF7A33);
@@ -48,11 +46,10 @@ Future<Uint8List> buildPlantDailyReport({
 
   for (final circuit in circuits) {
     final points = controller.pointsOf(circuit);
-    final circuitCharts = plantCircuitCharts(controller, circuit, t);
     // Circuit sans rien à montrer (tous ses points non analysés, exclus du
-    // rapport, et aucune courbe) : pas d'en-tête orphelin.
+    // rapport) : pas d'en-tête orphelin.
     final hasVisiblePoint = includeMissing || points.any((p) => controller.analysisOn(p.id, day) != null);
-    if (hasVisiblePoint || circuitCharts.isNotEmpty) {
+    if (hasVisiblePoint) {
       sections.add(pw.SizedBox(height: 14));
       sections.add(
         pw.Container(
@@ -160,16 +157,6 @@ Future<Uint8List> buildPlantDailyReport({
         ),
       );
     }
-    if (circuitCharts.isNotEmpty) {
-      sections.add(pw.SizedBox(height: 10));
-      sections.add(
-        pw.Text(t('plantReportCurves'), style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10.5, color: _navy)),
-      );
-      for (final chart in circuitCharts) {
-        sections.add(pw.SizedBox(height: 8));
-        sections.add(buildPdfChartSection(chart, height: 130));
-      }
-    }
   }
 
   doc.addPage(
@@ -181,7 +168,7 @@ Future<Uint8List> buildPlantDailyReport({
         children: [
           pw.Row(
             children: [
-              if (logoImage != null) ...[pw.Image(logoImage, height: 20), pw.SizedBox(width: 8)],
+              if (logoImage != null) ...[pw.Image(logoImage, height: 30), pw.SizedBox(width: 8)],
               pw.Text(
                 currentAppName,
                 style: pw.TextStyle(color: _accent, fontWeight: pw.FontWeight.bold, fontSize: 12),
@@ -227,6 +214,11 @@ Future<Uint8List> buildPlantDailyReport({
           ],
         ),
         ...sections,
+        if (sections.isEmpty)
+          pw.Padding(
+            padding: const pw.EdgeInsets.only(top: 24),
+            child: pw.Text(t('plantReportNothing'), style: const pw.TextStyle(color: _grey, fontSize: 11)),
+          ),
       ],
     ),
   );

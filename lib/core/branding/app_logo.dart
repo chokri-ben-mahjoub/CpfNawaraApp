@@ -47,6 +47,33 @@ const _logoKey = 'custom_app_logo_png_b64';
 /// qui n'a pas de `ref` sous la main.
 Uint8List? currentAppLogo;
 
+/// Clé du logo partagé dans la configuration d'équipe (`app_config`,
+/// synchronisée) : tous les appareils de l'entreprise l'utilisent dans leurs
+/// PDF, sans devoir le configurer un par un.
+const companyLogoKey = 'company_logo_b64';
+
+Uint8List? _localLogo;
+Uint8List? _sharedLogo;
+
+/// Le logo de l'appareil (Réglages) prime sur celui de l'équipe.
+void _refreshEffectiveLogo() => currentAppLogo = _localLogo ?? _sharedLogo;
+
+/// PNG décodé d'une valeur `app_config`, ou `null` (absent ou vide).
+Uint8List? decodeSharedLogo(String? value) {
+  if (value == null || value.isEmpty) return null;
+  try {
+    return base64Decode(value);
+  } catch (_) {
+    return null;
+  }
+}
+
+/// Appelé quand la configuration d'équipe est (re)lue.
+void applySharedLogo(Uint8List? bytes) {
+  _sharedLogo = bytes;
+  _refreshEffectiveLogo();
+}
+
 /// Permet d'ajouter/retirer le logo depuis Réglages › Apparence, affiché
 /// dans les rapports PDF générés par l'app (voir `pdf_table_exporter.dart`
 /// et `plant_report.dart`) : stocké sur l'appareil, pris en compte
@@ -59,13 +86,15 @@ class AppLogoController extends StateNotifier<Uint8List?> {
     final saved = prefs.getString(_logoKey);
     final bytes = saved == null || saved.isEmpty ? null : base64Decode(saved);
     state = bytes;
-    currentAppLogo = bytes;
+    _localLogo = bytes;
+    _refreshEffectiveLogo();
   }
 
   /// `null` retire le logo (retour au rendu sans logo).
   Future<void> setLogo(Uint8List? pngBytes) async {
     state = pngBytes;
-    currentAppLogo = pngBytes;
+    _localLogo = pngBytes;
+    _refreshEffectiveLogo();
     final prefs = await SharedPreferences.getInstance();
     if (pngBytes == null) {
       await prefs.remove(_logoKey);

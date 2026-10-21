@@ -2,7 +2,7 @@
 description: "CPF Laboratory NAWARA - suivi personnel des analyses de puits"
 publish_to: 'none'
 
-version: 0.5.2+9
+version: 0.5.3+10
 
 environment:
   sdk: ^3.13.3

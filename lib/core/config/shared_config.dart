@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 
+import '../branding/app_logo.dart';
 import '../data/local_database.dart';
 
 /// Paramètres communs à toute l'équipe (table `app_config`, synchronisée
@@ -50,6 +51,7 @@ class SharedConfigController extends StateNotifier<SharedConfig> {
       for (final row in rows)
         if (row['value'] != null) row['id'] as String: row['value'] as String,
     });
+    applySharedLogo(decodeSharedLogo(state.values[companyLogoKey]));
   }
 
   Future<void> set(String key, String value) async {
