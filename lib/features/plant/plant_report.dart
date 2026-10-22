@@ -29,6 +29,7 @@ Future<Uint8List> buildPlantDailyReport({
   required String Function(String) s,
   required String languageCode,
   required String operatorName,
+  required String reportNumber,
   bool includeMissing = false,
 }) async {
   // Polices standard du PDF : pas de tiret long ni de ≤ / ≥.
@@ -36,13 +37,9 @@ Future<Uint8List> buildPlantDailyReport({
   final doc = pw.Document(title: t('plantReportTitle'), author: currentAppName);
   final logo = currentAppLogo;
   final logoImage = logo == null ? null : pw.MemoryImage(logo);
-  final dateLabel = DateFormat('EEEE d MMMM yyyy', languageCode).format(day);
   final generated = DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now());
 
   final sections = <pw.Widget>[];
-  var analysed = 0;
-  var outCount = 0;
-  var total = 0;
 
   for (final circuit in circuits) {
     final points = controller.pointsOf(circuit);
@@ -66,11 +63,8 @@ Future<Uint8List> buildPlantDailyReport({
       );
     }
     for (final point in points) {
-      total++;
       final analysis = controller.analysisOn(point.id, day);
       final status = controller.status(point, day);
-      if (analysis != null) analysed++;
-      if (status == PlantStatus.outOfRange) outCount++;
       if (analysis == null && !includeMissing) continue;
       sections.add(pw.SizedBox(height: 8));
       sections.add(
@@ -200,19 +194,10 @@ Future<Uint8List> buildPlantDailyReport({
         ),
         pw.SizedBox(height: 2),
         pw.Text(
-          '${dateLabel[0].toUpperCase()}${dateLabel.substring(1)} - ${circuits.map((c) => t(c.labelKey)).join(', ')}',
-          style: const pw.TextStyle(fontSize: 10.5, color: _grey),
+          '${t('plantReportNumberLabel')} $reportNumber',
+          style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: _accent),
         ),
         pw.SizedBox(height: 10),
-        pw.Row(
-          children: [
-            _summary(t('plantSummaryAnalysed'), '$analysed / $total', _navy),
-            pw.SizedBox(width: 10),
-            _summary(t('plantSummaryOut'), '$outCount', outCount > 0 ? _out : _ok),
-            pw.SizedBox(width: 10),
-            _summary(t('plantSummaryMissing'), '${total - analysed}', total - analysed > 0 ? _grey : _ok),
-          ],
-        ),
         ...sections,
         if (sections.isEmpty)
           pw.Padding(
@@ -232,26 +217,6 @@ String _thresholdLabel(PlantThreshold? t) {
   if (t.min != null) return '>= ${formatNumber(t.min!)}';
   return '<= ${formatNumber(t.max!)}';
 }
-
-pw.Widget _summary(String label, String value, PdfColor color) => pw.Expanded(
-  child: pw.Container(
-    padding: const pw.EdgeInsets.all(8),
-    decoration: pw.BoxDecoration(
-      border: pw.Border.all(color: color, width: 1),
-      borderRadius: pw.BorderRadius.circular(6),
-    ),
-    child: pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Text(label, style: const pw.TextStyle(fontSize: 8.5, color: _grey)),
-        pw.Text(
-          value,
-          style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: color),
-        ),
-      ],
-    ),
-  ),
-);
 
 /// Remplace les caractères absents des polices standard du PDF.
 String _safe(String text) => text

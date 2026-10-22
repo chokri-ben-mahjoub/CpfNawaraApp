@@ -1060,6 +1060,7 @@ final _strings = <String, Map<String, String>>{
   'plantReportAllCircuits': {'fr': 'Tous les circuits', 'en': 'All circuits'},
   'plantReportAllShort': {'fr': 'complet', 'en': 'full'},
   'plantReportTitle': {'fr': 'Rapport journalier — Usine CPF', 'en': 'Daily report — CPF plant'},
+  'plantReportNumberLabel': {'fr': 'N°', 'en': 'N°'},
   'plantReportGenerated': {'fr': 'Généré le', 'en': 'Generated on'},
   'plantReportNothing': {'fr': 'Aucun point analysé ce jour.', 'en': 'No point analysed on this day.'},
   'plantReportCurves': {'fr': 'Courbes', 'en': 'Trends'},

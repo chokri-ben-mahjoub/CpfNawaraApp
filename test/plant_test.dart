@@ -216,6 +216,7 @@ void main() {
       s: (key) => key,
       languageCode: 'fr',
       operatorName: 'Ahmed',
+      reportNumber: '1/26',
     );
     expect(ascii.decode(bytes.take(5).toList()), '%PDF-');
     expect(bytes.length, greaterThan(2000));
@@ -230,6 +231,7 @@ void main() {
       s: (key) => key,
       languageCode: 'fr',
       operatorName: 'Ahmed',
+      reportNumber: '1/26',
       includeMissing: includeMissing,
     )).length;
     expect(await size(includeMissing: false), lessThan(await size(includeMissing: true)));

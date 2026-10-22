@@ -34,6 +34,11 @@ class SharedConfig {
 const missingDeadlineKey = 'missing_deadline';
 const defaultMissingDeadline = TimeOfDay(hour: 10, minute: 0);
 
+/// Dernier numéro de rapport journalier émis (compteur partagé par toute
+/// l'équipe, pour ne jamais numéroter deux rapports pareil même générés
+/// depuis des appareils différents).
+const plantReportCounterKey = 'plant_report_counter';
+
 String formatDeadline(TimeOfDay t) => '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
 class SharedConfigController extends StateNotifier<SharedConfig> {
@@ -66,6 +71,17 @@ class SharedConfigController extends StateNotifier<SharedConfig> {
   }
 
   Future<void> setMissingDeadline(TimeOfDay time) => set(missingDeadlineKey, formatDeadline(time));
+
+  /// Numéro du prochain rapport journalier à émettre, au format `n/aa`
+  /// (deux derniers chiffres de l'année) — incrémente et enregistre
+  /// aussitôt, pour qu'il ne soit jamais réutilisé.
+  Future<String> nextReportNumber() async {
+    final current = int.tryParse(state.values[plantReportCounterKey] ?? '') ?? 0;
+    final next = current + 1;
+    await set(plantReportCounterKey, '$next');
+    final yy = (DateTime.now().year % 100).toString().padLeft(2, '0');
+    return '$next/$yy';
+  }
 }
 
 final sharedConfigProvider = StateNotifierProvider<SharedConfigController, SharedConfig>(

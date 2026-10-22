@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/analysis/series.dart';
 import '../../../core/auth/auth_providers.dart';
+import '../../../core/config/shared_config.dart';
 import '../../../core/export/export_service.dart';
 import '../../../core/export/export_table.dart';
 import '../../../core/l10n/app_strings.dart';
@@ -300,6 +301,8 @@ class PlantScreen extends ConsumerWidget {
       if (choice == null || !context.mounted) return;
       includeMissing = choice;
     }
+    final reportNumber = await ref.read(sharedConfigProvider.notifier).nextReportNumber();
+    if (!context.mounted) return;
     final bytes = await runWithLoading(
       context,
       s('loadingReport'),
@@ -310,6 +313,7 @@ class PlantScreen extends ConsumerWidget {
         s: s,
         languageCode: locale.languageCode,
         operatorName: ref.read(profileProvider)?.fullName ?? '',
+        reportNumber: reportNumber,
         includeMissing: includeMissing,
       ),
     );
