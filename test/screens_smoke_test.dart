@@ -53,6 +53,8 @@ import 'package:puitstrack/features/stats/presentation/stats_screen.dart';
 import 'package:puitstrack/features/wells/presentation/well_detail_screen.dart';
 import 'package:puitstrack/features/wells/presentation/wells_list_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:puitstrack/core/filters/well_filter.dart';
+import 'package:puitstrack/features/stats/presentation/widgets/stats_extras.dart';
 import 'package:puitstrack/core/plant/plant_catalog.dart';
 import 'package:puitstrack/core/plant/plant_repository.dart';
 import 'package:puitstrack/features/plant/presentation/plant_entry_screen.dart';
@@ -354,6 +356,24 @@ void main() {
   testWidgets('interventions', (t) => _render(t, const InterventionsScreen(wellId: 'w1')));
   testWidgets('liste puits', (t) => _render(t, const Scaffold(body: SafeArea(child: WellsListScreen()))));
   testWidgets('stock', (t) => _render(t, const StockScreen(), height: 1700));
+  testWidgets(
+    'stats : courbes superposées',
+    (t) => _render(
+      t,
+      const Scaffold(
+        body: SingleChildScrollView(child: WellsOverlayView(filter: WellFilter(period: PeriodSelection.days90))),
+      ),
+      height: 1200,
+    ),
+  );
+  testWidgets(
+    'stats : comparaison de périodes',
+    (t) => _render(
+      t,
+      const Scaffold(body: SingleChildScrollView(child: PeriodComparisonCard(filter: WellFilter(period: PeriodSelection.days30)))),
+      height: 700,
+    ),
+  );
   testWidgets('stock : article en rupture', (t) => _render(t, const StockItemDetailScreen(itemId: 's1'), height: 1500));
   testWidgets('stock : article correct', (t) => _render(t, const StockItemDetailScreen(itemId: 's3'), height: 1200));
   testWidgets('stats', (t) => _render(t, const Scaffold(body: SafeArea(child: StatsScreen())), height: 1100));
@@ -371,6 +391,15 @@ void main() {
       const Scaffold(body: SafeArea(child: PlantScreen())),
       height: 2600,
       plantView: PlantView.list,
+    ),
+  );
+  testWidgets(
+    'usine : carte thermique',
+    (t) => _render(
+      t,
+      const Scaffold(body: SafeArea(child: PlantScreen())),
+      height: 2200,
+      plantView: PlantView.heatmap,
     ),
   );
   testWidgets(

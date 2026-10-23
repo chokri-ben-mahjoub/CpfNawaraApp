@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import 'modern_widgets.dart';
 
 /// En-tête "héros" des fiches (puits...) : dégradé nuit, grande icône, titre,
 /// pastille d'état et quelques chiffres clés alignés en bas.
@@ -186,10 +187,8 @@ class HeroStat extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        AnimatedNumberText(
           value,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
           style: TextStyle(
             color: valueColor ?? Colors.white,
             fontSize: 21,

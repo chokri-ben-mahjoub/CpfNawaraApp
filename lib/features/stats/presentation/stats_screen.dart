@@ -12,9 +12,10 @@ import '../../../core/theme/status_style.dart';
 import '../../../core/widgets/hero_header.dart';
 import '../../../core/widgets/filter_pills.dart';
 import '../../../core/widgets/responsive.dart';
+import 'widgets/stats_extras.dart';
 import 'widgets/threshold_gauge.dart';
 
-enum StatsViewMode { compliance, thresholds }
+enum StatsViewMode { compliance, thresholds, overlay }
 
 final statsViewModeProvider = StateProvider<StatsViewMode>((ref) => StatsViewMode.compliance);
 
@@ -74,6 +75,10 @@ class StatsScreen extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 16),
+        if (mode == StatsViewMode.compliance) ...[
+          PeriodComparisonCard(filter: filter),
+          const SizedBox(height: 16),
+        ],
         Card(
           child: ListTile(
             leading: Container(
@@ -96,6 +101,7 @@ class StatsScreen extends ConsumerWidget {
           segments: [
             ButtonSegment(value: StatsViewMode.compliance, label: Text(s('statsModeCompliance'))),
             ButtonSegment(value: StatsViewMode.thresholds, label: Text(s('statsModeThresholds'))),
+            ButtonSegment(value: StatsViewMode.overlay, label: Text(s('statsModeOverlay'))),
           ],
           selected: {mode},
           onSelectionChanged: (selection) => ref.read(statsViewModeProvider.notifier).state = selection.first,
@@ -103,7 +109,11 @@ class StatsScreen extends ConsumerWidget {
         const SizedBox(height: 12),
         _StatsFilterBar(mode: mode),
         const SizedBox(height: 12),
-        if (mode == StatsViewMode.compliance) const _ComplianceView() else const _ThresholdsView(),
+        switch (mode) {
+          StatsViewMode.compliance => const _ComplianceView(),
+          StatsViewMode.thresholds => const _ThresholdsView(),
+          StatsViewMode.overlay => WellsOverlayView(filter: filter),
+        },
       ],
     );
   }
@@ -137,7 +147,7 @@ class _StatsFilterBarState extends ConsumerState<_StatsFilterBar> {
     final wells = ref.watch(wellsControllerProvider).wells;
     String s(String key) => tr(locale, key);
     void update(WellFilter f) => ref.read(statsFilterProvider.notifier).state = f;
-    final compliance = widget.mode == StatsViewMode.compliance;
+    final compliance = widget.mode != StatsViewMode.thresholds;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

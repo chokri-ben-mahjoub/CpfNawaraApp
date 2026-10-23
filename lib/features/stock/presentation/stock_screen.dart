@@ -12,6 +12,7 @@ import '../../../core/models/stock_item.dart';
 import '../../../core/models/user_role.dart';
 import '../../../core/theme/status_style.dart';
 import '../../../core/widgets/hero_header.dart';
+import '../../../core/widgets/modern_widgets.dart';
 import '../../../core/widgets/responsive.dart';
 import '../../admin/presentation/widgets/admin_widgets.dart';
 import 'stock_table_screen.dart';
@@ -163,6 +164,8 @@ class StockScreen extends ConsumerWidget {
               padding: pagePadding(context, top: 12, bottom: 130),
               children: [
                 _SummaryRow(items: stock.items, s: s),
+                AdminSectionTitle(s('stockLevelsSection')),
+                _StockGauges(stock: stock, s: s),
                 if (stock.lowStockItems.isNotEmpty) ...[
                   AdminSectionTitle(s('stockLowSection')),
                   AdminTable<StockItem>(
@@ -232,6 +235,106 @@ class StockScreen extends ConsumerWidget {
                 const StockAnnualTable(),
               ],
             ),
+    );
+  }
+}
+
+/// Une jauge circulaire par article : niveau face au seuil d'alerte (l'anneau
+/// est plein à 3 fois le seuil), quantité au centre, jours avant rupture.
+class _StockGauges extends StatelessWidget {
+  final StockState stock;
+  final String Function(String) s;
+  const _StockGauges({required this.stock, required this.s});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final items = [...stock.items]
+      ..sort((a, b) {
+        if (a.isOut != b.isOut) return a.isOut ? -1 : 1;
+        if (a.isLow != b.isLow) return a.isLow ? -1 : 1;
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
+    return ResponsiveWrapGrid(
+      minItemWidth: 165,
+      spacing: 12,
+      runSpacing: 12,
+      children: [
+        for (var i = 0; i < items.length; i++)
+          FadeSlideIn(
+            index: i,
+            child: _GaugeCard(item: items[i], forecast: stock.forecastOf(items[i]), s: s, scheme: scheme),
+          ),
+      ],
+    );
+  }
+}
+
+class _GaugeCard extends StatelessWidget {
+  final StockItem item;
+  final StockForecast forecast;
+  final String Function(String) s;
+  final ColorScheme scheme;
+  const _GaugeCard({required this.item, required this.forecast, required this.s, required this.scheme});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = stockStatusColor(item, scheme);
+    final level = item.threshold > 0 ? item.quantity / (item.threshold * 3) : (item.quantity > 0 ? 1.0 : 0.0);
+    final soon = forecast.hasRate && forecast.within(30) && !item.isOut;
+    return Card(
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: color.withValues(alpha: 0.35)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => context.push('/stock/${item.id}'),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularGauge(
+                value: level,
+                color: color,
+                size: 92,
+                strokeWidth: 10,
+                center: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _qtyText(item.quantity),
+                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17, color: color, height: 1.1),
+                    ),
+                    if (item.unit.isNotEmpty)
+                      Text(item.unit, style: TextStyle(fontSize: 10.5, color: scheme.onSurfaceVariant)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                item.name,
+                maxLines: 2,
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5, height: 1.2),
+              ),
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                decoration: BoxDecoration(color: color.withValues(alpha: 0.13), borderRadius: BorderRadius.circular(100)),
+                child: Text(
+                  soon ? fill(s('stockForecastDays'), {'n': '${forecast.daysLeft}'}) : stockStatusLabel(item, s),
+                  style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 11),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

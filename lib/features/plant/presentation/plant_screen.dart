@@ -21,10 +21,11 @@ import '../../../core/widgets/responsive.dart';
 import '../plant_report.dart';
 import 'plant_schema_screens.dart';
 import 'widgets/plant_diagram.dart';
+import 'widgets/plant_heatmap_view.dart';
 import 'widgets/plant_trends_view.dart';
 import '../../../core/widgets/app_loader.dart';
 
-enum PlantView { diagram, list, trends }
+enum PlantView { diagram, list, trends, heatmap }
 
 final plantViewProvider = StateProvider<PlantView>((ref) => PlantView.diagram);
 
@@ -189,17 +190,26 @@ class PlantScreen extends ConsumerWidget {
                 ButtonSegment(
                   value: PlantView.diagram,
                   icon: const Icon(Icons.account_tree_outlined),
-                  label: Text(s('plantViewDiagram')),
+                  label: constraints.maxWidth >= 560 ? Text(s('plantViewDiagram')) : null,
+                  tooltip: s('plantViewDiagram'),
                 ),
                 ButtonSegment(
                   value: PlantView.list,
                   icon: const Icon(Icons.view_list_outlined),
-                  label: Text(s('plantViewList')),
+                  label: constraints.maxWidth >= 560 ? Text(s('plantViewList')) : null,
+                  tooltip: s('plantViewList'),
                 ),
                 ButtonSegment(
                   value: PlantView.trends,
                   icon: const Icon(Icons.show_chart),
-                  label: Text(s('plantViewTrends')),
+                  label: constraints.maxWidth >= 560 ? Text(s('plantViewTrends')) : null,
+                  tooltip: s('plantViewTrends'),
+                ),
+                ButtonSegment(
+                  value: PlantView.heatmap,
+                  icon: const Icon(Icons.grid_view_rounded),
+                  label: constraints.maxWidth >= 560 ? Text(s('plantViewHeatmap')) : null,
+                  tooltip: s('plantViewHeatmap'),
                 ),
               ],
               selected: {view},
@@ -230,6 +240,8 @@ class PlantScreen extends ConsumerWidget {
           _DiagramSection(day: day)
         else if (view == PlantView.trends)
           const PlantTrendsView()
+        else if (view == PlantView.heatmap)
+          const PlantHeatmapView()
         else
           for (final circuit in state.circuits) _CircuitSection(circuit: circuit, day: day),
       ],

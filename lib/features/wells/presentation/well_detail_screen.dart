@@ -16,7 +16,9 @@ import '../../../core/models/well.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/status_style.dart';
 import '../../../core/widgets/hero_header.dart';
+import '../../../core/widgets/modern_widgets.dart';
 import '../../../core/widgets/series_chart.dart';
+import '../../../core/widgets/sparkline.dart';
 import '../../../core/widgets/responsive.dart';
 import 'widgets/production_chart.dart';
 import 'widgets/record_edit_sheet.dart';
@@ -123,7 +125,9 @@ class WellDetailScreen extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 14),
+          _HealthBanner(wellId: wellId, types: types),
+          const SizedBox(height: 16),
           _ProductionCard(wellId: wellId),
           const SizedBox(height: 16),
           RatiosCard(wellId: wellId),
@@ -143,9 +147,10 @@ class WellDetailScreen extends ConsumerWidget {
             physics: const NeverScrollableScrollPhysics(),
             mainAxisSpacing: 10,
             crossAxisSpacing: 10,
-            childAspectRatio: 1.5,
+            childAspectRatio: isWideLayout(context) ? 1.45 : 1.18,
             children: [
-              for (final type in types) _LastValueCard(type: type, wellId: wellId),
+              for (var i = 0; i < types.length; i++)
+                FadeSlideIn(index: i, child: _LastValueCard(type: types[i], wellId: wellId)),
             ],
           ),
           const SizedBox(height: 24),
@@ -335,6 +340,110 @@ class _FlowStatTile extends StatelessWidget {
   }
 }
 
+/// Bandeau « santé du puits » : part des paramètres mesurés qui sont dans
+/// leurs limites (dernière valeur de chacun), avec les paramètres hors limites
+/// listés en pastilles cliquables.
+class _HealthBanner extends ConsumerWidget {
+  final String wellId;
+  final List<AnalysisType> types;
+  const _HealthBanner({required this.wellId, required this.types});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final locale = ref.watch(localeProvider);
+    final controller = ref.read(wellsControllerProvider.notifier);
+    String s(String key) => tr(locale, key);
+
+    var measured = 0;
+    final out = <AnalysisType>[];
+    for (final type in types) {
+      final last = controller.lastRecord(wellId, type.id);
+      if (last == null) continue;
+      measured++;
+      if (type.isOutOfRange(last.value)) out.add(type);
+    }
+    if (measured == 0) return const SizedBox.shrink();
+
+    final score = (measured - out.length) / measured;
+    final status = out.isEmpty ? AppStatus.ok : (score >= 0.75 ? AppStatus.todo : AppStatus.out);
+    final color = status.color(scheme);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [color.withValues(alpha: 0.16), color.withValues(alpha: 0.05)],
+        ),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        children: [
+          CircularGauge(
+            value: score,
+            color: color,
+            size: 72,
+            strokeWidth: 8,
+            center: Text(
+              '${(score * 100).round()}%',
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: color),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  s('wellHealthTitle'),
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: scheme.onSurfaceVariant),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  out.isEmpty
+                      ? s('wellHealthAllOk')
+                      : fill(s('wellHealthSomeOut'), {'n': '${out.length}', 'total': '$measured'}),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: color, height: 1.2),
+                ),
+                if (out.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      for (final type in out)
+                        InkWell(
+                          borderRadius: BorderRadius.circular(100),
+                          onTap: () => context.push('/wells/$wellId/trend/${type.id}'),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: color.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(100),
+                            ),
+                            child: Text(
+                              type.label,
+                              style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 11.5),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Carte d'un paramètre : dernière valeur (rouge si hors limites), mini-courbe
+/// des 12 dernières mesures, flèche de tendance et plage attendue.
 class _LastValueCard extends ConsumerWidget {
   final AnalysisType type;
   final String wellId;
@@ -349,40 +458,75 @@ class _LastValueCard extends ConsumerWidget {
     String s(String key) => tr(locale, key);
     final last = controller.lastRecord(wellId, type.id);
     final outOfRange = last != null && type.isOutOfRange(last.value);
+    final color = outOfRange ? scheme.error : (last == null ? scheme.outline : const Color(0xFF2E7D32));
+
+    final recent = controller.recordsForWell(wellId).where((r) => r.typeId == type.id).toList()
+      ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
+    final values = [for (final r in recent.skip(recent.length > 12 ? recent.length - 12 : 0)) r.value];
+    final delta = values.length >= 2 ? values.last - values[values.length - 2] : null;
+    String fmt(double v) => v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(2);
 
     return InkWell(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(18),
       onTap: () => context.push('/wells/$wellId/trend/${type.id}'),
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.fromLTRB(12, 11, 12, 10),
         decoration: BoxDecoration(
           color: scheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(16),
-          border: outOfRange ? Border.all(color: scheme.error, width: 1.2) : null,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: outOfRange ? scheme.error : scheme.outlineVariant.withValues(alpha: 0.5), width: outOfRange ? 1.3 : 1),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
+                Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+                const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     type.label,
-                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                if (outOfRange) Icon(Icons.warning_amber_rounded, color: scheme.error, size: 18),
+                if (outOfRange) Icon(Icons.warning_amber_rounded, color: scheme.error, size: 17),
               ],
             ),
-            const Spacer(),
+            const SizedBox(height: 4),
             Text(
               last == null ? s('wellDetailNoValue') : '${last.value} ${type.unit}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: last == null ? 12 : 18,
+                fontSize: last == null ? 12 : 19,
                 fontWeight: FontWeight.w800,
                 color: outOfRange ? scheme.error : scheme.onSurface,
               ),
+            ),
+            const Spacer(),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: delta != null
+                        ? TrendBadge(
+                            delta: delta,
+                            text: '${delta > 0 ? '+' : ''}${fmt(delta)}',
+                            goodWhenUp: !outOfRange,
+                          )
+                        : Text(
+                            '${fmt(type.min)} – ${fmt(type.max)}',
+                            style: TextStyle(fontSize: 10.5, color: scheme.onSurfaceVariant),
+                          ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Sparkline(values: values, color: color, width: 52, height: 26),
+              ],
             ),
           ],
         ),
