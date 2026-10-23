@@ -6,7 +6,7 @@ import '../../../../core/data/stock_repository.dart';
 import '../../../../core/l10n/app_strings.dart';
 import '../../../../core/models/stock_item.dart';
 import '../../../admin/presentation/widgets/admin_widgets.dart';
-import '../../../stock/presentation/stock_screen.dart' show stockStatusColor;
+import '../../../stock/presentation/stock_screen.dart' show stockForecastText, stockStatusColor;
 
 /// Cloche de notifications (AppBar) : articles de stock en alerte. Tant
 /// qu'il y en a au moins un, une pastille rouge clignotante attire l'œil ;
@@ -26,7 +26,8 @@ class _NotificationBellState extends ConsumerState<NotificationBell> with Single
   @override
   void initState() {
     super.initState();
-    if (ref.read(stockControllerProvider).lowStockItems.isNotEmpty) _blinkThenHold();
+    final stock = ref.read(stockControllerProvider);
+    if (stock.lowStockItems.isNotEmpty || stock.soonList().isNotEmpty) _blinkThenHold();
   }
 
   @override
@@ -51,7 +52,9 @@ class _NotificationBellState extends ConsumerState<NotificationBell> with Single
   Widget build(BuildContext context) {
     final locale = ref.watch(localeProvider);
     final items = ref.watch(stockControllerProvider.select((s) => s.lowStockItems));
-    ref.listen(stockControllerProvider.select((s) => s.lowStockItems.length), (previous, next) {
+    final soon = ref.watch(stockControllerProvider.select((s) => s.soonList()));
+    final total = items.length + soon.length;
+    ref.listen(stockControllerProvider.select((s) => s.lowStockItems.length + s.soonList().length), (previous, next) {
       if (next > 0 && (previous == null || previous == 0)) _blinkThenHold();
     });
     String s(String key) => tr(locale, key);
@@ -59,13 +62,13 @@ class _NotificationBellState extends ConsumerState<NotificationBell> with Single
 
     return IconButton(
       tooltip: s('notificationsTitle'),
-      onPressed: () => _open(context, items, s),
-      icon: items.isEmpty
+      onPressed: () => _open(context, items, soon, s),
+      icon: total == 0
           ? const Icon(Icons.notifications_outlined)
           : AnimatedBuilder(
               animation: _pulse,
               builder: (context, child) => Badge(
-                label: Text('${items.length}'),
+                label: Text('$total'),
                 backgroundColor: Color.lerp(scheme.error, scheme.error.withValues(alpha: 0.45), _pulse.value),
                 child: child,
               ),
@@ -74,7 +77,12 @@ class _NotificationBellState extends ConsumerState<NotificationBell> with Single
     );
   }
 
-  void _open(BuildContext context, List<StockItem> items, String Function(String) s) {
+  void _open(
+    BuildContext context,
+    List<StockItem> items,
+    List<(StockItem, StockForecast)> soon,
+    String Function(String) s,
+  ) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -97,7 +105,7 @@ class _NotificationBellState extends ConsumerState<NotificationBell> with Single
                   const SizedBox(height: 4),
                   Text(s('notificationsStockHint'), style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13)),
                   const SizedBox(height: 12),
-                  if (items.isEmpty)
+                  if (items.isEmpty && soon.isEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 32),
                       child: Center(
@@ -108,9 +116,28 @@ class _NotificationBellState extends ConsumerState<NotificationBell> with Single
                     Flexible(
                       child: ListView.separated(
                         shrinkWrap: true,
-                        itemCount: items.length,
+                        itemCount: items.length + soon.length,
                         separatorBuilder: (_, _) => const SizedBox(height: 8),
                         itemBuilder: (itemContext, i) {
+                          if (i >= items.length) {
+                            final (soonItem, f) = soon[i - items.length];
+                            const orange = Color(0xFFE08A1E);
+                            return Material(
+                              color: orange.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(16),
+                              child: ListTile(
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                leading: const IconBadge(Icons.trending_down_rounded, color: orange),
+                                title: Text(soonItem.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+                                subtitle: Text('${s('notificationsSoonSection')}\n${stockForecastText(f, s)}'),
+                                isThreeLine: true,
+                                onTap: () {
+                                  Navigator.of(sheetContext).pop();
+                                  context.push('/stock/${soonItem.id}');
+                                },
+                              ),
+                            );
+                          }
                           final item = items[i];
                           final color = stockStatusColor(item, scheme);
                           return Material(
@@ -139,7 +166,7 @@ class _NotificationBellState extends ConsumerState<NotificationBell> with Single
                         },
                       ),
                     ),
-                  if (items.isNotEmpty) ...[
+                  if (items.isNotEmpty || soon.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     TextButton(
                       onPressed: () {

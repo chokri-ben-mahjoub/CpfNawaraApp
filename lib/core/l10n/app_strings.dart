@@ -469,6 +469,9 @@ final _strings = <String, Map<String, String>>{
   'stockForecastRate': {'fr': '{rate} {unit}/jour (30 derniers jours)', 'en': '{rate} {unit}/day (last 30 days)'},
   'stockForecastNone': {'fr': 'Pas assez de sorties récentes pour estimer.', 'en': 'Not enough recent withdrawals to estimate.'},
   'stockColRunOut': {'fr': 'Rupture prévue', 'en': 'Forecast stock-out'},
+  'stockSoonTitle': {'fr': '{name} : rupture dans ~{n} j', 'en': '{name}: stock-out in ~{n} d'},
+  'stockSoonBody': {'fr': 'Stock {qty} {unit}, consommation ≈ {rate} {unit}/jour.', 'en': 'Stock {qty} {unit}, usage ≈ {rate} {unit}/day.'},
+  'notificationsSoonSection': {'fr': 'Rupture prévue sous 14 jours', 'en': 'Stock-out expected within 14 days'},
   'stockAnnualSection': {'fr': 'Suivi annuel', 'en': 'Annual follow-up'},
   'stockTableFormula': {
     'fr': 'Consommation calculée = sorties de l\'année ; à commander = consommation − stock disponible − commande en attente.',

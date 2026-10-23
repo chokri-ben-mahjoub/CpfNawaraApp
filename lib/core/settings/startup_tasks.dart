@@ -68,6 +68,7 @@ Future<void> refreshReminders(WidgetRef ref) async {
     }
     // Widget d'accueil (Android) : mis à jour avec les rappels, donc à
     // l'ouverture de l'app et après chaque saisie.
+    unawaited(ref.read(stockControllerProvider.notifier).checkForecastAlerts());
     final lowStock = ref.read(stockControllerProvider).lowStockItems.length;
     unawaited(
       HomeWidgetService.update(

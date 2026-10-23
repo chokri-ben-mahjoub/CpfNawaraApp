@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 import '../l10n/app_strings.dart';
@@ -48,6 +49,13 @@ class StockState {
     return out;
   }
 
+  /// Articles qui n'ont pas encore atteint leur seuil d'alerte mais dont la
+  /// rupture est prévue sous [days] jours (alerte « bientôt »).
+  List<(StockItem, StockForecast)> soonList({int days = soonStockDays, DateTime? now}) => [
+    for (final (item, f) in watchList(days: days, now: now))
+      if (!item.isLow) (item, f),
+  ];
+
   /// Articles à leur seuil d'alerte ou en dessous, triés du plus critique
   /// (rupture) au moins critique.
   List<StockItem> get lowStockItems {
@@ -59,6 +67,9 @@ class StockState {
     return low;
   }
 }
+
+/// Horizon de l'alerte « rupture prévue bientôt » (cloche et notification).
+const soonStockDays = 14;
 
 /// Libellé affiché pour les articles sans catégorie assignée.
 const unassignedStockCategoryLabel = 'Autre';
@@ -106,6 +117,40 @@ class StockController extends StateNotifier<StockState> {
 
   List<StockMovement> movementsForItem(String itemId) =>
       state.movements.where((m) => m.itemId == itemId).toList()..sort((a, b) => b.dateTime.compareTo(a.dateTime));
+
+  /// Notification locale (Android) pour chaque article dont la rupture est
+  /// prévue sous [soonStockDays] jours, au plus une fois par jour et par
+  /// article. Appelée à l'ouverture de l'app et après chaque mouvement.
+  Future<void> checkForecastAlerts() async {
+    final ref = _ref;
+    if (ref == null || !StockNotificationService.isSupported) return;
+    try {
+      final soon = state.soonList();
+      if (soon.isEmpty) return;
+      final prefs = await SharedPreferences.getInstance();
+      final today = DateTime.now();
+      final key = '${today.year}-${today.month}-${today.day}';
+      final done = prefs.getStringList('stock_soon_notified') ?? const [];
+      final stamp = done.where((e) => e.startsWith('$key|')).toSet();
+      final locale = ref.read(localeProvider);
+      String s(String k) => tr(locale, k);
+      String fmt(double v) => v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(2);
+      for (final (item, f) in soon) {
+        final marker = '$key|${item.id}';
+        if (stamp.contains(marker)) continue;
+        await StockNotificationService.notifyLowStock(
+          itemId: '${item.id}:soon',
+          channelName: s('stockAlertChannelName'),
+          title: fill(s('stockSoonTitle'), {'name': item.name, 'n': '${f.daysLeft}'}),
+          body: fill(s('stockSoonBody'), {'qty': fmt(item.quantity), 'unit': item.unit, 'rate': fmt(f.dailyRate)}),
+        );
+        stamp.add(marker);
+      }
+      await prefs.setStringList('stock_soon_notified', stamp.toList());
+    } catch (_) {
+      // Notifications indisponibles : l'alerte reste visible dans la cloche.
+    }
+  }
 
   Future<void> _afterWrite() async {
     await _load();
@@ -222,6 +267,7 @@ class StockController extends StateNotifier<StockState> {
       );
     });
     await _afterWrite();
+    unawaited(checkForecastAlerts());
 
     final isLowNow = newQuantity <= item.threshold;
     if (!wasLow && isLowNow && _ref != null) {
