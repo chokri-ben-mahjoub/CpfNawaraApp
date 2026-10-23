@@ -57,7 +57,10 @@ class ChartSeries {
   }) => ChartSeries(
     label: label,
     color: color,
-    points: [for (final p in points) ChartPoint(p.t.millisecondsSinceEpoch.toDouble(), p.v)],
+    points: [
+      for (final p in points)
+        ChartPoint(p.t.millisecondsSinceEpoch.toDouble(), p.v),
+    ],
     dashed: dashed,
     showDots: showDots,
     strokeWidth: strokeWidth,
@@ -72,10 +75,21 @@ class ChartMarker {
   final double x;
   final String label;
   final Color color;
-  const ChartMarker({required this.x, required this.label, required this.color});
+  const ChartMarker({
+    required this.x,
+    required this.label,
+    required this.color,
+  });
 
-  factory ChartMarker.at(DateTime t, {required String label, required Color color}) =>
-      ChartMarker(x: t.millisecondsSinceEpoch.toDouble(), label: label, color: color);
+  factory ChartMarker.at(
+    DateTime t, {
+    required String label,
+    required Color color,
+  }) => ChartMarker(
+    x: t.millisecondsSinceEpoch.toDouble(),
+    label: label,
+    color: color,
+  );
 }
 
 /// Couleur des marqueurs d'intervention, commune à tous les graphiques.
@@ -100,6 +114,10 @@ class SeriesChart extends StatefulWidget {
   final double? xMin;
   final double? xMax;
 
+  /// Rendu moderne : courbes lissées, dégradé sous la courbe quand il n'y a
+  /// qu'une série, tracé animé et point final qui pulse.
+  final bool modern;
+
   const SeriesChart({
     super.key,
     required this.series,
@@ -111,14 +129,41 @@ class SeriesChart extends StatefulWidget {
     this.height = 220,
     this.xMin,
     this.xMax,
+    this.modern = true,
   });
 
   @override
   State<SeriesChart> createState() => _SeriesChartState();
 }
 
-class _SeriesChartState extends State<SeriesChart> {
+class _SeriesChartState extends State<SeriesChart>
+    with SingleTickerProviderStateMixin {
   double? _touchX; // position du doigt, en pixels
+
+  // 0,9 s de tracé, puis 2 pulsations du dernier point : animation finie
+  // (jamais de boucle infinie, pour ne pas bloquer les tests de rendu).
+  static const _totalMs = 3000.0;
+  static const _drawMs = 900.0;
+  late final AnimationController _anim = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 3000),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.modern) {
+      _anim.forward();
+    } else {
+      _anim.value = 1;
+    }
+  }
+
+  @override
+  void dispose() {
+    _anim.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -133,26 +178,46 @@ class _SeriesChartState extends State<SeriesChart> {
           final x = d.localPosition.dx;
           _touchX = _touchX != null && (x - _touchX!).abs() < 16 ? null : x;
         }),
-        onHorizontalDragStart: (d) => setState(() => _touchX = d.localPosition.dx),
-        onHorizontalDragUpdate: (d) => setState(() => _touchX = d.localPosition.dx),
+        onHorizontalDragStart: (d) =>
+            setState(() => _touchX = d.localPosition.dx),
+        onHorizontalDragUpdate: (d) =>
+            setState(() => _touchX = d.localPosition.dx),
         onLongPressEnd: (_) => setState(() => _touchX = null),
-        child: CustomPaint(
-          painter: _SeriesPainter(
-            series: widget.series.where((s) => s.points.isNotEmpty).toList(),
-            markers: widget.markers,
-            xLabel: widget.xLabel,
-            yLabel: widget.yLabel,
-            logScale: widget.logScale,
-            band: widget.band,
-            xMinOverride: widget.xMin,
-            xMaxOverride: widget.xMax,
-            touchX: _touchX,
-            gridColor: scheme.outlineVariant,
-            labelColor: scheme.onSurfaceVariant,
-            bandColor: scheme.primary.withValues(alpha: 0.07),
-            tooltipBackground: scheme.inverseSurface,
-            tooltipText: scheme.onInverseSurface,
-          ),
+        child: AnimatedBuilder(
+          animation: _anim,
+          builder: (context, _) {
+            final ms = _anim.value * _totalMs;
+            final progress = widget.modern
+                ? Curves.easeOutCubic.transform((ms / _drawMs).clamp(0.0, 1.0))
+                : 1.0;
+            final pulseT = ((ms - _drawMs) / 1000).clamp(0.0, 2.0);
+            final pulse = widget.modern && pulseT > 0 && pulseT < 2
+                ? pulseT % 1
+                : -1.0;
+            return CustomPaint(
+              painter: _SeriesPainter(
+                modern: widget.modern,
+                progress: progress,
+                pulse: pulse,
+                series: widget.series
+                    .where((s) => s.points.isNotEmpty)
+                    .toList(),
+                markers: widget.markers,
+                xLabel: widget.xLabel,
+                yLabel: widget.yLabel,
+                logScale: widget.logScale,
+                band: widget.band,
+                xMinOverride: widget.xMin,
+                xMaxOverride: widget.xMax,
+                touchX: _touchX,
+                gridColor: scheme.outlineVariant,
+                labelColor: scheme.onSurfaceVariant,
+                bandColor: scheme.primary.withValues(alpha: 0.07),
+                tooltipBackground: scheme.inverseSurface,
+                tooltipText: scheme.onInverseSurface,
+              ),
+            );
+          },
         ),
       ),
     );
@@ -160,6 +225,9 @@ class _SeriesChartState extends State<SeriesChart> {
 }
 
 class _SeriesPainter extends CustomPainter {
+  final bool modern;
+  final double progress;
+  final double pulse;
   final List<ChartSeries> series;
   final List<ChartMarker> markers;
   final String Function(double) xLabel;
@@ -176,6 +244,9 @@ class _SeriesPainter extends CustomPainter {
   final Color tooltipText;
 
   _SeriesPainter({
+    required this.modern,
+    required this.progress,
+    required this.pulse,
     required this.series,
     required this.markers,
     required this.xLabel,
@@ -202,7 +273,12 @@ class _SeriesPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final plot = Rect.fromLTRB(_leftGutter, _topPad, size.width - _rightPad, size.height - _bottomGutter);
+    final plot = Rect.fromLTRB(
+      _leftGutter,
+      _topPad,
+      size.width - _rightPad,
+      size.height - _bottomGutter,
+    );
     final usable = [
       for (final s in series)
         for (final p in s.points)
@@ -210,7 +286,11 @@ class _SeriesPainter extends CustomPainter {
     ];
 
     if (usable.isEmpty) {
-      canvas.drawLine(plot.bottomLeft, plot.bottomRight, Paint()..color = gridColor);
+      canvas.drawLine(
+        plot.bottomLeft,
+        plot.bottomRight,
+        Paint()..color = gridColor,
+      );
       return;
     }
 
@@ -224,7 +304,9 @@ class _SeriesPainter extends CustomPainter {
       }
     }
     if (xMax - xMin <= 0) {
-      final pad = xMin.abs() > 1e9 ? 43200000.0 : 0.5; // ±12 h sur un axe temporel
+      final pad = xMin.abs() > 1e9
+          ? 43200000.0
+          : 0.5; // ±12 h sur un axe temporel
       xMin -= pad;
       xMax += pad;
     }
@@ -241,14 +323,19 @@ class _SeriesPainter extends CustomPainter {
     final yMax = ticks.last;
 
     double px(double x) => plot.left + (x - xMin) / (xMax - xMin) * plot.width;
-    double py(double y) => plot.bottom - (_ty(y) - yMin) / (yMax - yMin) * plot.height;
-    double pyT(double ty) => plot.bottom - (ty - yMin) / (yMax - yMin) * plot.height;
+    double py(double y) =>
+        plot.bottom - (_ty(y) - yMin) / (yMax - yMin) * plot.height;
+    double pyT(double ty) =>
+        plot.bottom - (ty - yMin) / (yMax - yMin) * plot.height;
 
     // --- Bande de seuil ---
     if (band != null && !logScale) {
       final top = py(band!.$2).clamp(plot.top, plot.bottom);
       final bottom = py(band!.$1).clamp(plot.top, plot.bottom);
-      canvas.drawRect(Rect.fromLTRB(plot.left, top, plot.right, bottom), Paint()..color = bandColor);
+      canvas.drawRect(
+        Rect.fromLTRB(plot.left, top, plot.right, bottom),
+        Paint()..color = bandColor,
+      );
     }
 
     // --- Grille + graduations Y ---
@@ -258,13 +345,29 @@ class _SeriesPainter extends CustomPainter {
     for (final t in ticks) {
       final y = pyT(t);
       canvas.drawLine(Offset(plot.left, y), Offset(plot.right, y), gridPaint);
-      _text(canvas, yLabel(_fromTy(t)), Offset(plot.left - 6, y), align: _Align.rightCenter, size: 10);
+      _text(
+        canvas,
+        yLabel(_fromTy(t)),
+        Offset(plot.left - 6, y),
+        align: _Align.rightCenter,
+        size: 10,
+      );
     }
 
     // --- Graduations X (début, milieu, fin) ---
-    for (final (frac, align) in [(0.0, _Align.leftTop), (0.5, _Align.centerTop), (1.0, _Align.rightTop)]) {
+    for (final (frac, align) in [
+      (0.0, _Align.leftTop),
+      (0.5, _Align.centerTop),
+      (1.0, _Align.rightTop),
+    ]) {
       final x = xMin + (xMax - xMin) * frac;
-      _text(canvas, xLabel(x), Offset(plot.left + plot.width * frac, plot.bottom + 5), align: align, size: 10);
+      _text(
+        canvas,
+        xLabel(x),
+        Offset(plot.left + plot.width * frac, plot.bottom + 5),
+        align: align,
+        size: 10,
+      );
     }
 
     // --- Marqueurs ---
@@ -282,7 +385,12 @@ class _SeriesPainter extends CustomPainter {
       );
       canvas.drawCircle(Offset(x, plot.top), 4, Paint()..color = m.color);
       if (x + 6 > lastLabelEnd + 4) {
-        final painter = _layout(m.label, size: 9.5, color: m.color, maxWidth: 90);
+        final painter = _layout(
+          m.label,
+          size: 9.5,
+          color: m.color,
+          maxWidth: 90,
+        );
         painter.paint(canvas, Offset(x + 6, plot.top - 13));
         lastLabelEnd = x + 6 + painter.width;
       }
@@ -290,7 +398,17 @@ class _SeriesPainter extends CustomPainter {
 
     // --- Courbes ---
     canvas.save();
-    canvas.clipRect(plot.inflate(6));
+    // Tracé progressif de gauche à droite (progress = 1 : courbe entière).
+    final reveal = progress >= 1
+        ? plot.inflate(6)
+        : Rect.fromLTRB(
+            plot.left - 6,
+            plot.top - 6,
+            plot.left + plot.width * progress + 6,
+            plot.bottom + 6,
+          );
+    canvas.clipRect(reveal);
+    final solid = series.where((s) => !s.dashed).length;
     for (final s in series) {
       final pts = [
         for (final p in s.points)
@@ -308,8 +426,12 @@ class _SeriesPainter extends CustomPainter {
           _dashedLine(canvas, pts[i - 1], pts[i], paint);
         }
       } else {
-        final path = s.smooth && pts.length > 2 ? _monotonePath(pts) : _polyline(pts);
-        if (s.area && pts.length > 1) {
+        final smooth = s.smooth || (modern && pts.length > 2);
+        final area = s.area || (modern && solid == 1);
+        final path = smooth && pts.length > 2
+            ? _monotonePath(pts)
+            : _polyline(pts);
+        if (area && pts.length > 1) {
           final fill = Path.from(path)
             ..lineTo(pts.last.dx, plot.bottom)
             ..lineTo(pts.first.dx, plot.bottom)
@@ -320,7 +442,10 @@ class _SeriesPainter extends CustomPainter {
               ..shader = LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [s.color.withValues(alpha: 0.28), s.color.withValues(alpha: 0.02)],
+                colors: [
+                  s.color.withValues(alpha: 0.28),
+                  s.color.withValues(alpha: 0.02),
+                ],
               ).createShader(plot),
           );
         }
@@ -328,28 +453,59 @@ class _SeriesPainter extends CustomPainter {
       }
       if (s.showDots && pts.length <= 90) {
         for (final p in pts) {
-          canvas.drawCircle(p, pts.length > 40 ? 2 : 3, Paint()..color = s.color);
+          canvas.drawCircle(
+            p,
+            pts.length > 40 ? 2 : 3,
+            Paint()..color = s.color,
+          );
         }
       }
     }
     canvas.restore();
 
+    // Point final : anneau qui pulse deux fois à l'apparition du graphique.
+    if (modern && progress >= 1) {
+      for (final s in series.where((s) => !s.dashed)) {
+        final last = s.points.last;
+        if (logScale && last.y <= 0) continue;
+        final c = Offset(px(last.x), py(last.y));
+        if (pulse >= 0) {
+          canvas.drawCircle(
+            c,
+            5 + 11 * pulse,
+            Paint()..color = s.color.withValues(alpha: 0.35 * (1 - pulse)),
+          );
+        }
+        canvas.drawCircle(c, 5.5, Paint()..color = tooltipText);
+        canvas.drawCircle(c, 3.8, Paint()..color = s.color);
+      }
+    }
+
     // --- Lecture au toucher ---
     final touch = touchX;
     if (touch != null && touch >= plot.left - 8 && touch <= plot.right + 8) {
-      final xValue = xMin + ((touch.clamp(plot.left, plot.right) - plot.left) / plot.width) * (xMax - xMin);
+      final xValue =
+          xMin +
+          ((touch.clamp(plot.left, plot.right) - plot.left) / plot.width) *
+              (xMax - xMin);
       final lines = <(String, Color)>[];
       double? snappedX;
       for (final s in series.where((s) => s.inTooltip)) {
         ChartPoint? nearest;
         for (final p in s.points) {
           if (logScale && p.y <= 0) continue;
-          if (nearest == null || (p.x - xValue).abs() < (nearest.x - xValue).abs()) nearest = p;
+          if (nearest == null ||
+              (p.x - xValue).abs() < (nearest.x - xValue).abs())
+            nearest = p;
         }
         if (nearest == null) continue;
         snappedX ??= nearest.x;
         lines.add(('${s.label} : ${yLabel(nearest.y)}', s.color));
-        canvas.drawCircle(Offset(px(nearest.x), py(nearest.y)), 5, Paint()..color = s.color);
+        canvas.drawCircle(
+          Offset(px(nearest.x), py(nearest.y)),
+          5,
+          Paint()..color = s.color,
+        );
         canvas.drawCircle(
           Offset(px(nearest.x), py(nearest.y)),
           5,
@@ -402,34 +558,64 @@ class _SeriesPainter extends CustomPainter {
       final p0 = pts[i];
       final p1 = pts[i + 1];
       final h = (p1.dx - p0.dx) / 3;
-      path.cubicTo(p0.dx + h, p0.dy + tangents[i] * h, p1.dx - h, p1.dy - tangents[i + 1] * h, p1.dx, p1.dy);
+      path.cubicTo(
+        p0.dx + h,
+        p0.dy + tangents[i] * h,
+        p1.dx - h,
+        p1.dy - tangents[i + 1] * h,
+        p1.dx,
+        p1.dy,
+      );
     }
     return path;
   }
 
-  void _tooltip(Canvas canvas, Rect plot, double anchorX, String title, List<(String, Color)> lines) {
+  void _tooltip(
+    Canvas canvas,
+    Rect plot,
+    double anchorX,
+    String title,
+    List<(String, Color)> lines,
+  ) {
     final painters = [
       _layout(title, size: 10.5, color: tooltipText, bold: true),
-      for (final (text, _) in lines) _layout(text, size: 10.5, color: tooltipText),
+      for (final (text, _) in lines)
+        _layout(text, size: 10.5, color: tooltipText),
     ];
     final width = painters.map((p) => p.width).reduce(math.max) + 26;
     final height = painters.fold<double>(0, (h, p) => h + p.height + 2) + 10;
     var left = anchorX + 10;
     if (left + width > plot.right) left = anchorX - 10 - width;
     left = left.clamp(plot.left, math.max(plot.left, plot.right - width));
-    final rect = RRect.fromRectAndRadius(Rect.fromLTWH(left, plot.top + 4, width, height), const Radius.circular(8));
-    canvas.drawRRect(rect, Paint()..color = tooltipBackground.withValues(alpha: 0.92));
+    final rect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(left, plot.top + 4, width, height),
+      const Radius.circular(8),
+    );
+    canvas.drawRRect(
+      rect,
+      Paint()..color = tooltipBackground.withValues(alpha: 0.92),
+    );
     var y = plot.top + 9;
     painters.first.paint(canvas, Offset(left + 8, y));
     y += painters.first.height + 2;
     for (var i = 0; i < lines.length; i++) {
-      canvas.drawCircle(Offset(left + 11, y + painters[i + 1].height / 2), 3.5, Paint()..color = lines[i].$2);
+      canvas.drawCircle(
+        Offset(left + 11, y + painters[i + 1].height / 2),
+        3.5,
+        Paint()..color = lines[i].$2,
+      );
       painters[i + 1].paint(canvas, Offset(left + 18, y));
       y += painters[i + 1].height + 2;
     }
   }
 
-  TextPainter _layout(String text, {required double size, Color? color, bool bold = false, double? maxWidth}) {
+  TextPainter _layout(
+    String text, {
+    required double size,
+    Color? color,
+    bool bold = false,
+    double? maxWidth,
+  }) {
     final painter = TextPainter(
       text: TextSpan(
         text: text,
@@ -547,6 +733,9 @@ class _SeriesPainter extends CustomPainter {
       old.touchX != touchX ||
       old.logScale != logScale ||
       old.band != band ||
+      old.progress != progress ||
+      old.pulse != pulse ||
+      old.modern != modern ||
       old.gridColor != gridColor;
 }
 
@@ -570,14 +759,24 @@ class ChartLegend extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               dashed
-                  ? SizedBox(width: 16, height: 10, child: CustomPaint(painter: _DashLegendPainter(color)))
+                  ? SizedBox(
+                      width: 16,
+                      height: 10,
+                      child: CustomPaint(painter: _DashLegendPainter(color)),
+                    )
                   : Container(
                       width: 10,
                       height: 10,
-                      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                      ),
                     ),
               const SizedBox(width: 6),
-              Text(label, style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
+              Text(
+                label,
+                style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
+              ),
             ],
           ),
       ],

@@ -150,7 +150,7 @@ class WellDetailScreen extends ConsumerWidget {
             childAspectRatio: isWideLayout(context) ? 1.45 : 1.18,
             children: [
               for (var i = 0; i < types.length; i++)
-                FadeSlideIn(index: i, child: _LastValueCard(type: types[i], wellId: wellId)),
+                FadeSlideIn(index: i, child: TapScale(child: _LastValueCard(type: types[i], wellId: wellId))),
             ],
           ),
           const SizedBox(height: 24),

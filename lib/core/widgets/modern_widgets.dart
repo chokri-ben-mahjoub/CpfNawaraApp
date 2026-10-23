@@ -181,16 +181,69 @@ class TrendBadge extends StatelessWidget {
     final good = flat ? null : (delta > 0) == goodWhenUp;
     final color = flat ? scheme.onSurfaceVariant : (good! ? const Color(0xFF2E7D32) : scheme.error);
     final icon = flat ? Icons.remove_rounded : (delta > 0 ? Icons.arrow_drop_up_rounded : Icons.arrow_drop_down_rounded);
-    return Container(
-      padding: const EdgeInsets.fromLTRB(2, 2, 8, 2),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(100)),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 20, color: color),
-          Text(text, style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 11.5)),
-        ],
+    return BounceIn(
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(2, 2, 8, 2),
+        decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(100)),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 20, color: color),
+            Text(text, style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 11.5)),
+          ],
+        ),
       ),
+    );
+  }
+}
+
+/// Retour tactile : la carte se « tasse » légèrement tant qu'on l'appuie
+/// (sans gêner l'InkWell / le clic du contenu).
+class TapScale extends StatefulWidget {
+  final Widget child;
+  final double scale;
+  const TapScale({super.key, required this.child, this.scale = 0.97});
+
+  @override
+  State<TapScale> createState() => _TapScaleState();
+}
+
+class _TapScaleState extends State<TapScale> {
+  bool _down = false;
+
+  void _set(bool v) {
+    if (_down != v) setState(() => _down = v);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      onPointerDown: (_) => _set(true),
+      onPointerUp: (_) => _set(false),
+      onPointerCancel: (_) => _set(false),
+      child: AnimatedScale(
+        scale: _down ? widget.scale : 1,
+        duration: const Duration(milliseconds: 110),
+        curve: Curves.easeOut,
+        child: widget.child,
+      ),
+    );
+  }
+}
+
+/// Apparition avec un petit rebond élastique (pastilles, coches, badges).
+class BounceIn extends StatelessWidget {
+  final Widget child;
+  const BounceIn({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.6, end: 1),
+      duration: const Duration(milliseconds: 520),
+      curve: Curves.elasticOut,
+      builder: (context, v, child) => Transform.scale(scale: v, child: child),
+      child: child,
     );
   }
 }

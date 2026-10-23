@@ -263,7 +263,7 @@ class _StockGauges extends StatelessWidget {
         for (var i = 0; i < items.length; i++)
           FadeSlideIn(
             index: i,
-            child: _GaugeCard(item: items[i], forecast: stock.forecastOf(items[i]), s: s, scheme: scheme),
+            child: TapScale(child: _GaugeCard(item: items[i], forecast: stock.forecastOf(items[i]), s: s, scheme: scheme)),
           ),
       ],
     );

@@ -10,6 +10,7 @@ import '../../../core/sync/firebase_rest.dart';
 import '../../../core/sync/sync_service.dart';
 import '../../../core/team/team_service.dart';
 import '../../../core/widgets/hero_header.dart';
+import '../../../core/widgets/modern_widgets.dart';
 import 'audit_detail_screen.dart';
 import '../../../core/widgets/responsive.dart';
 import '../../setup/presentation/widgets/team_account_form.dart';
@@ -573,7 +574,10 @@ class _AuditScreenState extends ConsumerState<AuditScreen> {
                 ),
               ),
               for (final e in byDay[day]!)
-                _AuditCard(entry: e, t: t, locale: locale, all: all),
+                TapScale(
+                  scale: 0.98,
+                  child: _AuditCard(entry: e, t: t, locale: locale, all: all),
+                ),
             ],
             if (_entries != null && all.length >= _limit)
               Padding(
