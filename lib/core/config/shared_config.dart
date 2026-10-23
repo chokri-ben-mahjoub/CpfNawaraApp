@@ -72,12 +72,14 @@ class SharedConfigController extends StateNotifier<SharedConfig> {
 
   Future<void> setMissingDeadline(TimeOfDay time) => set(missingDeadlineKey, formatDeadline(time));
 
+  /// Prochain numéro proposé (sans l'enregistrer).
+  int peekNextReportNumber() => (int.tryParse(state.values[plantReportCounterKey] ?? '') ?? 0) + 1;
+
   /// Numéro du prochain rapport journalier à émettre, au format `n/aa`
   /// (deux derniers chiffres de l'année) — incrémente et enregistre
   /// aussitôt, pour qu'il ne soit jamais réutilisé.
-  Future<String> nextReportNumber() async {
-    final current = int.tryParse(state.values[plantReportCounterKey] ?? '') ?? 0;
-    final next = current + 1;
+  Future<String> nextReportNumber({int? number}) async {
+    final next = number ?? peekNextReportNumber();
     await set(plantReportCounterKey, '$next');
     final yy = (DateTime.now().year % 100).toString().padLeft(2, '0');
     return '$next/$yy';

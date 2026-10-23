@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -301,7 +302,40 @@ class PlantScreen extends ConsumerWidget {
       if (choice == null || !context.mounted) return;
       includeMissing = choice;
     }
-    final reportNumber = await ref.read(sharedConfigProvider.notifier).nextReportNumber();
+    final config = ref.read(sharedConfigProvider.notifier);
+    final numberController = TextEditingController(text: '${config.peekNextReportNumber()}');
+    final chosen = await showDialog<int>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(s('plantReportNumberTitle')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: numberController,
+              keyboardType: TextInputType.number,
+              autofocus: true,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            ),
+            const SizedBox(height: 8),
+            Text(s('plantReportNumberHint')),
+          ],
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () {
+              final n = int.tryParse(numberController.text);
+              if (n != null && n > 0) Navigator.of(dialogContext).pop(n);
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+    numberController.dispose();
+    if (chosen == null || !context.mounted) return;
+    final reportNumber = await config.nextReportNumber(number: chosen);
     if (!context.mounted) return;
     final bytes = await runWithLoading(
       context,
