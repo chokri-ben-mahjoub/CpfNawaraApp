@@ -64,6 +64,21 @@ String? auditRoute(AuditEntry e) {
   };
 }
 
+/// Texte d'audit sans données d'image : toute longue suite base64 devient
+/// « image » (les anciennes entrées contiennent encore l'image brute).
+String auditSafeText(String text, String Function(String) t) {
+  final image = t('auditImageValue');
+  return text
+      .replaceAll('[image]', image)
+      .replaceAll(RegExp(r'data:image/[a-z+]+;base64,[A-Za-z0-9+/=]*'), image)
+      .replaceAll(RegExp(r'[A-Za-z0-9+/=]{80,}…?'), image);
+}
+
+bool _isImageChange(AuditChange c) {
+  bool img(String v) => v == '[image]' || v.startsWith('data:image') || RegExp(r'^[A-Za-z0-9+/=]{50,}…?$').hasMatch(v);
+  return c.field.endsWith('_b64') || c.field == 'photo' || img(c.before) || img(c.after);
+}
+
 String _prettyField(String key, String Function(String) t) {
   final translated = t('auditField_$key');
   if (translated != 'auditField_$key') return translated;
@@ -206,7 +221,7 @@ class _AuditScreenState extends ConsumerState<AuditScreen> {
     String t(String key) => tr(locale, key);
     final dateFormat = DateFormat('yyyy-MM-dd HH:mm');
     String changesText(AuditEntry e) => e.changes
-        .map((c) => '${_prettyField(c.field, t)}: ${c.before.isEmpty ? '—' : c.before} → ${c.after.isEmpty ? '—' : c.after}')
+        .map((c) => _isImageChange(c) ? '${_prettyField(c.field, t)}: ${t('auditImageChanged')}' : '${_prettyField(c.field, t)}: ${c.before.isEmpty ? '—' : c.before} → ${c.after.isEmpty ? '—' : c.after}')
         .join(' ; ');
     await runExport(
       context: context,
@@ -224,7 +239,7 @@ class _AuditScreenState extends ConsumerState<AuditScreen> {
                 e.name.isEmpty ? e.email : e.name,
                 t(auditActionKey(auditEffectiveAction(e))),
                 t(auditTableKey(e.table)),
-                e.label,
+                auditSafeText(e.label, t),
                 changesText(e),
               ],
           ],
@@ -541,7 +556,7 @@ class _AuditCard extends StatelessWidget {
               ),
               const SizedBox(height: 3),
               Text(
-                '${t(auditTableKey(e.table))} · ${e.label}',
+                '${t(auditTableKey(e.table))} · ${auditSafeText(e.label, t)}',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant, height: 1.3),
@@ -574,26 +589,109 @@ class _AuditCard extends StatelessWidget {
         side: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.6)),
       ),
       clipBehavior: Clip.antiAlias,
-      child: e.changes.isEmpty
-          ? Padding(padding: const EdgeInsets.all(12), child: header)
-          : Theme(
-              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-              child: ExpansionTile(
-                tilePadding: const EdgeInsets.fromLTRB(12, 4, 8, 4),
-                childrenPadding: const EdgeInsets.fromLTRB(66, 0, 14, 12),
-                expandedCrossAxisAlignment: CrossAxisAlignment.start,
-                title: header,
-                trailing: const SizedBox.shrink(),
-                subtitle: Padding(
+      child: InkWell(
+        onTap: () => _showDetails(context),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              header,
+              if (e.changes.isNotEmpty)
+                Padding(
                   padding: const EdgeInsets.only(left: 54, top: 6),
                   child: Text(
                     fill(t('auditChangedFields'), {'n': '${e.changes.length}'}),
                     style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: scheme.primary),
                   ),
                 ),
-                children: [for (final c in e.changes) _ChangeRow(change: c, t: t)],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showDetails(BuildContext context) {
+    final e = entry;
+    final action = auditEffectiveAction(e);
+    final dateText = DateFormat('EEEE d MMMM yyyy · HH:mm:ss', locale.languageCode).format(e.at);
+    final route = auditRoute(e);
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+      builder: (sheetContext) {
+        final scheme = Theme.of(sheetContext).colorScheme;
+        final color = _actionColor(action, scheme);
+        Widget info(IconData icon, String label, String value) => Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, size: 19, color: scheme.onSurfaceVariant),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label, style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: scheme.onSurfaceVariant)),
+                    const SizedBox(height: 2),
+                    SelectableText(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, height: 1.35)),
+                  ],
+                ),
               ),
-            ),
+            ],
+          ),
+        );
+        return SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(22, 0, 22, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(color: color.withValues(alpha: 0.13), shape: BoxShape.circle),
+                    child: Icon(_actionIcon(action), color: color),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      t(auditActionKey(action)),
+                      style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: color),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              info(Icons.person_outline, t('auditUser'), e.name.isEmpty ? e.email : '${e.name} · ${e.email}'),
+              info(Icons.schedule_rounded, t('colDate'), dateText),
+              info(Icons.folder_open_outlined, t('auditTable'), t(auditTableKey(e.table))),
+              info(Icons.notes_rounded, t('auditDetail'), auditSafeText(e.label, t)),
+              if (e.changes.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(t('auditChanges'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+                for (final c in e.changes) _ChangeRow(change: c, t: t),
+              ],
+              if (route != null) ...[
+                const SizedBox(height: 18),
+                FilledButton.icon(
+                  onPressed: () {
+                    Navigator.of(sheetContext).pop();
+                    context.push(route);
+                  },
+                  icon: const Icon(Icons.open_in_new_rounded),
+                  label: Text(t('auditOpen')),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -620,6 +718,7 @@ class _ChangeRow extends StatelessWidget {
         ),
       ),
     );
+    final isImage = _isImageChange(change);
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Wrap(
@@ -628,9 +727,13 @@ class _ChangeRow extends StatelessWidget {
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           Text(_prettyField(change.field, t), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5)),
-          pill(change.before, scheme.error, strike: true),
-          Icon(Icons.arrow_forward_rounded, size: 16, color: scheme.onSurfaceVariant),
-          pill(change.after, const Color(0xFF2E9E5B)),
+          if (isImage)
+            pill(t('auditImageChanged'), scheme.primary)
+          else ...[
+            pill(change.before, scheme.error, strike: true),
+            Icon(Icons.arrow_forward_rounded, size: 16, color: scheme.onSurfaceVariant),
+            pill(change.after, const Color(0xFF2E9E5B)),
+          ],
         ],
       ),
     );

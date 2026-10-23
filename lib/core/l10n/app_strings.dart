@@ -1820,6 +1820,8 @@ final _strings = <String, Map<String, String>>{
   'reportAttachHint': {'fr': 'Le PDF a été téléchargé : joignez-le au message.', 'en': 'The PDF was downloaded: attach it to the message.'},
   'reportSendError': {'fr': 'Envoi impossible depuis cet appareil.', 'en': 'Cannot send from this device.'},
   'reportMailBody': {'fr': 'Bonjour,\n\nVeuillez trouver ci-joint le rapport journalier de l\'usine CPF — N° {n}, journée du {date}.\n\nCordialement,\n{name}', 'en': 'Hello,\n\nPlease find attached the CPF plant daily report — No. {n}, day {date}.\n\nBest regards,\n{name}'},
+  'auditImageValue': {'fr': 'image', 'en': 'image'},
+  'auditImageChanged': {'fr': 'Image modifiée', 'en': 'Image changed'},
   'auditAllActions': {'fr': 'Toutes les actions', 'en': 'All actions'},
   'auditResetFilters': {'fr': 'Réinitialiser', 'en': 'Reset'},
   'auditCount': {'fr': '{n} sur {total} entrées', 'en': '{n} of {total} entries'},

@@ -274,7 +274,11 @@ class SyncEngine {
     return '$v';
   }
 
-  static String _short(String v) => v.length > 60 ? '${v.substring(0, 57)}…' : v;
+  /// Image (base64 / data URI) : on ne la recopie jamais dans le journal.
+  static bool _isImage(String v) =>
+      v.startsWith('data:image') || (v.length > 200 && RegExp(r'^[A-Za-z0-9+/=\s]+$').hasMatch(v));
+
+  static String _short(String v) => _isImage(v) ? '[image]' : (v.length > 60 ? '${v.substring(0, 57)}…' : v);
 
   /// Champs qui diffèrent entre la version du serveur et la ligne locale.
   static List<AuditChange> _diff(Map<String, Object?> before, Map<String, Object?> after) {
@@ -478,7 +482,8 @@ class _Describer {
         return '${points[row['point_id']]?['code'] ?? v('point_id')} · ${v('param_key')} : '
             '${row['min_value'] ?? '—'} – ${row['max_value'] ?? '—'}';
       case 'app_config':
-        return '${v('id')} = ${v('value')}';
+        final value = v('value');
+        return '${v('id')} = ${v('id').endsWith('_b64') || SyncEngine._isImage(value) ? '[image]' : value}';
       default:
         return v('id');
     }
