@@ -21,7 +21,7 @@ class LocalDatabase {
   static final LocalDatabase instance = LocalDatabase._();
 
   /// Version du schéma (voir `onUpgrade`), enregistrée dans les sauvegardes.
-  static const schemaVersion = 19;
+  static const schemaVersion = 20;
 
   /// Tables sauvegardées / restaurées / synchronisées.
   static const dataTables = [
@@ -281,6 +281,15 @@ class LocalDatabase {
             await db.execute('alter table stock_items add column prev_consumption real');
             await db.execute('alter table stock_items add column pending_order real not null default 0');
           }
+          if (oldVersion < 20) {
+            // Test de puits (choke, tête de puits, injection chimique,
+            // séparateur de test) : nouveaux types d'analyse "à la demande",
+            // modifiables ensuite comme n'importe quel type (Administration
+            // › Types d'analyses).
+            for (final type in _wellTestTypes) {
+              await db.insert('analysis_types', type, conflictAlgorithm: ConflictAlgorithm.ignore);
+            }
+          }
         },
       ),
     );
@@ -519,8 +528,9 @@ class LocalDatabase {
   }
 
   /// Réajoute les types d'analyse intégrés apparus après la version
-  /// [fromVersion] du schéma (débits en v3, Pwf en v5) — utilisé après la
-  /// restauration d'une sauvegarde créée par une version plus ancienne.
+  /// [fromVersion] du schéma (débits en v3, Pwf en v5, test de puits en
+  /// v20) — utilisé après la restauration d'une sauvegarde créée par une
+  /// version plus ancienne.
   static Future<void> addBuiltInTypesSince(DatabaseExecutor db, int fromVersion) async {
     if (fromVersion < 3) {
       for (final type in _productionFlowTypes) {
@@ -550,6 +560,11 @@ class LocalDatabase {
     }
     if (fromVersion < 13) {
       await _createStockTables(db);
+    }
+    if (fromVersion < 20) {
+      for (final type in _wellTestTypes) {
+        await db.insert('analysis_types', type, conflictAlgorithm: ConflictAlgorithm.ignore);
+      }
     }
   }
 
@@ -646,6 +661,7 @@ const _seedTypes = [
   },
   ..._productionFlowTypes,
   _bottomHolePressureType,
+  ..._wellTestTypes,
 ];
 
 Future<void> _createInterventionsTable(Database db) async {
@@ -676,6 +692,104 @@ const _bottomHolePressureType = {
   'max_value': 1000.0,
   'frequency': 'on_demand',
 };
+
+/// Test de puits (relevé ponctuel choke/tête de puits/injection
+/// chimique/séparateur de test, comme sur une fiche de test papier) :
+/// mesures "à la demande", jamais attendues un jour donné. Plages larges
+/// (pas de vrai seuil tant que l'admin ne les a pas resserrées pour son
+/// puits dans Administration › Types d'analyses) — noms et unités
+/// également modifiables là.
+const _wellTestTypes = [
+  {'id': 't_choke', 'label': 'Choke', 'unit': 'X/64', 'min_value': 0.0, 'max_value': 100.0, 'frequency': 'on_demand'},
+  {
+    'id': 't_choke_ds_pressure',
+    'label': 'Pression aval choke',
+    'unit': 'bar',
+    'min_value': 0.0,
+    'max_value': 300.0,
+    'frequency': 'on_demand',
+  },
+  {
+    'id': 't_choke_ds_temp',
+    'label': 'Température aval choke',
+    'unit': '°C',
+    'min_value': -20.0,
+    'max_value': 200.0,
+    'frequency': 'on_demand',
+  },
+  {
+    'id': 't_annulus_pressure',
+    'label': 'Pression annulaire',
+    'unit': 'bar',
+    'min_value': 0.0,
+    'max_value': 300.0,
+    'frequency': 'on_demand',
+  },
+  {
+    'id': 't_wellhead_pressure',
+    'label': 'Pression tête de puits',
+    'unit': 'bar',
+    'min_value': 0.0,
+    'max_value': 300.0,
+    'frequency': 'on_demand',
+  },
+  {
+    'id': 't_wellhead_temp',
+    'label': 'Température tête de puits',
+    'unit': '°C',
+    'min_value': -20.0,
+    'max_value': 200.0,
+    'frequency': 'on_demand',
+  },
+  {
+    'id': 't_methanol_rate',
+    'label': 'Injection méthanol',
+    'unit': 'L/h',
+    'min_value': 0.0,
+    'max_value': 500.0,
+    'frequency': 'on_demand',
+  },
+  {
+    'id': 't_corr_inh_rate',
+    'label': 'Injection inhibiteur de corrosion',
+    'unit': 'L/h',
+    'min_value': 0.0,
+    'max_value': 500.0,
+    'frequency': 'on_demand',
+  },
+  {
+    'id': 't_test_sep_pressure',
+    'label': 'Pression séparateur de test',
+    'unit': 'bar',
+    'min_value': 0.0,
+    'max_value': 300.0,
+    'frequency': 'on_demand',
+  },
+  {
+    'id': 't_test_gas_rate',
+    'label': 'Débit gaz (test séparateur)',
+    'unit': 'Sm³/j',
+    'min_value': 0.0,
+    'max_value': 1000000.0,
+    'frequency': 'on_demand',
+  },
+  {
+    'id': 't_test_condensate_rate',
+    'label': 'Débit condensat (test séparateur)',
+    'unit': 'm³/j',
+    'min_value': 0.0,
+    'max_value': 100000.0,
+    'frequency': 'on_demand',
+  },
+  {
+    'id': 't_test_water_rate',
+    'label': 'Débit eau (test séparateur)',
+    'unit': 'm³/j',
+    'min_value': 0.0,
+    'max_value': 100000.0,
+    'frequency': 'on_demand',
+  },
+];
 
 /// Correspondance ancien → nouveau nom des 5 puits de démo, utilisée par la
 /// migration v4 (voir `onUpgrade`) pour les installations déjà existantes.

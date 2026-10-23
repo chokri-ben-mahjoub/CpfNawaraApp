@@ -146,7 +146,11 @@ void main() {
     // v19 : suivi annuel du stock (référence, MMN, consommation N-1, commande).
     final stockItemsColumns = await db.rawQuery('pragma table_info(stock_items)');
     expect(stockItemsColumns.map((r) => r['name']), containsAll(['reference', 'mmn', 'prev_consumption', 'pending_order']));
-    expect(LocalDatabase.schemaVersion, 19);
+    // v20 : types d'analyse "test de puits" (choke, tête de puits, injection
+    // chimique, séparateur de test).
+    final testTypeIds = (await db.query('analysis_types', columns: ['id'])).map((r) => r['id']);
+    expect(testTypeIds, containsAll(['t_choke', 't_wellhead_pressure', 't_test_gas_rate']));
+    expect(LocalDatabase.schemaVersion, 20);
 
     // Première connexion : tout ce qui a été saisi/modifié part au serveur.
     final engine = SyncEngine(
