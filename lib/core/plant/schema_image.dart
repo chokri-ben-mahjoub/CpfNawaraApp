@@ -34,13 +34,13 @@ SchemaImage? compressSchemaImage(Uint8List bytes) {
     img.fill(white, color: img.ColorRgb8(255, 255, 255));
     source = img.compositeImage(white, source);
   }
-  for (final (maxSide, quality) in const [(1800, 82), (1600, 75), (1400, 68), (1200, 62), (1000, 55), (800, 50)]) {
+  for (final (maxSide, quality) in const [(2600, 92), (2400, 90), (2200, 87), (2000, 84), (1800, 80), (1600, 75), (1400, 68), (1200, 62), (1000, 55), (800, 50)]) {
     final longest = source.width > source.height ? source.width : source.height;
     final resized = longest <= maxSide
         ? source
         : source.width >= source.height
-        ? img.copyResize(source, width: maxSide, interpolation: img.Interpolation.average)
-        : img.copyResize(source, height: maxSide, interpolation: img.Interpolation.average);
+        ? img.copyResize(source, width: maxSide, interpolation: img.Interpolation.cubic)
+        : img.copyResize(source, height: maxSide, interpolation: img.Interpolation.cubic);
     final encoded = base64Encode(img.encodeJpg(resized, quality: quality));
     if (encoded.length <= schemaImageMaxBase64) return SchemaImage(encoded, resized.width, resized.height);
   }

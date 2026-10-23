@@ -41,13 +41,13 @@ class PlantDiagram extends StatelessWidget {
         final canvas = PlantSchemaCanvas(
           schema: schema,
           day: day,
-          width: narrow ? 760.0 : available,
+          width: narrow ? 900.0 : available,
           onMarkerTap: onPointTap,
         );
         if (narrow) {
           return SingleChildScrollView(scrollDirection: Axis.horizontal, child: canvas);
         }
-        return ClipRect(child: InteractiveViewer(minScale: 1, maxScale: 4, child: canvas));
+        return ClipRect(child: InteractiveViewer(minScale: 1, maxScale: 6, child: canvas));
       },
     );
   }
@@ -114,6 +114,8 @@ class PlantSchemaCanvas extends ConsumerWidget {
         schema.imageBytes!,
         fit: BoxFit.fill,
         gaplessPlayback: true,
+        filterQuality: FilterQuality.high,
+        isAntiAlias: true,
       ),
       _ => CustomPaint(painter: _GridPainter(scheme.outlineVariant)),
     };
