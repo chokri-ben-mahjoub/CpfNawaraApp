@@ -11,7 +11,7 @@ import '../../../core/models/user_role.dart';
 import '../../../core/widgets/hero_header.dart';
 import '../../../core/widgets/responsive.dart';
 import '../../admin/presentation/widgets/admin_widgets.dart';
-import 'stock_screen.dart' show stockStatusColor, stockStatusLabel;
+import 'stock_screen.dart' show stockForecastText, stockStatusColor, stockStatusLabel;
 import 'widgets/stock_item_form_sheet.dart';
 import 'widgets/stock_movement_sheet.dart';
 
@@ -70,6 +70,8 @@ class StockItemDetailScreen extends ConsumerWidget {
               if (item.notes.trim().isNotEmpty) HeroStat(value: item.notes.trim(), label: s('stockNotesLabel')),
             ],
           ),
+          const SizedBox(height: 14),
+          _ForecastCard(item: item, stock: stock, s: s),
           if (role.canEnterData) ...[
             const SizedBox(height: 16),
             ResponsiveWrapGrid(
@@ -159,6 +161,51 @@ class _MovementTile extends ConsumerWidget {
           style: TextStyle(fontWeight: FontWeight.w800, color: color),
         ),
         subtitle: Text(subtitleParts.join(' · '), style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12.5)),
+      ),
+    );
+  }
+}
+
+/// Prévision de rupture : jours restants, date estimée et consommation moyenne.
+class _ForecastCard extends StatelessWidget {
+  final StockItem item;
+  final StockState stock;
+  final String Function(String) s;
+  const _ForecastCard({required this.item, required this.stock, required this.s});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final f = stock.forecastOf(item);
+    final urgent = f.hasRate && f.within(30);
+    final color = urgent ? const Color(0xFFE08A1E) : scheme.primary;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.09),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.trending_down_rounded, color: color, size: 28),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(s('stockForecastTitle'), style: TextStyle(fontWeight: FontWeight.w800, color: color)),
+                const SizedBox(height: 3),
+                Text(stockForecastText(f, s), style: const TextStyle(fontWeight: FontWeight.w700)),
+                if (f.hasRate)
+                  Text(
+                    fill(s('stockForecastRate'), {'rate': _qtyText(f.dailyRate), 'unit': item.unit}),
+                    style: TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant),
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

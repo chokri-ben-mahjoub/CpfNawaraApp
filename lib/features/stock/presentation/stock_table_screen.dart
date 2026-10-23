@@ -60,6 +60,7 @@ class StockAnnualTable extends ConsumerWidget {
       130.0,
       150.0,
       120.0,
+      190.0,
       260.0,
     ];
 
@@ -125,7 +126,12 @@ class StockAnnualTable extends ConsumerWidget {
                             width: widths[7],
                             color: r.toOrder > 0 ? scheme.error : null,
                           ),
-                          cell(r.item.notes, width: widths[8]),
+                          cell(
+                            stockForecastText(r.forecast, s),
+                            width: widths[8],
+                            color: r.forecast.hasRate && r.forecast.within(30) ? const Color(0xFFE08A1E) : null,
+                          ),
+                          cell(r.item.notes, width: widths[9]),
                         ],
                       ),
                     ),

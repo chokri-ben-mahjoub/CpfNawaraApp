@@ -32,6 +32,22 @@ class StockState {
     return total;
   }
 
+  /// Prévision de rupture de [item] (voir [stockForecast]).
+  StockForecast forecastOf(StockItem item, {DateTime? now}) => stockForecast(item, movements, now: now);
+
+  /// Articles dont la rupture est prévue sous [days] jours (pas encore en
+  /// rupture), du plus urgent au moins urgent.
+  List<(StockItem, StockForecast)> watchList({int days = 30, DateTime? now}) {
+    final out = <(StockItem, StockForecast)>[];
+    for (final item in items) {
+      if (item.isOut) continue;
+      final f = forecastOf(item, now: now);
+      if (f.hasRate && f.within(days)) out.add((item, f));
+    }
+    out.sort((a, b) => a.$2.daysLeft!.compareTo(b.$2.daysLeft!));
+    return out;
+  }
+
   /// Articles à leur seuil d'alerte ou en dessous, triés du plus critique
   /// (rupture) au moins critique.
   List<StockItem> get lowStockItems {

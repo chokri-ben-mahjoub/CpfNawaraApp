@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/auth/auth_providers.dart';
 import '../../../core/data/stock_repository.dart';
@@ -21,7 +22,8 @@ import 'widgets/stock_item_form_sheet.dart';
 class StockTableRow {
   final StockItem item;
   final double consumption;
-  const StockTableRow(this.item, this.consumption);
+  final StockForecast forecast;
+  const StockTableRow(this.item, this.consumption, this.forecast);
 
   double get toOrder => item.toOrder(consumption);
 }
@@ -32,7 +34,7 @@ List<StockTableRow> stockTableRows(StockState stock, int year) {
       final byCategory = a.category.compareTo(b.category);
       return byCategory != 0 ? byCategory : a.name.toLowerCase().compareTo(b.name.toLowerCase());
     });
-  return [for (final i in items) StockTableRow(i, stock.consumptionOf(i.id, year))];
+  return [for (final i in items) StockTableRow(i, stock.consumptionOf(i.id, year), stock.forecastOf(i))];
 }
 
 /// En-têtes du tableau de suivi annuel pour l'année [year].
@@ -45,6 +47,7 @@ List<String> stockTableHeaders(String Function(String) s, int year) => [
   fill(s('stockColAvailable'), {'y': '$year'}),
   fill(s('stockColPending'), {'y': '$year'}),
   s('stockColToOrder'),
+  s('stockColRunOut'),
   s('stockNotesLabel'),
 ];
 
@@ -74,6 +77,7 @@ Future<void> exportStock(WidgetRef ref, BuildContext context) async {
               r.item.quantity,
               r.item.pendingOrder,
               r.toOrder,
+              stockForecastText(r.forecast, s),
               r.item.notes,
             ],
         ],
@@ -92,6 +96,14 @@ String stockStatusLabel(StockItem item, String Function(String) s) {
   if (item.isOut) return s('stockStatusOut');
   if (item.isLow) return s('stockStatusLow');
   return s('stockStatusOk');
+}
+
+/// Texte court d'une prévision : « dans ~12 j · vers le 04/11/2026 ».
+String stockForecastText(StockForecast f, String Function(String) s) {
+  if (f.daysLeft == null) return s('stockForecastNone');
+  final days = f.daysLeft == 0 ? s('stockForecastToday') : fill(s('stockForecastDays'), {'n': '${f.daysLeft}'});
+  final date = fill(s('stockForecastDate'), {'date': DateFormat('dd/MM/yyyy').format(f.runOutDate!)});
+  return '$days · $date';
 }
 
 String _qtyText(double v) => v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(2);
@@ -191,6 +203,29 @@ class StockScreen extends ConsumerWidget {
                       onTap: () => context.push('/stock/${i.id}'),
                     ),
                   ),
+                  const SizedBox(height: 8),
+                ],
+                if (stock.watchList().isNotEmpty) ...[
+                  AdminSectionTitle(s('stockWatchSection')),
+                  for (final (item, f) in stock.watchList())
+                    AdminCard(
+                      leading: IconBadge(Icons.trending_down_rounded, color: const Color(0xFFE08A1E)),
+                      title: item.name,
+                      subtitle:
+                          '${stockForecastText(f, s)}\n${fill(s('stockForecastRate'), {'rate': _qtyText(f.dailyRate), 'unit': item.unit})}',
+                      trailing: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE08A1E).withValues(alpha: 0.14),
+                          borderRadius: BorderRadius.circular(100),
+                        ),
+                        child: Text(
+                          '${f.daysLeft} j',
+                          style: const TextStyle(color: Color(0xFFE08A1E), fontWeight: FontWeight.w800, fontSize: 12),
+                        ),
+                      ),
+                      onTap: () => context.push('/stock/${item.id}'),
+                    ),
                   const SizedBox(height: 8),
                 ],
                 AdminSectionTitle(s('stockAnnualSection')),

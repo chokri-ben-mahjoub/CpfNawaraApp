@@ -116,3 +116,51 @@ class StockMovement {
 
   bool get isEntry => delta > 0;
 }
+
+/// Prévision de rupture d'un article d'après sa consommation récente.
+class StockForecast {
+  /// Consommation moyenne par jour (unité de l'article) ; 0 = aucune sortie
+  /// récente.
+  final double dailyRate;
+
+  /// Jours restants avant rupture ; nul = impossible à estimer (pas de
+  /// consommation récente).
+  final int? daysLeft;
+
+  /// Date estimée de rupture.
+  final DateTime? runOutDate;
+
+  const StockForecast({required this.dailyRate, required this.daysLeft, required this.runOutDate});
+
+  bool get hasRate => dailyRate > 0;
+
+  /// Rupture prévue dans moins de [days] jours (ou déjà en rupture).
+  bool within(int days) => daysLeft != null && daysLeft! <= days;
+}
+
+/// Prévision de rupture : consommation moyenne des [windowDays] derniers
+/// jours (au moins 7 jours de recul, pour ne pas extrapoler une seule sortie)
+/// appliquée à la quantité actuelle.
+StockForecast stockForecast(
+  StockItem item,
+  Iterable<StockMovement> movements, {
+  DateTime? now,
+  int windowDays = 30,
+}) {
+  final today = now ?? DateTime.now();
+  final cutoff = today.subtract(Duration(days: windowDays));
+  var total = 0.0;
+  DateTime? first;
+  for (final m in movements) {
+    if (m.itemId != item.id || m.delta >= 0 || m.dateTime.isBefore(cutoff) || m.dateTime.isAfter(today)) continue;
+    total -= m.delta;
+    if (first == null || m.dateTime.isBefore(first)) first = m.dateTime;
+  }
+  if (first == null || total <= 0) {
+    return StockForecast(dailyRate: 0, daysLeft: item.quantity <= 0 ? 0 : null, runOutDate: item.quantity <= 0 ? today : null);
+  }
+  final span = today.difference(first).inDays.clamp(7, windowDays);
+  final rate = total / span;
+  final days = item.quantity <= 0 ? 0 : (item.quantity / rate).floor();
+  return StockForecast(dailyRate: rate, daysLeft: days, runOutDate: today.add(Duration(days: days)));
+}
