@@ -136,23 +136,7 @@ class WellDetailScreen extends ConsumerWidget {
           const SizedBox(height: 20),
           InterventionsSection(wellId: wellId),
           const SizedBox(height: 20),
-          Text(
-            s('wellDetailLastValues'),
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 10),
-          GridView.count(
-            crossAxisCount: isWideLayout(context) ? 4 : 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 10,
-            childAspectRatio: isWideLayout(context) ? 1.45 : 1.18,
-            children: [
-              for (var i = 0; i < types.length; i++)
-                FadeSlideIn(index: i, child: TapScale(child: _LastValueCard(type: types[i], wellId: wellId))),
-            ],
-          ),
+          _GroupedLastValues(types: types, wellId: wellId),
           const SizedBox(height: 24),
           Row(
             children: [
@@ -438,6 +422,70 @@ class _HealthBanner extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Dernières valeurs, par section (ex: "Tête de puits", "Séparateur de
+/// test") pour les types regroupés par l'Admin — comme sur une fiche de
+/// test papier — puis les types restants, sans groupe, comme avant.
+class _GroupedLastValues extends ConsumerWidget {
+  final List<AnalysisType> types;
+  final String wellId;
+
+  const _GroupedLastValues({required this.types, required this.wellId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final locale = ref.watch(localeProvider);
+    String s(String key) => tr(locale, key);
+
+    final groupOrder = <String>[];
+    final byGroup = <String, List<AnalysisType>>{};
+    final ungrouped = <AnalysisType>[];
+    for (final type in types) {
+      if (type.group.isEmpty) {
+        ungrouped.add(type);
+      } else {
+        (byGroup[type.group] ??= []).add(type);
+        if (!groupOrder.contains(type.group)) groupOrder.add(type.group);
+      }
+    }
+
+    Widget grid(List<AnalysisType> list) => GridView.count(
+      crossAxisCount: isWideLayout(context) ? 4 : 2,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: 10,
+      crossAxisSpacing: 10,
+      childAspectRatio: isWideLayout(context) ? 1.45 : 1.18,
+      children: [
+        for (var i = 0; i < list.length; i++)
+          FadeSlideIn(index: i, child: TapScale(child: _LastValueCard(type: list[i], wellId: wellId))),
+      ],
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (ungrouped.isNotEmpty) ...[
+          Text(
+            s('wellDetailLastValues'),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 10),
+          grid(ungrouped),
+        ],
+        for (final group in groupOrder) ...[
+          SizedBox(height: ungrouped.isEmpty && group == groupOrder.first ? 0 : 20),
+          Text(
+            group,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, color: accentColor),
+          ),
+          const SizedBox(height: 10),
+          grid(byGroup[group]!),
+        ],
+      ],
     );
   }
 }

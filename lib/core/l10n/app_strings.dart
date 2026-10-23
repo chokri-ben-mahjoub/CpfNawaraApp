@@ -368,6 +368,12 @@ final _strings = <String, Map<String, String>>{
   'adminInvalidName': {'fr': 'Veuillez saisir un nom.', 'en': 'Please enter a name.'},
   'adminUnitLabel': {'fr': 'Unité (ex: %, bar, ppm)', 'en': 'Unit (e.g. %, bar, ppm)'},
   'adminInvalidUnit': {'fr': 'Veuillez saisir une unité.', 'en': 'Please enter a unit.'},
+  'adminGroupLabel': {'fr': 'Groupe (facultatif)', 'en': 'Group (optional)'},
+  'adminGroupHint': {
+    'fr': 'ex: Tête de puits — regroupe l\'affichage avec les autres types du même groupe',
+    'en': 'e.g. Wellhead — groups the display with other types in the same group',
+  },
+  'adminUngroupedTypes': {'fr': 'Sans groupe', 'en': 'Ungrouped'},
   'adminMinLabel': {'fr': 'Seuil minimum', 'en': 'Minimum threshold'},
   'adminMaxLabel': {'fr': 'Seuil maximum', 'en': 'Maximum threshold'},
   'adminInvalidThreshold': {'fr': 'Valeur numérique requise.', 'en': 'A numeric value is required.'},

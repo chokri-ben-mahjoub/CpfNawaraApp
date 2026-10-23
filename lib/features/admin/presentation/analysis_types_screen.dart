@@ -20,6 +20,34 @@ class AnalysisTypesScreen extends ConsumerWidget {
     final types = ref.watch(wellsControllerProvider).analysisTypes;
     String s(String key) => tr(locale, key);
 
+    // Groupés (ex: "Tête de puits") d'abord, dans l'ordre d'apparition ;
+    // sans groupe ensuite, chacun seul — pour comprendre d'un coup d'œil
+    // quels types s'affichent ensemble à la saisie et dans l'historique.
+    final groups = <String>[];
+    final byGroup = <String, List<AnalysisType>>{};
+    final ungrouped = <AnalysisType>[];
+    for (final type in types) {
+      if (type.group.isEmpty) {
+        ungrouped.add(type);
+      } else {
+        (byGroup[type.group] ??= []).add(type);
+        if (!groups.contains(type.group)) groups.add(type.group);
+      }
+    }
+
+    Widget typeCard(AnalysisType type) => Card(
+      child: ListTile(
+        leading: const Icon(Icons.science_outlined, color: accentColor),
+        title: Text('${type.label} (${type.unit})', style: const TextStyle(fontWeight: FontWeight.w700)),
+        subtitle: Text(
+          '${type.min} – ${type.max} ${type.unit} · ${s(type.frequency.labelKey)}',
+          style: TextStyle(color: scheme.onSurfaceVariant),
+        ),
+        trailing: const Icon(Icons.edit_outlined),
+        onTap: () => _openEditor(context, ref, existing: type),
+      ),
+    );
+
     return Scaffold(
       appBar: AppBar(title: Text(s('adminTypesTitle'))),
       floatingActionButton: FloatingActionButton.extended(
@@ -27,25 +55,32 @@ class AnalysisTypesScreen extends ConsumerWidget {
         icon: const Icon(Icons.add),
         label: Text(s('adminAddType')),
       ),
-      body: ListView.separated(
+      body: ListView(
         padding: pagePadding(context, top: 12, bottom: 130),
-        itemCount: types.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 10),
-        itemBuilder: (context, i) {
-          final type = types[i];
-          return Card(
-            child: ListTile(
-              leading: const Icon(Icons.science_outlined, color: accentColor),
-              title: Text('${type.label} (${type.unit})', style: const TextStyle(fontWeight: FontWeight.w700)),
-              subtitle: Text(
-                '${type.min} – ${type.max} ${type.unit} · ${s(type.frequency.labelKey)}',
-                style: TextStyle(color: scheme.onSurfaceVariant),
+        children: [
+          for (final group in groups) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 4, 4, 8),
+              child: Text(
+                group,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800, color: accentColor),
               ),
-              trailing: const Icon(Icons.edit_outlined),
-              onTap: () => _openEditor(context, ref, existing: type),
             ),
-          );
-        },
+            for (final type in byGroup[group]!) ...[typeCard(type), const SizedBox(height: 10)],
+            const SizedBox(height: 10),
+          ],
+          if (ungrouped.isNotEmpty && groups.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 4, 4, 8),
+              child: Text(
+                s('adminUngroupedTypes'),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800, color: scheme.onSurfaceVariant),
+              ),
+            ),
+          for (final type in ungrouped) ...[typeCard(type), const SizedBox(height: 10)],
+        ],
       ),
     );
   }
@@ -74,6 +109,7 @@ class _AnalysisTypeFormState extends ConsumerState<_AnalysisTypeForm> {
   late final TextEditingController _unitController;
   late final TextEditingController _minController;
   late final TextEditingController _maxController;
+  late final TextEditingController _groupController;
   late AnalysisFrequency _frequency;
 
   bool get _isNew => widget.existing == null;
@@ -86,6 +122,7 @@ class _AnalysisTypeFormState extends ConsumerState<_AnalysisTypeForm> {
     _unitController = TextEditingController(text: e?.unit ?? '');
     _minController = TextEditingController(text: e == null ? '' : e.min.toString());
     _maxController = TextEditingController(text: e == null ? '' : e.max.toString());
+    _groupController = TextEditingController(text: e?.group ?? '');
     _frequency = e?.frequency ?? AnalysisFrequency.daily;
   }
 
@@ -95,6 +132,7 @@ class _AnalysisTypeFormState extends ConsumerState<_AnalysisTypeForm> {
     _unitController.dispose();
     _minController.dispose();
     _maxController.dispose();
+    _groupController.dispose();
     super.dispose();
   }
 
@@ -141,6 +179,7 @@ class _AnalysisTypeFormState extends ConsumerState<_AnalysisTypeForm> {
         min: min,
         max: max,
         frequency: _frequency,
+        group: _groupController.text.trim(),
       ));
       _showSnack(s('adminTypeAdded'));
     } else {
@@ -151,6 +190,7 @@ class _AnalysisTypeFormState extends ConsumerState<_AnalysisTypeForm> {
         min: min,
         max: max,
         frequency: _frequency,
+        group: _groupController.text.trim(),
       ));
       _showSnack(s('adminTypeUpdated'));
     }
@@ -211,6 +251,15 @@ class _AnalysisTypeFormState extends ConsumerState<_AnalysisTypeForm> {
               controller: _unitController,
               decoration: InputDecoration(labelText: s('adminUnitLabel')),
               validator: (v) => (v ?? '').trim().isEmpty ? s('adminInvalidUnit') : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _groupController,
+              decoration: InputDecoration(
+                labelText: s('adminGroupLabel'),
+                hintText: s('adminGroupHint'),
+                prefixIcon: const Icon(Icons.view_agenda_outlined),
+              ),
             ),
             const SizedBox(height: 12),
             Row(

@@ -196,10 +196,7 @@ class _QuickEntryScreenState extends ConsumerState<QuickEntryScreen> {
                           hintText: s('entrySelectType'),
                           prefixIcon: const Icon(Icons.science_outlined),
                         ),
-                        items: [
-                          for (final AnalysisType t in types)
-                            DropdownMenuItem(value: t.id, child: Text('${t.label} (${t.unit})')),
-                        ],
+                        items: _groupedTypeItems(types),
                         onChanged: widget.initialTypeId != null
                             ? null
                             : (value) => setState(() => _typeId = value),
@@ -271,6 +268,37 @@ class _QuickEntryScreenState extends ConsumerState<QuickEntryScreen> {
       ),
     );
   }
+}
+
+/// Items du menu "Type d'analyse" : types sans groupe d'abord (comme avant),
+/// puis chaque groupe (ex: "Tête de puits") précédé d'un en-tête non
+/// sélectionnable — pour comprendre d'un coup d'œil quels types vont
+/// ensemble, comme sur une fiche de test papier.
+List<DropdownMenuItem<String>> _groupedTypeItems(List<AnalysisType> types) {
+  final groupOrder = <String>[];
+  final byGroup = <String, List<AnalysisType>>{};
+  final ungrouped = <AnalysisType>[];
+  for (final t in types) {
+    if (t.group.isEmpty) {
+      ungrouped.add(t);
+    } else {
+      (byGroup[t.group] ??= []).add(t);
+      if (!groupOrder.contains(t.group)) groupOrder.add(t.group);
+    }
+  }
+
+  return [
+    for (final t in ungrouped) DropdownMenuItem(value: t.id, child: Text('${t.label} (${t.unit})')),
+    for (final group in groupOrder) ...[
+      DropdownMenuItem(
+        value: '__group_$group',
+        enabled: false,
+        child: Text(group, style: TextStyle(fontWeight: FontWeight.w800, color: accentColor)),
+      ),
+      for (final t in byGroup[group]!)
+        DropdownMenuItem(value: t.id, child: Padding(padding: const EdgeInsets.only(left: 12), child: Text('${t.label} (${t.unit})'))),
+    ],
+  ];
 }
 
 class _FieldLabel extends StatelessWidget {

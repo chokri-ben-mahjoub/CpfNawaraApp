@@ -150,7 +150,18 @@ void main() {
     // chimique, séparateur de test).
     final testTypeIds = (await db.query('analysis_types', columns: ['id'])).map((r) => r['id']);
     expect(testTypeIds, containsAll(['t_choke', 't_wellhead_pressure', 't_test_gas_rate']));
-    expect(LocalDatabase.schemaVersion, 20);
+    // v21 : regroupement visuel des types d'analyse (ex: "Tête de puits"),
+    // appliqué aux types "test de puits" qui viennent d'être insérés ci-dessus.
+    final analysisTypesColumns = await db.rawQuery('pragma table_info(analysis_types)');
+    expect(analysisTypesColumns.map((r) => r['name']), contains('group_label'));
+    final wellhead = (await db.query(
+      'analysis_types',
+      columns: ['group_label'],
+      where: 'id = ?',
+      whereArgs: ['t_wellhead_pressure'],
+    )).first;
+    expect(wellhead['group_label'], 'Tête de puits');
+    expect(LocalDatabase.schemaVersion, 21);
 
     // Première connexion : tout ce qui a été saisi/modifié part au serveur.
     final engine = SyncEngine(

@@ -21,7 +21,7 @@ class LocalDatabase {
   static final LocalDatabase instance = LocalDatabase._();
 
   /// Version du schéma (voir `onUpgrade`), enregistrée dans les sauvegardes.
-  static const schemaVersion = 20;
+  static const schemaVersion = 21;
 
   /// Tables sauvegardées / restaurées / synchronisées.
   static const dataTables = [
@@ -135,7 +135,8 @@ class LocalDatabase {
             unit text not null,
             min_value real not null,
             max_value real not null,
-            frequency text not null
+            frequency text not null,
+            group_label text not null default ''
           )
         ''');
           await db.execute('''
@@ -289,6 +290,16 @@ class LocalDatabase {
             for (final type in _wellTestTypes) {
               await db.insert('analysis_types', type, conflictAlgorithm: ConflictAlgorithm.ignore);
             }
+          }
+          if (oldVersion < 21) {
+            // Regroupement visuel des types d'analyse (ex: "Tête de puits",
+            // "Séparateur de test") : saisie et résultat affichés par
+            // section plutôt qu'en liste plate. Appliqué après l'ajout de la
+            // colonne, quel que soit l'état précédent (fonctionne aussi bien
+            // si les types "test de puits" viennent d'être insérés ci-dessus
+            // dans ce même passage, que s'ils existaient déjà depuis la v20).
+            await db.execute("alter table analysis_types add column group_label text not null default ''");
+            await _applyWellTestGroups(db);
           }
         },
       ),
@@ -566,6 +577,9 @@ class LocalDatabase {
         await db.insert('analysis_types', type, conflictAlgorithm: ConflictAlgorithm.ignore);
       }
     }
+    if (fromVersion < 21) {
+      await _applyWellTestGroups(db);
+    }
   }
 
   /// Puits et types d'analyse de démarrage, pour ne pas ouvrir l'app sur un
@@ -579,6 +593,7 @@ class LocalDatabase {
     for (final type in _seedTypes) {
       await db.insert('analysis_types', type);
     }
+    await _applyWellTestGroups(db);
     await _seedPlantCircuits(db);
     await _seedPlantPoints(db);
     await _seedPlantSchemas(db);
@@ -790,6 +805,32 @@ const _wellTestTypes = [
     'frequency': 'on_demand',
   },
 ];
+
+/// Regroupement visuel des types "test de puits" (saisie et résultat
+/// affichés par section, comme sur une fiche de test papier) — appliqué par
+/// une mise à jour séparée de l'insertion des types (v21), pour ne jamais
+/// dépendre de l'ordre des migrations : la colonne `group_label` peut être
+/// ajoutée avant ou après que les lignes existent déjà.
+const _wellTestTypeGroups = {
+  't_choke': 'Choke',
+  't_choke_ds_pressure': 'Aval choke',
+  't_choke_ds_temp': 'Aval choke',
+  't_annulus_pressure': 'Annulaire',
+  't_wellhead_pressure': 'Tête de puits',
+  't_wellhead_temp': 'Tête de puits',
+  't_methanol_rate': 'Injection chimique',
+  't_corr_inh_rate': 'Injection chimique',
+  't_test_sep_pressure': 'Séparateur de test',
+  't_test_gas_rate': 'Séparateur de test',
+  't_test_condensate_rate': 'Séparateur de test',
+  't_test_water_rate': 'Séparateur de test',
+};
+
+Future<void> _applyWellTestGroups(DatabaseExecutor db) async {
+  for (final entry in _wellTestTypeGroups.entries) {
+    await db.update('analysis_types', {'group_label': entry.value}, where: 'id = ?', whereArgs: [entry.key]);
+  }
+}
 
 /// Correspondance ancien → nouveau nom des 5 puits de démo, utilisée par la
 /// migration v4 (voir `onUpgrade`) pour les installations déjà existantes.

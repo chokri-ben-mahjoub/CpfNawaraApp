@@ -64,6 +64,12 @@ class AnalysisType {
   /// Unité enregistrée en base (toujours SI).
   final String storedUnit;
 
+  /// Regroupement visuel (ex: "Tête de puits", "Séparateur de test") : les
+  /// types qui partagent le même groupe sont affichés ensemble, par
+  /// section, à la saisie comme dans l'historique — plutôt qu'en liste
+  /// plate. Vide = pas de groupe (affiché seul, comme avant).
+  final String group;
+
   const AnalysisType({
     required this.id,
     required this.label,
@@ -72,6 +78,7 @@ class AnalysisType {
     required this.max,
     required this.frequency,
     String? storedUnit,
+    this.group = '',
   }) : storedUnit = storedUnit ?? unit;
 
   bool isOutOfRange(double value) => value < min || value > max;

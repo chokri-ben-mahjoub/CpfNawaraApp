@@ -331,6 +331,7 @@ class WellsController extends StateNotifier<WellsState> {
         'min_value': min,
         'max_value': max,
         'frequency': type.frequency.storageKey,
+        'group_label': type.group,
       }),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -631,6 +632,7 @@ AnalysisType _typeFromRow(Map<String, Object?> row) {
     max: max,
     frequency: AnalysisFrequencyX.fromStorageKey(row['frequency'] as String),
     storedUnit: storedUnit,
+    group: row['group_label'] as String? ?? '',
   );
 }
 
