@@ -10,6 +10,7 @@ import '../../../core/sync/firebase_rest.dart';
 import '../../../core/sync/sync_service.dart';
 import '../../../core/team/team_service.dart';
 import '../../../core/widgets/hero_header.dart';
+import 'audit_detail_screen.dart';
 import '../../../core/widgets/responsive.dart';
 import '../../setup/presentation/widgets/team_account_form.dart';
 import '../../../core/widgets/app_loader.dart';
@@ -50,7 +51,8 @@ String auditActionKey(String action) => switch (action) {
 
 /// Action affichée : un enregistrement devient « Création » ou
 /// « Modification » quand on le sait.
-String auditEffectiveAction(AuditEntry e) => e.action == 'save' && e.op.isNotEmpty ? 'save_${e.op}' : e.action;
+String auditEffectiveAction(AuditEntry e) =>
+    e.action == 'save' && e.op.isNotEmpty ? 'save_${e.op}' : e.action;
 
 /// Page vers laquelle mène une entrée (puits, point de prélèvement, article),
 /// ou null (suppression, utilisateur, paramètre...).
@@ -58,7 +60,9 @@ String? auditRoute(AuditEntry e) {
   if (e.action == 'delete' || e.refId.isEmpty) return null;
   return switch (e.table) {
     'wells' || 'analysis_records' || 'interventions' => '/wells/${e.refId}',
-    'sample_points' || 'plant_analyses' || 'plant_thresholds' => '/plant/point/${e.refId}',
+    'sample_points' ||
+    'plant_analyses' ||
+    'plant_thresholds' => '/plant/point/${e.refId}',
     'stock_items' || 'stock_movements' => '/stock/${e.refId}',
     _ => null,
   };
@@ -74,28 +78,39 @@ String auditSafeText(String text, String Function(String) t) {
       .replaceAll(RegExp(r'[A-Za-z0-9+/=]{80,}…?'), image);
 }
 
-bool _isImageChange(AuditChange c) {
-  bool img(String v) => v == '[image]' || v.startsWith('data:image') || RegExp(r'^[A-Za-z0-9+/=]{50,}…?$').hasMatch(v);
-  return c.field.endsWith('_b64') || c.field == 'photo' || img(c.before) || img(c.after);
+bool auditIsImageChange(AuditChange c) {
+  bool img(String v) =>
+      v == '[image]' ||
+      v.startsWith('data:image') ||
+      RegExp(r'^[A-Za-z0-9+/=]{50,}…?$').hasMatch(v);
+  return c.field.endsWith('_b64') ||
+      c.field == 'photo' ||
+      img(c.before) ||
+      img(c.after);
 }
 
-String _prettyField(String key, String Function(String) t) {
+String auditFieldLabel(String key, String Function(String) t) {
   final translated = t('auditField_$key');
   if (translated != 'auditField_$key') return translated;
   final spaced = key.replaceAll('_', ' ').trim();
   return spaced.isEmpty ? key : spaced[0].toUpperCase() + spaced.substring(1);
 }
 
-Color _actionColor(String action, ColorScheme scheme) => switch (action) {
+Color auditActionColor(String action, ColorScheme scheme) => switch (action) {
   'delete' || 'user_remove' => scheme.error,
-  'save_create' || 'user_create' || 'invite_create' || 'setup' => const Color(0xFF2E9E5B),
+  'save_create' ||
+  'user_create' ||
+  'invite_create' ||
+  'setup' => const Color(0xFF2E9E5B),
   'save_update' || 'save' || 'user_update' => const Color(0xFF1E88E5),
   _ => scheme.onSurfaceVariant,
 };
 
-IconData _actionIcon(String action) => switch (action) {
+IconData auditActionIcon(String action) => switch (action) {
   'delete' || 'user_remove' => Icons.delete_outline_rounded,
-  'save_create' || 'user_create' || 'invite_create' => Icons.add_circle_outline_rounded,
+  'save_create' ||
+  'user_create' ||
+  'invite_create' => Icons.add_circle_outline_rounded,
   'invite_use' => Icons.login_rounded,
   'setup' => Icons.rocket_launch_outlined,
   _ => Icons.edit_outlined,
@@ -136,7 +151,8 @@ class _AuditScreenState extends ConsumerState<AuditScreen> {
 
   Future<void> _load() async {
     final controller = ref.read(syncControllerProvider.notifier);
-    if (controller.team == null || !ref.read(syncControllerProvider).isSignedIn) return;
+    if (controller.team == null || !ref.read(syncControllerProvider).isSignedIn)
+      return;
     setState(() {
       _loading = true;
       _error = null;
@@ -164,7 +180,11 @@ class _AuditScreenState extends ConsumerState<AuditScreen> {
       '30d' => (today.subtract(const Duration(days: 29)), null),
       'custom' when _range != null => (
         DateTime(_range!.start.year, _range!.start.month, _range!.start.day),
-        DateTime(_range!.end.year, _range!.end.month, _range!.end.day).add(const Duration(days: 1)),
+        DateTime(
+          _range!.end.year,
+          _range!.end.month,
+          _range!.end.day,
+        ).add(const Duration(days: 1)),
       ),
       _ => (null, null),
     };
@@ -211,7 +231,11 @@ class _AuditScreenState extends ConsumerState<AuditScreen> {
               e.docId.toLowerCase().contains(query) ||
               e.name.toLowerCase().contains(query) ||
               e.email.toLowerCase().contains(query) ||
-              e.changes.any((c) => c.before.toLowerCase().contains(query) || c.after.toLowerCase().contains(query)),
+              e.changes.any(
+                (c) =>
+                    c.before.toLowerCase().contains(query) ||
+                    c.after.toLowerCase().contains(query),
+              ),
         )
         .toList();
   }
@@ -221,7 +245,11 @@ class _AuditScreenState extends ConsumerState<AuditScreen> {
     String t(String key) => tr(locale, key);
     final dateFormat = DateFormat('yyyy-MM-dd HH:mm');
     String changesText(AuditEntry e) => e.changes
-        .map((c) => _isImageChange(c) ? '${_prettyField(c.field, t)}: ${t('auditImageChanged')}' : '${_prettyField(c.field, t)}: ${c.before.isEmpty ? '—' : c.before} → ${c.after.isEmpty ? '—' : c.after}')
+        .map(
+          (c) => auditIsImageChange(c)
+              ? '${auditFieldLabel(c.field, t)}: ${t('auditImageChanged')}'
+              : '${auditFieldLabel(c.field, t)}: ${c.before.isEmpty ? '—' : c.before} → ${c.after.isEmpty ? '—' : c.after}',
+        )
         .join(' ; ');
     await runExport(
       context: context,
@@ -231,7 +259,14 @@ class _AuditScreenState extends ConsumerState<AuditScreen> {
       tables: [
         ExportTable(
           name: t('adminAudit'),
-          headers: [t('colDate'), t('auditUser'), t('auditAction'), t('auditTable'), t('auditDetail'), t('auditChanges')],
+          headers: [
+            t('colDate'),
+            t('auditUser'),
+            t('auditAction'),
+            t('auditTable'),
+            t('auditDetail'),
+            t('auditChanges'),
+          ],
           rows: [
             for (final e in entries)
               [
@@ -273,29 +308,45 @@ class _AuditScreenState extends ConsumerState<AuditScreen> {
     }
 
     final all = _entries ?? const <AuditEntry>[];
-    final users = {for (final e in all) e.email: e.name.isEmpty ? e.email : e.name};
+    final users = {
+      for (final e in all) e.email: e.name.isEmpty ? e.email : e.name,
+    };
     final tables = {for (final e in all) e.table}.toList()..sort();
-    final actions = {for (final e in all) auditEffectiveAction(e)}.toList()..sort();
+    final actions = {for (final e in all) auditEffectiveAction(e)}.toList()
+      ..sort();
     final entries = _filtered(all);
-    final filtered = _user != null || _table != null || _action != null || _period != 'all' || _search.text.trim().isNotEmpty;
+    final filtered =
+        _user != null ||
+        _table != null ||
+        _action != null ||
+        _period != 'all' ||
+        _search.text.trim().isNotEmpty;
     final problem = _error == null ? null : projectProblemOf(_error!);
     final shortDate = DateFormat('d MMM', locale.languageCode);
 
     // Regroupement par jour.
     final byDay = <DateTime, List<AuditEntry>>{};
     for (final e in entries) {
-      byDay.putIfAbsent(DateTime(e.at.year, e.at.month, e.at.day), () => []).add(e);
+      byDay
+          .putIfAbsent(DateTime(e.at.year, e.at.month, e.at.day), () => [])
+          .add(e);
     }
     final days = byDay.keys.toList()..sort((a, b) => b.compareTo(a));
     final today = DateTime.now();
     String dayLabel(DateTime d) {
-      final diff = DateTime(today.year, today.month, today.day).difference(d).inDays;
+      final diff = DateTime(
+        today.year,
+        today.month,
+        today.day,
+      ).difference(d).inDays;
       if (diff == 0) return t('auditPeriod_today');
       if (diff == 1) return t('auditYesterday');
       return DateFormat('EEEE d MMMM yyyy', locale.languageCode).format(d);
     }
 
-    final creations = all.where((e) => auditEffectiveAction(e) == 'save_create').length;
+    final creations = all
+        .where((e) => auditEffectiveAction(e) == 'save_create')
+        .length;
     final deletions = all.where((e) => e.action == 'delete').length;
 
     return Scaffold(
@@ -307,7 +358,11 @@ class _AuditScreenState extends ConsumerState<AuditScreen> {
             onPressed: entries.isEmpty ? null : () => _export(entries),
             icon: const Icon(Icons.download_outlined),
           ),
-          IconButton(tooltip: t('refresh'), onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
+          IconButton(
+            tooltip: t('refresh'),
+            onPressed: _loading ? null : _load,
+            icon: const Icon(Icons.refresh),
+          ),
         ],
       ),
       body: RefreshIndicator(
@@ -319,13 +374,22 @@ class _AuditScreenState extends ConsumerState<AuditScreen> {
               icon: Icons.history_rounded,
               title: t('adminAudit'),
               subtitle: t('auditIntro'),
-              pillLabel: filtered ? fill(t('auditCount'), {'n': '${entries.length}', 'total': '${all.length}'}) : null,
+              pillLabel: filtered
+                  ? fill(t('auditCount'), {
+                      'n': '${entries.length}',
+                      'total': '${all.length}',
+                    })
+                  : null,
               pillColor: const Color(0xFF1E88E5),
               stats: [
                 HeroStat(value: '${all.length}', label: t('auditStatEntries')),
                 HeroStat(value: '${users.length}', label: t('auditStatUsers')),
                 HeroStat(value: '$creations', label: t('auditStatCreated')),
-                HeroStat(value: '$deletions', label: t('auditStatDeleted'), valueColor: deletions > 0 ? const Color(0xFFFF8A80) : null),
+                HeroStat(
+                  value: '$deletions',
+                  label: t('auditStatDeleted'),
+                  valueColor: deletions > 0 ? const Color(0xFFFF8A80) : null,
+                ),
               ],
             ),
             const SizedBox(height: 14),
@@ -333,7 +397,9 @@ class _AuditScreenState extends ConsumerState<AuditScreen> {
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(18),
-                side: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.6)),
+                side: BorderSide(
+                  color: scheme.outlineVariant.withValues(alpha: 0.6),
+                ),
               ),
               child: Padding(
                 padding: const EdgeInsets.all(14),
@@ -346,7 +412,9 @@ class _AuditScreenState extends ConsumerState<AuditScreen> {
                         isDense: true,
                         prefixIcon: const Icon(Icons.search),
                         hintText: t('auditSearch'),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
                       onChanged: (_) => setState(() {}),
                     ),
@@ -383,8 +451,15 @@ class _AuditScreenState extends ConsumerState<AuditScreen> {
                           value: _user,
                           hint: Text(t('auditAllUsers')),
                           items: [
-                            DropdownMenuItem<String?>(value: null, child: Text(t('auditAllUsers'))),
-                            for (final e in users.entries) DropdownMenuItem<String?>(value: e.key, child: Text(e.value)),
+                            DropdownMenuItem<String?>(
+                              value: null,
+                              child: Text(t('auditAllUsers')),
+                            ),
+                            for (final e in users.entries)
+                              DropdownMenuItem<String?>(
+                                value: e.key,
+                                child: Text(e.value),
+                              ),
                           ],
                           onChanged: (v) => setState(() => _user = v),
                         ),
@@ -392,8 +467,15 @@ class _AuditScreenState extends ConsumerState<AuditScreen> {
                           value: _action,
                           hint: Text(t('auditAllActions')),
                           items: [
-                            DropdownMenuItem<String?>(value: null, child: Text(t('auditAllActions'))),
-                            for (final a in actions) DropdownMenuItem<String?>(value: a, child: Text(t(auditActionKey(a)))),
+                            DropdownMenuItem<String?>(
+                              value: null,
+                              child: Text(t('auditAllActions')),
+                            ),
+                            for (final a in actions)
+                              DropdownMenuItem<String?>(
+                                value: a,
+                                child: Text(t(auditActionKey(a))),
+                              ),
                           ],
                           onChanged: (v) => setState(() => _action = v),
                         ),
@@ -401,16 +483,25 @@ class _AuditScreenState extends ConsumerState<AuditScreen> {
                           value: _table,
                           hint: Text(t('auditAllTables')),
                           items: [
-                            DropdownMenuItem<String?>(value: null, child: Text(t('auditAllTables'))),
+                            DropdownMenuItem<String?>(
+                              value: null,
+                              child: Text(t('auditAllTables')),
+                            ),
                             for (final table in tables)
-                              DropdownMenuItem<String?>(value: table, child: Text(t(auditTableKey(table)))),
+                              DropdownMenuItem<String?>(
+                                value: table,
+                                child: Text(t(auditTableKey(table))),
+                              ),
                           ],
                           onChanged: (v) => setState(() => _table = v),
                         ),
                         if (filtered)
                           TextButton.icon(
                             onPressed: _resetFilters,
-                            icon: const Icon(Icons.filter_alt_off_outlined, size: 18),
+                            icon: const Icon(
+                              Icons.filter_alt_off_outlined,
+                              size: 18,
+                            ),
                             label: Text(t('auditResetFilters')),
                           ),
                       ],
@@ -423,16 +514,27 @@ class _AuditScreenState extends ConsumerState<AuditScreen> {
             if (_loading && _entries == null) const SkeletonList(),
             if (_error != null)
               problem != null && controller.config != null
-                  ? ProjectProblemCard(problem: problem, config: controller.config!)
+                  ? ProjectProblemCard(
+                      problem: problem,
+                      config: controller.config!,
+                    )
                   : Text(
-                      _error is SyncNetworkException ? t('syncOffline') : t('syncErrorServer'),
-                      style: TextStyle(color: scheme.error, fontWeight: FontWeight.w600),
+                      _error is SyncNetworkException
+                          ? t('syncOffline')
+                          : t('syncErrorServer'),
+                      style: TextStyle(
+                        color: scheme.error,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
             if (_entries != null && entries.isEmpty)
               Padding(
                 padding: const EdgeInsets.all(32),
                 child: Center(
-                  child: Text(t('auditEmpty'), style: TextStyle(color: scheme.onSurfaceVariant)),
+                  child: Text(
+                    t('auditEmpty'),
+                    style: TextStyle(color: scheme.onSurfaceVariant),
+                  ),
                 ),
               ),
             for (final day in days) ...[
@@ -442,24 +544,36 @@ class _AuditScreenState extends ConsumerState<AuditScreen> {
                   children: [
                     Text(
                       dayLabel(day),
-                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5, color: scheme.onSurface),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13.5,
+                        color: scheme.onSurface,
+                      ),
                     ),
                     const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: scheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(100),
                       ),
                       child: Text(
                         '${byDay[day]!.length}',
-                        style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: scheme.onSurfaceVariant),
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w800,
+                          color: scheme.onSurfaceVariant,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-              for (final e in byDay[day]!) _AuditCard(entry: e, t: t, locale: locale),
+              for (final e in byDay[day]!)
+                _AuditCard(entry: e, t: t, locale: locale, all: all),
             ],
             if (_entries != null && all.length >= _limit)
               Padding(
@@ -490,18 +604,30 @@ class _AuditCard extends StatelessWidget {
   final AuditEntry entry;
   final String Function(String) t;
   final Locale locale;
-  const _AuditCard({required this.entry, required this.t, required this.locale});
+  final List<AuditEntry> all;
+  const _AuditCard({
+    required this.entry,
+    required this.t,
+    required this.locale,
+    required this.all,
+  });
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final e = entry;
     final action = auditEffectiveAction(e);
-    final color = _actionColor(action, scheme);
+    final color = auditActionColor(action, scheme);
     final who = e.name.isEmpty ? e.email : e.name;
     final initials = who.trim().isEmpty
         ? '?'
-        : who.trim().split(RegExp(r'[\s@.]+')).where((p) => p.isNotEmpty).take(2).map((p) => p[0].toUpperCase()).join();
+        : who
+              .trim()
+              .split(RegExp(r'[\s@.]+'))
+              .where((p) => p.isNotEmpty)
+              .take(2)
+              .map((p) => p[0].toUpperCase())
+              .join();
     final route = auditRoute(e);
     final time = DateFormat('HH:mm', locale.languageCode).format(e.at);
 
@@ -516,10 +642,20 @@ class _AuditCard extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [color.withValues(alpha: 0.95), color.withValues(alpha: 0.65)],
+              colors: [
+                color.withValues(alpha: 0.95),
+                color.withValues(alpha: 0.65),
+              ],
             ),
           ),
-          child: Text(initials, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14)),
+          child: Text(
+            initials,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+              fontSize: 14,
+            ),
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -538,16 +674,26 @@ class _AuditCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(color: color.withValues(alpha: 0.13), borderRadius: BorderRadius.circular(100)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.13),
+                      borderRadius: BorderRadius.circular(100),
+                    ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(_actionIcon(action), size: 13, color: color),
+                        Icon(auditActionIcon(action), size: 13, color: color),
                         const SizedBox(width: 4),
                         Text(
                           t(auditActionKey(action)),
-                          style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 11),
+                          style: TextStyle(
+                            color: color,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 11,
+                          ),
                         ),
                       ],
                     ),
@@ -559,7 +705,11 @@ class _AuditCard extends StatelessWidget {
                 '${t(auditTableKey(e.table))} · ${auditSafeText(e.label, t)}',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant, height: 1.3),
+                style: TextStyle(
+                  fontSize: 12.5,
+                  color: scheme.onSurfaceVariant,
+                  height: 1.3,
+                ),
               ),
             ],
           ),
@@ -568,12 +718,23 @@ class _AuditCard extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text(time, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: scheme.onSurfaceVariant)),
+            Text(
+              time,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
             if (route != null)
               IconButton(
                 tooltip: t('auditOpen'),
                 visualDensity: VisualDensity.compact,
-                icon: Icon(Icons.open_in_new_rounded, size: 19, color: scheme.primary),
+                icon: Icon(
+                  Icons.open_in_new_rounded,
+                  size: 19,
+                  color: scheme.primary,
+                ),
                 onPressed: () => context.push(route),
               ),
           ],
@@ -590,7 +751,8 @@ class _AuditCard extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => _showDetails(context),
+        onTap: () =>
+            context.push('/admin/audit/detail', extra: AuditDetailArgs(e, all)),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(
@@ -602,139 +764,16 @@ class _AuditCard extends StatelessWidget {
                   padding: const EdgeInsets.only(left: 54, top: 6),
                   child: Text(
                     fill(t('auditChangedFields'), {'n': '${e.changes.length}'}),
-                    style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: scheme.primary),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showDetails(BuildContext context) {
-    final e = entry;
-    final action = auditEffectiveAction(e);
-    final dateText = DateFormat('EEEE d MMMM yyyy · HH:mm:ss', locale.languageCode).format(e.at);
-    final route = auditRoute(e);
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      showDragHandle: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
-      builder: (sheetContext) {
-        final scheme = Theme.of(sheetContext).colorScheme;
-        final color = _actionColor(action, scheme);
-        Widget info(IconData icon, String label, String value) => Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icon, size: 19, color: scheme.onSurfaceVariant),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(label, style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: scheme.onSurfaceVariant)),
-                    const SizedBox(height: 2),
-                    SelectableText(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, height: 1.35)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-        return SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(22, 0, 22, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: color.withValues(alpha: 0.13), shape: BoxShape.circle),
-                    child: Icon(_actionIcon(action), color: color),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      t(auditActionKey(action)),
-                      style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: color),
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                      color: scheme.primary,
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 18),
-              info(Icons.person_outline, t('auditUser'), e.name.isEmpty ? e.email : '${e.name} · ${e.email}'),
-              info(Icons.schedule_rounded, t('colDate'), dateText),
-              info(Icons.folder_open_outlined, t('auditTable'), t(auditTableKey(e.table))),
-              info(Icons.notes_rounded, t('auditDetail'), auditSafeText(e.label, t)),
-              if (e.changes.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(t('auditChanges'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-                for (final c in e.changes) _ChangeRow(change: c, t: t),
-              ],
-              if (route != null) ...[
-                const SizedBox(height: 18),
-                FilledButton.icon(
-                  onPressed: () {
-                    Navigator.of(sheetContext).pop();
-                    context.push(route);
-                  },
-                  icon: const Icon(Icons.open_in_new_rounded),
-                  label: Text(t('auditOpen')),
                 ),
-              ],
             ],
           ),
-        );
-      },
-    );
-  }
-}
-
-/// Une ligne « champ : avant → après ».
-class _ChangeRow extends StatelessWidget {
-  final AuditChange change;
-  final String Function(String) t;
-  const _ChangeRow({required this.change, required this.t});
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    Widget pill(String text, Color color, {bool strike = false}) => Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
-      child: Text(
-        text.isEmpty ? '—' : text,
-        style: TextStyle(
-          fontSize: 12.5,
-          fontWeight: FontWeight.w700,
-          color: color,
-          decoration: strike ? TextDecoration.lineThrough : null,
         ),
-      ),
-    );
-    final isImage = _isImageChange(change);
-    return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 4,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          Text(_prettyField(change.field, t), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5)),
-          if (isImage)
-            pill(t('auditImageChanged'), scheme.primary)
-          else ...[
-            pill(change.before, scheme.error, strike: true),
-            Icon(Icons.arrow_forward_rounded, size: 16, color: scheme.onSurfaceVariant),
-            pill(change.after, const Color(0xFF2E9E5B)),
-          ],
-        ],
       ),
     );
   }

@@ -8,6 +8,7 @@ import '../../features/auth/presentation/unlock_screen.dart';
 import '../../features/admin/presentation/params_screen.dart';
 import '../../features/admin/presentation/admin_screen.dart';
 import '../../features/admin/presentation/analysis_types_screen.dart';
+import '../../features/admin/presentation/audit_detail_screen.dart';
 import '../../features/admin/presentation/audit_screen.dart';
 import '../../features/admin/presentation/circuits_screen.dart';
 import '../../features/admin/presentation/data_admin_screen.dart';
@@ -187,6 +188,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/admin/data', builder: (context, state) => const DataAdminScreen()),
       GoRoute(path: '/admin/firebase', builder: (context, state) => const FirebaseProjectScreen()),
       GoRoute(path: '/admin/audit', builder: (context, state) => const AuditScreen()),
+      GoRoute(
+        path: '/admin/audit/detail',
+        builder: (context, state) => AuditDetailScreen(args: state.extra is AuditDetailArgs ? state.extra as AuditDetailArgs : null),
+      ),
       GoRoute(path: '/admin/analysis-types', builder: (context, state) => const AnalysisTypesScreen()),
       GoRoute(path: '/admin/wells', builder: (context, state) => const WellsManageScreen()),
     ],
