@@ -136,7 +136,7 @@ class WellDetailScreen extends ConsumerWidget {
           const SizedBox(height: 20),
           InterventionsSection(wellId: wellId),
           const SizedBox(height: 20),
-          _GroupedLastValues(types: types, wellId: wellId),
+          _GroupedLastValues(types: types, wellId: wellId, canEnterData: role.canEnterData),
           const SizedBox(height: 24),
           Row(
             children: [
@@ -432,8 +432,9 @@ class _HealthBanner extends ConsumerWidget {
 class _GroupedLastValues extends ConsumerWidget {
   final List<AnalysisType> types;
   final String wellId;
+  final bool canEnterData;
 
-  const _GroupedLastValues({required this.types, required this.wellId});
+  const _GroupedLastValues({required this.types, required this.wellId, required this.canEnterData});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -476,8 +477,19 @@ class _GroupedLastValues extends ConsumerWidget {
           const SizedBox(height: 10),
           grid(ungrouped),
         ],
+        if (groupOrder.isNotEmpty && canEnterData) ...[
+          SizedBox(height: ungrouped.isEmpty ? 0 : 20),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => context.push('/entry/batch?wellId=$wellId'),
+              icon: const Icon(Icons.fact_check_outlined),
+              label: Text(s('entryBatchAction')),
+            ),
+          ),
+        ],
         for (final group in groupOrder) ...[
-          SizedBox(height: ungrouped.isEmpty && group == groupOrder.first ? 0 : 20),
+          const SizedBox(height: 20),
           Text(
             group,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, color: accentColor),

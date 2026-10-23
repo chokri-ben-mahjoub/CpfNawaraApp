@@ -20,6 +20,7 @@ import '../../features/admin/presentation/wells_manage_screen.dart';
 import '../../features/analysis/presentation/compare_screen.dart';
 import '../../features/analysis/presentation/decline_screen.dart';
 import '../../features/analysis/presentation/ratio_trend_screen.dart';
+import '../../features/entry/presentation/batch_entry_screen.dart';
 import '../../features/entry/presentation/quick_entry_screen.dart';
 import '../../features/qr/presentation/qr_screen.dart';
 import '../../features/home/presentation/home_shell.dart';
@@ -85,6 +86,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return '/home';
       }
       if (loc == '/entry' && !role.canEnterData) return '/home';
+      if (loc == '/entry/batch' && !role.canEnterData) return '/home';
       if (loc.startsWith('/plant/entry') && !role.canEnterData) return '/home';
       if (loc.startsWith('/plant/schema') && !role.canConfigure) return '/home';
       // Clients (codes d'activation) : propriétaire de PuitsTrack seulement.
@@ -172,6 +174,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           initialWellId: state.uri.queryParameters['wellId'],
           initialTypeId: state.uri.queryParameters['typeId'],
         ),
+      ),
+      GoRoute(
+        path: '/entry/batch',
+        builder: (context, state) => BatchEntryScreen(initialWellId: state.uri.queryParameters['wellId']),
       ),
       GoRoute(path: '/admin', builder: (context, state) => const AdminScreen()),
       GoRoute(path: '/admin/users', builder: (context, state) => const UsersScreen()),

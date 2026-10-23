@@ -308,6 +308,25 @@ final _strings = <String, Map<String, String>>{
   },
   'entrySuccessTitle': {'fr': 'Analyse enregistrée', 'en': 'Analysis saved'},
   'entrySuccessBody': {'fr': 'La valeur a bien été enregistrée.', 'en': 'The value has been saved.'},
+  'entryBatchTitle': {'fr': 'Test de puits (saisie groupée)', 'en': 'Well test (batch entry)'},
+  'entryBatchAction': {'fr': 'Nouveau test de puits', 'en': 'New well test'},
+  'entryBatchHint': {
+    'fr': 'Un seul puits et un seul service pour toute la fiche : remplissez les paramètres mesurés, laissez vide ceux non mesurés.',
+    'en': 'One well and one service for the whole sheet: fill in the measured parameters, leave the others blank.',
+  },
+  'entryBatchMissingFields': {
+    'fr': 'Choisissez le puits et le service avant d\'enregistrer.',
+    'en': 'Choose the well and the service before saving.',
+  },
+  'entryBatchEmpty': {
+    'fr': 'Saisissez au moins une valeur.',
+    'en': 'Enter at least one value.',
+  },
+  'entryBatchSave': {'fr': 'Enregistrer la fiche', 'en': 'Save the sheet'},
+  'entryBatchSavedCount': {
+    'fr': '{n} valeur(s) enregistrée(s) pour ce puits.',
+    'en': '{n} value(s) saved for this well.',
+  },
   'close': {'fr': 'Fermer', 'en': 'Close'},
   'cancel': {'fr': 'Annuler', 'en': 'Cancel'},
   'confirm': {'fr': 'Confirmer', 'en': 'Confirm'},
