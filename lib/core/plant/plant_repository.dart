@@ -529,7 +529,11 @@ class PlantController extends StateNotifier<PlantState> {
 
   Future<void> deleteAnalysis(String id) async {
     final db = await LocalDatabase.instance.database;
-    await LocalDatabase.recordDeletion(db, 'plant_analyses', id);
+    final existing = byId(id);
+    final label = existing == null
+        ? id
+        : '${point(existing.pointId)?.code ?? existing.pointId} · ${plantDateKey(existing.date)}';
+    await LocalDatabase.recordDeletion(db, 'plant_analyses', id, label: label);
     await db.delete('plant_analyses', where: 'id = ?', whereArgs: [id]);
     await _afterWrite();
   }
@@ -550,7 +554,8 @@ class PlantController extends StateNotifier<PlantState> {
     if (min == null && max == null && alertEnabled) {
       final exists = (await db.query('plant_thresholds', where: 'id = ?', whereArgs: [id])).isNotEmpty;
       if (exists) {
-        await LocalDatabase.recordDeletion(db, 'plant_thresholds', id);
+        final label = '${point(pointId)?.code ?? pointId} · ${def?.labelKey ?? param}';
+        await LocalDatabase.recordDeletion(db, 'plant_thresholds', id, label: label);
         await db.delete('plant_thresholds', where: 'id = ?', whereArgs: [id]);
       }
     } else {
@@ -598,13 +603,15 @@ class PlantController extends StateNotifier<PlantState> {
   /// Supprime un point avec ses analyses et ses seuils.
   Future<void> deletePoint(String pointId) async {
     final db = await LocalDatabase.instance.database;
+    final existing = point(pointId);
     for (final table in ['plant_analyses', 'plant_thresholds']) {
       for (final row in await db.query(table, columns: ['id'], where: 'point_id = ?', whereArgs: [pointId])) {
         await LocalDatabase.recordDeletion(db, table, row['id'] as String);
       }
       await db.delete(table, where: 'point_id = ?', whereArgs: [pointId]);
     }
-    await LocalDatabase.recordDeletion(db, 'sample_points', pointId);
+    final label = existing == null ? pointId : '${existing.code} — ${existing.name}';
+    await LocalDatabase.recordDeletion(db, 'sample_points', pointId, label: label);
     await db.delete('sample_points', where: 'id = ?', whereArgs: [pointId]);
     await _afterWrite();
   }
@@ -637,7 +644,8 @@ class PlantController extends StateNotifier<PlantState> {
   Future<bool> deleteCircuit(String circuitId) async {
     if (state.points.any((p) => p.circuit.id == circuitId)) return false;
     final db = await LocalDatabase.instance.database;
-    await LocalDatabase.recordDeletion(db, 'plant_circuits', circuitId);
+    final label = state.circuits.where((c) => c.id == circuitId).firstOrNull?.labelKey ?? circuitId;
+    await LocalDatabase.recordDeletion(db, 'plant_circuits', circuitId, label: label);
     await db.delete('plant_circuits', where: 'id = ?', whereArgs: [circuitId]);
     await _afterWrite();
     return true;
@@ -678,7 +686,8 @@ class PlantController extends StateNotifier<PlantState> {
   Future<bool> deleteSchema(String id) async {
     if (state.visibleSchemas.length <= 1) return false;
     final db = await LocalDatabase.instance.database;
-    await LocalDatabase.recordDeletion(db, 'plant_schemas', id);
+    final label = state.visibleSchemas.where((sc) => sc.id == id).firstOrNull?.name ?? id;
+    await LocalDatabase.recordDeletion(db, 'plant_schemas', id, label: label);
     await db.delete('plant_schemas', where: 'id = ?', whereArgs: [id]);
     await _afterWrite();
     return true;
@@ -729,7 +738,8 @@ class PlantController extends StateNotifier<PlantState> {
     final db = await LocalDatabase.instance.database;
     final builtIn = builtInParamCatalog.where((p) => p.key == key).firstOrNull;
     if (builtIn == null) {
-      await LocalDatabase.recordDeletion(db, 'plant_params', key);
+      final label = state.customParams.where((p) => p.key == key).firstOrNull?.labelKey ?? key;
+      await LocalDatabase.recordDeletion(db, 'plant_params', key, label: label);
       await db.delete('plant_params', where: 'id = ?', whereArgs: [key]);
     } else {
       await db.insert(
@@ -757,9 +767,10 @@ class PlantController extends StateNotifier<PlantState> {
   /// un paramètre réellement personnalisé : utiliser [deleteParam] pour
   /// celui-là.
   Future<void> restoreParam(String key) async {
-    if (!builtInParamCatalog.any((p) => p.key == key)) return;
+    final builtIn = builtInParamCatalog.where((p) => p.key == key).firstOrNull;
+    if (builtIn == null) return;
     final db = await LocalDatabase.instance.database;
-    await LocalDatabase.recordDeletion(db, 'plant_params', key);
+    await LocalDatabase.recordDeletion(db, 'plant_params', key, label: builtIn.labelKey);
     await db.delete('plant_params', where: 'id = ?', whereArgs: [key]);
     await _afterWrite();
   }
@@ -797,7 +808,8 @@ class PlantController extends StateNotifier<PlantState> {
     final builtIn = builtInPlantProfiles.containsKey(id);
     if (!builtIn && profileUsage(id).isNotEmpty) return false;
     final db = await LocalDatabase.instance.database;
-    await LocalDatabase.recordDeletion(db, 'plant_profiles', id);
+    final label = plantProfileLabelKeys[id] ?? id;
+    await LocalDatabase.recordDeletion(db, 'plant_profiles', id, label: label);
     await db.delete('plant_profiles', where: 'id = ?', whereArgs: [id]);
     await _afterWrite();
     return true;

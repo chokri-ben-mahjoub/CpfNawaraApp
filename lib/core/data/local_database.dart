@@ -21,7 +21,7 @@ class LocalDatabase {
   static final LocalDatabase instance = LocalDatabase._();
 
   /// Version du schéma (voir `onUpgrade`), enregistrée dans les sauvegardes.
-  static const schemaVersion = 17;
+  static const schemaVersion = 18;
 
   /// Tables sauvegardées / restaurées / synchronisées.
   static const dataTables = [
@@ -86,11 +86,16 @@ class LocalDatabase {
   }
 
   /// Note la suppression d'une ligne pour la propager aux autres appareils.
-  static Future<void> recordDeletion(DatabaseExecutor db, String table, String id) => db.insert('sync_deletions', {
-    'table_name': table,
-    'row_id': id,
-    'deleted_at': DateTime.now().millisecondsSinceEpoch,
-  }, conflictAlgorithm: ConflictAlgorithm.replace);
+  /// [label] : description lisible de la ligne supprimée (ex: "PN-01 · BSW =
+  /// 0.8 %"), pour le journal d'audit — la ligne elle-même n'existe déjà
+  /// plus au moment où elle est envoyée au serveur.
+  static Future<void> recordDeletion(DatabaseExecutor db, String table, String id, {String? label}) =>
+      db.insert('sync_deletions', {
+        'table_name': table,
+        'row_id': id,
+        'deleted_at': DateTime.now().millisecondsSinceEpoch,
+        'label': label,
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
 
   /// Chemin du fichier de base (affiché dans Réglages › Données). Sur PC, dans
   /// AppData (dossier de l'app) plutôt que dans "Documents", visible et
@@ -262,6 +267,11 @@ class LocalDatabase {
             // d'échantillon), facultative.
             await db.execute('alter table plant_analyses add column photo text');
           }
+          if (oldVersion >= 6 && oldVersion < 18) {
+            // Description lisible d'une ligne supprimée, pour le journal
+            // d'audit (la ligne elle-même n'existe déjà plus à l'envoi).
+            await db.execute('alter table sync_deletions add column label text');
+          }
         },
       ),
     );
@@ -294,6 +304,7 @@ class LocalDatabase {
         table_name text not null,
         row_id text not null,
         deleted_at integer not null,
+        label text,
         primary key (table_name, row_id)
       )
     ''');

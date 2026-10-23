@@ -258,11 +258,19 @@ class WellsController extends StateNotifier<WellsState> {
   }
 
   /// Supprime des lignes en notant chaque suppression (propagée ensuite aux
-  /// autres appareils par la synchronisation).
-  Future<void> _deleteTracked(DatabaseExecutor db, String table, String where, List<Object?> args) async {
-    final rows = await db.query(table, columns: ['id'], where: where, whereArgs: args);
+  /// autres appareils par la synchronisation). [describe], si fourni,
+  /// construit la description lisible d'une ligne pour le journal d'audit
+  /// (sinon, seul son identifiant y apparaît).
+  Future<void> _deleteTracked(
+    DatabaseExecutor db,
+    String table,
+    String where,
+    List<Object?> args, {
+    String Function(Map<String, Object?> row)? describe,
+  }) async {
+    final rows = await db.query(table, where: where, whereArgs: args);
     for (final row in rows) {
-      await LocalDatabase.recordDeletion(db, table, row['id'] as String);
+      await LocalDatabase.recordDeletion(db, table, row['id'] as String, label: describe?.call(row));
     }
     await db.delete(table, where: where, whereArgs: args);
   }
@@ -338,7 +346,13 @@ class WellsController extends StateNotifier<WellsState> {
   Future<void> deleteAnalysisType(String typeId) async {
     final db = await LocalDatabase.instance.database;
     await _deleteTracked(db, 'analysis_records', 'type_id = ?', [typeId]);
-    await _deleteTracked(db, 'analysis_types', 'id = ?', [typeId]);
+    await _deleteTracked(
+      db,
+      'analysis_types',
+      'id = ?',
+      [typeId],
+      describe: (row) => '${row['label']} (${row['unit']})',
+    );
     await _afterWrite();
   }
 
@@ -372,7 +386,18 @@ class WellsController extends StateNotifier<WellsState> {
   /// Supprime une analyse enregistrée (ex: saisie en double ou erronée).
   Future<void> deleteRecord(String recordId) async {
     final db = await LocalDatabase.instance.database;
-    await _deleteTracked(db, 'analysis_records', 'id = ?', [recordId]);
+    await _deleteTracked(
+      db,
+      'analysis_records',
+      'id = ?',
+      [recordId],
+      describe: (row) {
+        final well = findWell(row['well_id'] as String? ?? '');
+        final type = findType(row['type_id'] as String? ?? '');
+        return '${well?.code ?? row['well_id']} · ${type?.label ?? row['type_id']} = ${row['value']} ${type?.unit ?? ''}'
+            .trim();
+      },
+    );
     await _afterWrite();
   }
 
@@ -464,7 +489,13 @@ class WellsController extends StateNotifier<WellsState> {
     final db = await LocalDatabase.instance.database;
     await _deleteTracked(db, 'analysis_records', 'well_id = ?', [wellId]);
     await _deleteTracked(db, 'interventions', 'well_id = ?', [wellId]);
-    await _deleteTracked(db, 'wells', 'id = ?', [wellId]);
+    await _deleteTracked(
+      db,
+      'wells',
+      'id = ?',
+      [wellId],
+      describe: (row) => '${row['code']} — ${row['name']}',
+    );
     await _afterWrite();
   }
 
@@ -521,7 +552,17 @@ class WellsController extends StateNotifier<WellsState> {
 
   Future<void> deleteIntervention(String id) async {
     final db = await LocalDatabase.instance.database;
-    await _deleteTracked(db, 'interventions', 'id = ?', [id]);
+    await _deleteTracked(
+      db,
+      'interventions',
+      'id = ?',
+      [id],
+      describe: (row) {
+        final well = findWell(row['well_id'] as String? ?? '');
+        final date = row['intervention_date'] as String? ?? '';
+        return '${well?.code ?? row['well_id']} · ${row['type_key']} · ${date.length >= 10 ? date.substring(0, 10) : date}';
+      },
+    );
     await _afterWrite();
   }
 

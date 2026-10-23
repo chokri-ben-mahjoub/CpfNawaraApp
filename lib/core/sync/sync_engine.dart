@@ -210,7 +210,7 @@ class SyncEngine {
               action: 'delete',
               table: table,
               docId: id,
-              label: id,
+              label: (d['label'] as String?) ?? id,
               changedAt: (d['deleted_at'] as num?)?.toInt(),
             ),
           );

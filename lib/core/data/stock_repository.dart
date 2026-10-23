@@ -134,13 +134,14 @@ class StockController extends StateNotifier<StockState> {
   /// Supprime un article et tout son historique de mouvements.
   Future<void> deleteItem(String itemId) async {
     final db = await LocalDatabase.instance.database;
+    final label = state.items.where((i) => i.id == itemId).firstOrNull?.name ?? itemId;
     await db.transaction((txn) async {
       final rows = await txn.query('stock_movements', columns: ['id'], where: 'item_id = ?', whereArgs: [itemId]);
       for (final row in rows) {
         await LocalDatabase.recordDeletion(txn, 'stock_movements', row['id'] as String);
       }
       await txn.delete('stock_movements', where: 'item_id = ?', whereArgs: [itemId]);
-      await LocalDatabase.recordDeletion(txn, 'stock_items', itemId);
+      await LocalDatabase.recordDeletion(txn, 'stock_items', itemId, label: label);
       await txn.delete('stock_items', where: 'id = ?', whereArgs: [itemId]);
     });
     await _afterWrite();

@@ -140,7 +140,10 @@ void main() {
     expect(plantParamsColumns.map((r) => r['name']), contains('hidden'));
     // v17 : photo jointe à une analyse (facultative).
     expect(plantAnalysesColumns.map((r) => r['name']), contains('photo'));
-    expect(LocalDatabase.schemaVersion, 17);
+    // v18 : description lisible d'une ligne supprimée (journal d'audit).
+    final syncDeletionsColumns = await db.rawQuery('pragma table_info(sync_deletions)');
+    expect(syncDeletionsColumns.map((r) => r['name']), contains('label'));
+    expect(LocalDatabase.schemaVersion, 18);
 
     // Première connexion : tout ce qui a été saisi/modifié part au serveur.
     final engine = SyncEngine(
