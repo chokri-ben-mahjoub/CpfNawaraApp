@@ -22,7 +22,18 @@ class StockItem {
 
   /// Vide = non classé (affiché dans un groupe "Autre" dans la liste).
   final String category;
+  /// Observations (ex: "PO 4510135789 en attente de livraison").
   final String notes;
+
+  /// Référence produit (ex: "ROCLEAN 810") et code MMN.
+  final String reference;
+  final String mmn;
+
+  /// Consommation de l'année précédente ; nul = nouveau produit.
+  final double? prevConsumption;
+
+  /// Quantité commandée, en attente de livraison.
+  final double pendingOrder;
 
   const StockItem({
     required this.id,
@@ -32,6 +43,10 @@ class StockItem {
     required this.threshold,
     this.category = '',
     this.notes = '',
+    this.reference = '',
+    this.mmn = '',
+    this.prevConsumption,
+    this.pendingOrder = 0,
   });
 
   bool get isOut => quantity <= 0;
@@ -44,6 +59,11 @@ class StockItem {
     double? threshold,
     String? category,
     String? notes,
+    String? reference,
+    String? mmn,
+    double? prevConsumption,
+    bool clearPrevConsumption = false,
+    double? pendingOrder,
   }) => StockItem(
     id: id,
     name: name ?? this.name,
@@ -52,7 +72,18 @@ class StockItem {
     threshold: threshold ?? this.threshold,
     category: category ?? this.category,
     notes: notes ?? this.notes,
+    reference: reference ?? this.reference,
+    mmn: mmn ?? this.mmn,
+    prevConsumption: clearPrevConsumption ? null : (prevConsumption ?? this.prevConsumption),
+    pendingOrder: pendingOrder ?? this.pendingOrder,
   );
+
+  /// Quantité à commander : besoin annuel [consumption] moins le stock
+  /// disponible et la commande déjà en route (jamais négative).
+  double toOrder(double consumption) {
+    final v = consumption - quantity - pendingOrder;
+    return v > 0 ? v : 0;
+  }
 }
 
 /// Mouvement de stock : entrée (delta positif, ex: réapprovisionnement),

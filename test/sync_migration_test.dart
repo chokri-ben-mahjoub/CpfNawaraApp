@@ -143,7 +143,10 @@ void main() {
     // v18 : description lisible d'une ligne supprimée (journal d'audit).
     final syncDeletionsColumns = await db.rawQuery('pragma table_info(sync_deletions)');
     expect(syncDeletionsColumns.map((r) => r['name']), contains('label'));
-    expect(LocalDatabase.schemaVersion, 18);
+    // v19 : suivi annuel du stock (référence, MMN, consommation N-1, commande).
+    final stockItemsColumns = await db.rawQuery('pragma table_info(stock_items)');
+    expect(stockItemsColumns.map((r) => r['name']), containsAll(['reference', 'mmn', 'prev_consumption', 'pending_order']));
+    expect(LocalDatabase.schemaVersion, 19);
 
     // Première connexion : tout ce qui a été saisi/modifié part au serveur.
     final engine = SyncEngine(

@@ -27,6 +27,10 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
   late final TextEditingController _thresholdController;
   late final TextEditingController _categoryController;
   late final TextEditingController _notesController;
+  late final TextEditingController _referenceController;
+  late final TextEditingController _mmnController;
+  late final TextEditingController _prevController;
+  late final TextEditingController _pendingController;
 
   bool get _isNew => widget.existing == null;
 
@@ -40,6 +44,10 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
     _thresholdController = TextEditingController(text: decimalText(e?.threshold));
     _categoryController = TextEditingController(text: e?.category ?? '');
     _notesController = TextEditingController(text: e?.notes ?? '');
+    _referenceController = TextEditingController(text: e?.reference ?? '');
+    _mmnController = TextEditingController(text: e?.mmn ?? '');
+    _prevController = TextEditingController(text: e?.prevConsumption == null ? '' : decimalText(e!.prevConsumption));
+    _pendingController = TextEditingController(text: e == null || e.pendingOrder == 0 ? '' : decimalText(e.pendingOrder));
   }
 
   @override
@@ -50,6 +58,10 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
     _thresholdController.dispose();
     _categoryController.dispose();
     _notesController.dispose();
+    _referenceController.dispose();
+    _mmnController.dispose();
+    _prevController.dispose();
+    _pendingController.dispose();
     super.dispose();
   }
 
@@ -61,6 +73,8 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
     final messenger = ScaffoldMessenger.of(context);
 
     final threshold = parseDecimal(_thresholdController.text) ?? 0;
+    final prev = parseDecimal(_prevController.text);
+    final pending = parseDecimal(_pendingController.text) ?? 0;
     if (_isNew) {
       await controller.addItem(
         name: _nameController.text.trim(),
@@ -69,6 +83,10 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
         threshold: threshold,
         category: _categoryController.text.trim(),
         notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+        reference: _referenceController.text.trim(),
+        mmn: _mmnController.text.trim(),
+        prevConsumption: prev,
+        pendingOrder: pending,
       );
       messenger.showSnackBar(SnackBar(content: Text(s('stockItemAdded'))));
     } else {
@@ -79,6 +97,11 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
           threshold: threshold,
           category: _categoryController.text.trim(),
           notes: _notesController.text.trim(),
+          reference: _referenceController.text.trim(),
+          mmn: _mmnController.text.trim(),
+          prevConsumption: prev,
+          clearPrevConsumption: prev == null,
+          pendingOrder: pending,
         ),
       );
       messenger.showSnackBar(SnackBar(content: Text(s('stockItemUpdated'))));
@@ -112,6 +135,24 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
             minItemWidth: 200,
             spacing: 12,
             children: [
+              TextFormField(
+                controller: _referenceController,
+                decoration: InputDecoration(labelText: s('stockReferenceLabel')),
+              ),
+              TextFormField(
+                controller: _mmnController,
+                decoration: InputDecoration(labelText: s('stockMmnLabel')),
+              ),
+              TextFormField(
+                controller: _prevController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(labelText: s('stockPrevConsumptionLabel'), helperText: s('stockPrevConsumptionHint')),
+              ),
+              TextFormField(
+                controller: _pendingController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(labelText: s('stockPendingOrderLabel')),
+              ),
               TextFormField(
                 controller: _unitController,
                 decoration: InputDecoration(labelText: s('stockUnitLabel'), hintText: s('stockUnitHint')),

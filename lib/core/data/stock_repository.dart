@@ -22,6 +22,16 @@ class StockState {
 
   static const empty = StockState(items: [], movements: [], ready: false);
 
+  /// Consommation de l'année [year] pour l'article [itemId] : somme des
+  /// sorties (mouvements négatifs) enregistrées cette année-là.
+  double consumptionOf(String itemId, int year) {
+    var total = 0.0;
+    for (final m in movements) {
+      if (m.itemId == itemId && m.delta < 0 && m.dateTime.year == year) total -= m.delta;
+    }
+    return total;
+  }
+
   /// Articles à leur seuil d'alerte ou en dessous, triés du plus critique
   /// (rupture) au moins critique.
   List<StockItem> get lowStockItems {
@@ -95,6 +105,10 @@ class StockController extends StateNotifier<StockState> {
     required double threshold,
     String category = '',
     String? notes,
+    String reference = '',
+    String mmn = '',
+    double? prevConsumption,
+    double pendingOrder = 0,
   }) async {
     final db = await LocalDatabase.instance.database;
     await db.insert(
@@ -107,6 +121,10 @@ class StockController extends StateNotifier<StockState> {
         'threshold': threshold,
         'category': category,
         'notes': notes,
+        'reference': reference,
+        'mmn': mmn,
+        'prev_consumption': prevConsumption,
+        'pending_order': pendingOrder,
       }),
     );
     await _afterWrite();
@@ -124,6 +142,10 @@ class StockController extends StateNotifier<StockState> {
         'threshold': item.threshold,
         'category': item.category,
         'notes': item.notes,
+        'reference': item.reference,
+        'mmn': item.mmn,
+        'prev_consumption': item.prevConsumption,
+        'pending_order': item.pendingOrder,
       }),
       where: 'id = ?',
       whereArgs: [item.id],
@@ -207,6 +229,10 @@ class StockController extends StateNotifier<StockState> {
     threshold: (row['threshold'] as num).toDouble(),
     category: row['category'] as String? ?? '',
     notes: row['notes'] as String? ?? '',
+    reference: row['reference'] as String? ?? '',
+    mmn: row['mmn'] as String? ?? '',
+    prevConsumption: (row['prev_consumption'] as num?)?.toDouble(),
+    pendingOrder: (row['pending_order'] as num?)?.toDouble() ?? 0,
   );
 
   StockMovement _movementFromRow(Map<String, Object?> row) => StockMovement(

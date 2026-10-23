@@ -15,41 +15,65 @@ import '../../../core/widgets/responsive.dart';
 import '../../admin/presentation/widgets/admin_widgets.dart';
 import 'widgets/stock_item_form_sheet.dart';
 
-/// Exporte tous les articles de stock (nom, catégorie, quantité, seuil,
-/// statut), par exemple pour un inventaire imprimable.
-Future<void> exportStock(WidgetRef ref, BuildContext context) async {
-  final locale = ref.read(localeProvider);
-  String s(String key) => tr(locale, key);
-  final items = [...ref.read(stockControllerProvider).items]
+/// Une ligne du tableau de suivi annuel (reproduit le classeur de suivi des
+/// produits : consommations, stock disponible, commande, quantité à commander).
+class StockTableRow {
+  final StockItem item;
+  final double consumption;
+  const StockTableRow(this.item, this.consumption);
+
+  double get toOrder => item.toOrder(consumption);
+}
+
+List<StockTableRow> stockTableRows(StockState stock, int year) {
+  final items = [...stock.items]
     ..sort((a, b) {
       final byCategory = a.category.compareTo(b.category);
       return byCategory != 0 ? byCategory : a.name.toLowerCase().compareTo(b.name.toLowerCase());
     });
+  return [for (final i in items) StockTableRow(i, stock.consumptionOf(i.id, year))];
+}
+
+/// En-têtes du tableau de suivi annuel pour l'année [year].
+List<String> stockTableHeaders(String Function(String) s, int year) => [
+  s('stockColDescription'),
+  s('stockColReference'),
+  s('stockMmnLabel'),
+  fill(s('stockColPrev'), {'y': '${year - 1}'}),
+  fill(s('stockColCurrent'), {'y': '$year'}),
+  fill(s('stockColAvailable'), {'y': '$year'}),
+  fill(s('stockColPending'), {'y': '$year'}),
+  s('stockColToOrder'),
+  s('stockNotesLabel'),
+];
+
+/// Exporte le tableau de suivi annuel du stock (PDF / Excel / CSV).
+Future<void> exportStock(WidgetRef ref, BuildContext context) async {
+  final locale = ref.read(localeProvider);
+  String s(String key) => tr(locale, key);
+  final year = DateTime.now().year;
+  final rows = stockTableRows(ref.read(stockControllerProvider), year);
 
   await runExport(
     context: context,
     locale: locale,
-    baseName: 'stock',
+    baseName: 'stock_$year',
     tables: [
       ExportTable(
-        name: s('stockTitle'),
-        headers: [
-          s('stockCategoryLabel'),
-          s('stockNameLabel'),
-          s('stockQuantityLabel'),
-          s('stockUnitLabel'),
-          s('stockThresholdLabel'),
-          s('stockStatusLabel'),
-        ],
+        name: s('stockTableTitle'),
+        headers: stockTableHeaders(s, year),
         rows: [
-          for (final item in items)
+          for (final r in rows)
             [
-              item.category.isEmpty ? s('stockUncategorized') : item.category,
-              item.name,
-              item.quantity,
-              item.unit,
-              item.threshold,
-              stockStatusLabel(item, s),
+              r.item.name,
+              r.item.reference,
+              r.item.mmn,
+              r.item.prevConsumption ?? s('stockNewProduct'),
+              r.consumption,
+              r.item.quantity,
+              r.item.pendingOrder,
+              r.toOrder,
+              r.item.notes,
             ],
         ],
       ),
@@ -96,6 +120,12 @@ class StockScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(s('stockTitle')),
         actions: [
+          if (stock.items.isNotEmpty)
+            IconButton(
+              tooltip: s('stockTableTooltip'),
+              icon: const Icon(Icons.table_chart_outlined),
+              onPressed: () => context.push('/stock/table'),
+            ),
           if (stock.items.isNotEmpty)
             IconButton(
               tooltip: s('stockExportTooltip'),
