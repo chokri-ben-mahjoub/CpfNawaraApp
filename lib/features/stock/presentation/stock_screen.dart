@@ -13,6 +13,7 @@ import '../../../core/theme/status_style.dart';
 import '../../../core/widgets/hero_header.dart';
 import '../../../core/widgets/responsive.dart';
 import '../../admin/presentation/widgets/admin_widgets.dart';
+import 'stock_table_screen.dart';
 import 'widgets/stock_item_form_sheet.dart';
 
 /// Une ligne du tableau de suivi annuel (reproduit le classeur de suivi des
@@ -109,23 +110,10 @@ class StockScreen extends ConsumerWidget {
     final stock = ref.watch(stockControllerProvider);
     String s(String key) => tr(locale, key);
 
-    final byCategory = <String, List<StockItem>>{};
-    for (final item in stock.items) {
-      final key = item.category.trim().isEmpty ? unassignedStockCategoryLabel : item.category.trim();
-      byCategory.putIfAbsent(key, () => []).add(item);
-    }
-    final categories = byCategory.keys.toList()..sort();
-
     return Scaffold(
       appBar: AppBar(
         title: Text(s('stockTitle')),
         actions: [
-          if (stock.items.isNotEmpty)
-            IconButton(
-              tooltip: s('stockTableTooltip'),
-              icon: const Icon(Icons.table_chart_outlined),
-              onPressed: () => context.push('/stock/table'),
-            ),
           if (stock.items.isNotEmpty)
             IconButton(
               tooltip: s('stockExportTooltip'),
@@ -205,46 +193,8 @@ class StockScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                 ],
-                for (final category in categories) ...[
-                  AdminSectionTitle(category == unassignedStockCategoryLabel ? s('stockUncategorized') : category),
-                  AdminTable<StockItem>(
-                    items: byCategory[category]!..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase())),
-                    onTap: (item) => context.push('/stock/${item.id}'),
-                    columns: [
-                      AdminColumn(s('stockNameLabel'), (i) => Text(i.name, style: const TextStyle(fontWeight: FontWeight.w700))),
-                      AdminColumn(
-                        s('stockQuantityLabel'),
-                        (i) => Text('${_qtyText(i.quantity)} ${i.unit}'),
-                        numeric: true,
-                      ),
-                      AdminColumn(
-                        s('stockStatusLabel'),
-                        (i) => Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _StatusPill(item: i),
-                            const SizedBox(width: 8),
-                            Icon(Icons.visibility_outlined, size: 18, color: scheme.onSurfaceVariant),
-                          ],
-                        ),
-                      ),
-                    ],
-                    card: (context, i) => AdminCard(
-                      leading: IconBadge(Icons.inventory_2_outlined, color: stockStatusColor(i, scheme)),
-                      title: i.name,
-                      subtitle: '${_qtyText(i.quantity)} ${i.unit}',
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _StatusPill(item: i),
-                          const SizedBox(width: 8),
-                          Icon(Icons.visibility_outlined, size: 20, color: scheme.onSurfaceVariant),
-                        ],
-                      ),
-                      onTap: () => context.push('/stock/${i.id}'),
-                    ),
-                  ),
-                ],
+                const AdminSectionTitle('Suivi annuel'),
+                const StockAnnualTable(),
               ],
             ),
     );
