@@ -193,7 +193,7 @@ class StockScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                 ],
-                const AdminSectionTitle('Suivi annuel'),
+                AdminSectionTitle(s('stockAnnualSection')),
                 const StockAnnualTable(),
               ],
             ),

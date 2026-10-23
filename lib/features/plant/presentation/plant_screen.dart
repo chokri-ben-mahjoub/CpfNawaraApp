@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'report_send_sheet.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -353,14 +354,18 @@ class PlantScreen extends ConsumerWidget {
     );
     if (!context.mounted) return;
     final scope = circuits.length == 1 ? s(circuits.first.labelKey) : s('plantReportAllShort');
-    await saveOrShareFile(
+    final dayText = DateFormat('dd/MM/yyyy').format(day);
+    await showReportSendSheet(
       context: context,
       locale: locale,
-      baseName: 'rapport_usine_${scope}_${plantDateKey(day)}',
-      extension: 'pdf',
-      mimeType: 'application/pdf',
+      fileName: 'rapport_usine_${scope}_${plantDateKey(day)}.pdf'.replaceAll(RegExp(r'[^A-Za-z0-9_.-]+'), '_'),
       bytes: bytes,
-      shareSubject: '${s('plantReportTitle')} — ${plantDateKey(day)}',
+      subject: '${s('plantReportTitle')} N° $reportNumber — $dayText',
+      body: fill(s('reportMailBody'), {
+        'n': reportNumber,
+        'date': dayText,
+        'name': ref.read(profileProvider)?.fullName ?? '',
+      }),
     );
   }
 }

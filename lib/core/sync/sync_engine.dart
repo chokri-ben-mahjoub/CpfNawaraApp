@@ -158,9 +158,14 @@ class SyncEngine {
         final rows = await db.query(table, where: 'dirty = 1', limit: _pushBatch);
         if (rows.isEmpty) break;
         final writes = <Map<String, Object?>>[];
+        final previous = actor == null ? const <String, Map<String, Object?>?>{} : await _previousDocs(scope, session, table, rows);
         for (final row in rows) {
           writes.add(_upsertWrite(scope, table, row));
           if (actor != null) {
+            final id = row['id'] as String;
+            final before = previous[id];
+            final known = previous.containsKey(id);
+            final created = known && (before == null || before['deleted'] == true);
             writes.add(
               auditWrite(
                 config,
@@ -171,6 +176,9 @@ class SyncEngine {
                 docId: row['id'] as String,
                 label: await describe(table, row),
                 changedAt: (row['updated_at'] as num?)?.toInt(),
+                op: !known ? '' : (created ? 'create' : 'update'),
+                refId: _refIdOf(table, row) ?? '',
+                changes: known && !created ? AuditChange.encode(_diff(before!, row)) : '',
               ),
             );
           }
@@ -228,6 +236,66 @@ class SyncEngine {
     }
     return count;
   }
+
+  /// Version actuelle de chaque ligne sur le serveur (pour le « avant →
+  /// après » du journal d'audit). Absent de la table = inconnu ; `null` = la
+  /// ligne n'existe pas encore. Ignoré au-delà de 60 lignes (coût de lecture).
+  Future<Map<String, Map<String, Object?>?>> _previousDocs(
+    String scope,
+    AuthSession session,
+    String table,
+    List<Map<String, Object?>> rows,
+  ) async {
+    final out = <String, Map<String, Object?>?>{};
+    if (rows.length > 60) return out;
+    for (var i = 0; i < rows.length; i += 10) {
+      await Future.wait(
+        rows.skip(i).take(10).map((row) async {
+          final id = row['id'] as String;
+          try {
+            final doc = await firestore.getDocument(session.idToken, '$scope/$table/$id');
+            out[id] = doc == null ? null : decodeFields(doc['fields'] as Map<String, Object?>?);
+          } catch (_) {}
+        }),
+      );
+    }
+    return out;
+  }
+
+  static const _auditIgnored = {'id', 'dirty', 'updated_at', 'syncedAt', 'deleted', 'changedAt', 'photo', 'params_json'};
+
+  static String _norm(Object? v) {
+    if (v == null) return '';
+    if (v is bool) return v ? '1' : '0';
+    if (v is num) {
+      final d = v.toDouble();
+      return d == d.roundToDouble() ? d.toInt().toString() : d.toString();
+    }
+    return '$v';
+  }
+
+  static String _short(String v) => v.length > 60 ? '${v.substring(0, 57)}…' : v;
+
+  /// Champs qui diffèrent entre la version du serveur et la ligne locale.
+  static List<AuditChange> _diff(Map<String, Object?> before, Map<String, Object?> after) {
+    final out = <AuditChange>[];
+    for (final key in after.keys) {
+      if (_auditIgnored.contains(key)) continue;
+      final a = _norm(before[key]);
+      final b = _norm(after[key]);
+      if (a != b) out.add(AuditChange(key, _short(a), _short(b)));
+    }
+    return out;
+  }
+
+  /// Élément vers lequel mène une entrée du journal (puits, point, article).
+  static String? _refIdOf(String table, Map<String, Object?> row) => switch (table) {
+    'wells' || 'sample_points' || 'stock_items' => row['id'] as String?,
+    'analysis_records' || 'interventions' => row['well_id'] as String?,
+    'plant_analyses' || 'plant_thresholds' => row['point_id'] as String?,
+    'stock_movements' => row['item_id'] as String?,
+    _ => null,
+  };
 
   Map<String, Object?> _upsertWrite(String scope, String table, Map<String, Object?> row) {
     final data = Map<String, Object?>.from(row)..remove('dirty');

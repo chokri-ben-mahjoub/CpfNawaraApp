@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:uuid/uuid.dart';
@@ -258,6 +259,15 @@ class AuditEntry {
   /// Heure du serveur à l'enregistrement.
   final DateTime at;
 
+  /// `create` ou `update` pour un enregistrement ; vide si inconnu.
+  final String op;
+
+  /// Élément (puits, point, article) vers lequel mène l'entrée.
+  final String refId;
+
+  /// Champs modifiés : (champ, avant, après).
+  final List<AuditChange> changes;
+
   const AuditEntry({
     required this.id,
     required this.uid,
@@ -268,6 +278,9 @@ class AuditEntry {
     required this.docId,
     required this.label,
     required this.at,
+    this.op = '',
+    this.refId = '',
+    this.changes = const [],
   });
 
   static AuditEntry fromDocument(Map<String, Object?> doc) {
@@ -282,10 +295,36 @@ class AuditEntry {
       table: '${f['table'] ?? ''}',
       docId: '${f['docId'] ?? ''}',
       label: '${f['label'] ?? ''}',
+      op: '${f['op'] ?? ''}',
+      refId: '${f['refId'] ?? ''}',
+      changes: AuditChange.decode('${f['changes'] ?? ''}'),
       at:
           DateTime.tryParse('${f['at'] ?? ''}')?.toLocal() ??
           (changedAt == null ? DateTime.fromMillisecondsSinceEpoch(0) : DateTime.fromMillisecondsSinceEpoch(changedAt)),
     );
+  }
+}
+
+/// Un champ modifié dans une entrée du journal d'audit.
+class AuditChange {
+  final String field;
+  final String before;
+  final String after;
+  const AuditChange(this.field, this.before, this.after);
+
+  static String encode(List<AuditChange> changes) =>
+      changes.isEmpty ? '' : jsonEncode([for (final c in changes) [c.field, c.before, c.after]]);
+
+  static List<AuditChange> decode(String raw) {
+    if (raw.isEmpty) return const [];
+    try {
+      return [
+        for (final item in jsonDecode(raw) as List)
+          AuditChange('${(item as List)[0]}', '${item[1]}', '${item[2]}'),
+      ];
+    } catch (_) {
+      return const [];
+    }
   }
 }
 
@@ -310,6 +349,9 @@ Map<String, Object?> auditWrite(
   required String docId,
   required String label,
   int? changedAt,
+  String op = '',
+  String refId = '',
+  String changes = '',
 }) => {
   'update': {
     'name': config.documentName('$scope/audit/${_uuid.v4()}'),
@@ -322,6 +364,9 @@ Map<String, Object?> auditWrite(
       'docId': docId,
       'label': label,
       'changedAt': changedAt ?? DateTime.now().millisecondsSinceEpoch,
+      if (op.isNotEmpty) 'op': op,
+      if (refId.isNotEmpty) 'refId': refId,
+      if (changes.isNotEmpty) 'changes': changes,
     }),
   },
   'currentDocument': {'exists': false},
