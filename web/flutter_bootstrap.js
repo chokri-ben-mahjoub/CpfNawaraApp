@@ -13,10 +13,30 @@
       .catch(function () {});
   }
 
+  // Mise à jour automatique : quand une nouvelle version de l'app prend la
+  // main (déploiement), la page se recharge d'elle-même une seule fois, sans
+  // Ctrl+F5. Pas de rechargement à la toute première installation.
+  var hadController = !!navigator.serviceWorker.controller;
+  var reloading = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function () {
+    if (!hadController || reloading) return;
+    reloading = true;
+    window.location.reload();
+  });
+
   var registered = new Promise(function (resolve) {
     window.addEventListener('load', function () {
       navigator.serviceWorker.register('offline_sw.js')
-        .then(function () { return navigator.serviceWorker.ready; })
+        .then(function (registration) {
+          // Cherche une nouvelle version à chaque retour sur l'app et toutes
+          // les 10 minutes (onglet laissé ouvert).
+          var check = function () { registration.update().catch(function () {}); };
+          document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState === 'visible') check();
+          });
+          setInterval(check, 10 * 60 * 1000);
+          return navigator.serviceWorker.ready;
+        })
         .then(resolve)
         .catch(function (e) { console.warn('PuitsTrack : mode hors ligne indisponible', e); });
     });
