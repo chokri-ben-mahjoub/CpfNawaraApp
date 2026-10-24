@@ -322,6 +322,8 @@ final _strings = <String, Map<String, String>>{
     'fr': 'Saisissez au moins une valeur.',
     'en': 'Enter at least one value.',
   },
+  'entryBatchDateLabel': {'fr': 'Date du test', 'en': 'Test date'},
+  'entryBatchStartTimeLabel': {'fr': 'Heure de début', 'en': 'Start time'},
   'entryBatchSave': {'fr': 'Enregistrer la fiche', 'en': 'Save the sheet'},
   'entryBatchSavedCount': {
     'fr': '{n} valeur(s) enregistrée(s) pour ce puits.',

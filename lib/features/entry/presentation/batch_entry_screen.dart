@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/auth/auth_providers.dart';
 import '../../../core/data/wells_repository.dart';
@@ -35,6 +36,8 @@ class _BatchEntryScreenState extends ConsumerState<BatchEntryScreen> {
 
   String? _wellId;
   String? _service;
+  DateTime _date = DateTime.now();
+  TimeOfDay _startTime = TimeOfDay.now();
   bool _saving = false;
   bool _touched = false;
 
@@ -90,8 +93,9 @@ class _BatchEntryScreenState extends ConsumerState<BatchEntryScreen> {
     final controller = ref.read(wellsControllerProvider.notifier);
     final profile = ref.read(profileProvider);
     final operatorName = (profile == null || profile.fullName.isEmpty) ? 'Opérateur' : profile.fullName;
+    final recordedAt = DateTime(_date.year, _date.month, _date.day, _startTime.hour, _startTime.minute);
     for (final (type, value) in entries) {
-      final existing = controller.todayRecord(_wellId!, type.id);
+      final existing = controller.recordOnDay(_wellId!, type.id, _date);
       await controller.addRecord(
         wellId: _wellId!,
         typeId: type.id,
@@ -100,6 +104,7 @@ class _BatchEntryScreenState extends ConsumerState<BatchEntryScreen> {
         operatorName: operatorName,
         operatorId: profile?.id,
         replaceId: existing?.id,
+        recordedAt: recordedAt,
       );
     }
     unawaited(refreshReminders(ref));
@@ -196,6 +201,51 @@ class _BatchEntryScreenState extends ConsumerState<BatchEntryScreen> {
                         onChanged: (value) => setState(() => _service = value),
                       ),
                       if (_touched && _service == null) _FieldError(s('entryInvalidService')),
+                      const SizedBox(height: 16),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(16),
+                              onTap: () async {
+                                final now = DateTime.now();
+                                final picked = await showDatePicker(
+                                  context: context,
+                                  initialDate: _date,
+                                  firstDate: DateTime(now.year - 2),
+                                  lastDate: now,
+                                );
+                                if (picked != null) setState(() => _date = picked);
+                              },
+                              child: InputDecorator(
+                                decoration: InputDecoration(
+                                  labelText: s('entryBatchDateLabel'),
+                                  prefixIcon: const Icon(Icons.event_outlined),
+                                ),
+                                child: Text(DateFormat('d MMM yyyy', locale.languageCode).format(_date)),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(16),
+                              onTap: () async {
+                                final picked = await showTimePicker(context: context, initialTime: _startTime);
+                                if (picked != null) setState(() => _startTime = picked);
+                              },
+                              child: InputDecorator(
+                                decoration: InputDecoration(
+                                  labelText: s('entryBatchStartTimeLabel'),
+                                  prefixIcon: const Icon(Icons.schedule_outlined),
+                                ),
+                                child: Text(_startTime.format(context)),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                       for (final group in groupOrder) ...[
                         const SizedBox(height: 22),
                         Text(

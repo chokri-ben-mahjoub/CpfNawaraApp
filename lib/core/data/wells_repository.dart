@@ -184,6 +184,15 @@ class WellsController extends StateNotifier<WellsState> {
     return null;
   }
 
+  /// Enregistrement existant pour un puits, un type et un jour donnés (saisie
+  /// groupée datée) — remplacé plutôt que dupliqué si la date choisie est
+  /// déjà renseignée.
+  AnalysisRecord? recordOnDay(String wellId, String typeId, DateTime day) {
+    final matches = state.records.where((r) => r.wellId == wellId && r.typeId == typeId && r.isSameDay(day)).toList()
+      ..sort((a, b) => b.dateTime.compareTo(a.dateTime));
+    return matches.isEmpty ? null : matches.first;
+  }
+
   DailyStatus statusFor(String wellId, String typeId, {DateTime? now}) {
     final today = now ?? DateTime.now();
     final last = lastRecord(wellId, typeId);
@@ -276,6 +285,8 @@ class WellsController extends StateNotifier<WellsState> {
   }
 
   /// Ajoute (ou remplace, si [replaceId] est fourni) un enregistrement.
+  /// [recordedAt], si fourni (ex: saisie groupée datée), remplace l'horodatage
+  /// par défaut (maintenant).
   Future<void> addRecord({
     required String wellId,
     required String typeId,
@@ -285,6 +296,7 @@ class WellsController extends StateNotifier<WellsState> {
     String? operatorId,
     String? comment,
     String? replaceId,
+    DateTime? recordedAt,
   }) async {
     final id = replaceId ?? _uuid.v4();
     final db = await LocalDatabase.instance.database;
@@ -299,7 +311,7 @@ class WellsController extends StateNotifier<WellsState> {
         'operator_name': operatorName,
         'operator_id': operatorId,
         'comment': comment,
-        'recorded_at': DateTime.now().toIso8601String(),
+        'recorded_at': (recordedAt ?? DateTime.now()).toIso8601String(),
       }),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
