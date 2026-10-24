@@ -79,104 +79,136 @@ class WellDetailScreen extends ConsumerWidget {
       return type != null && type.isOutOfRange(r.value);
     }).length;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(well.name),
-        actions: [
-          IconButton(
-            tooltip: s('compareTitle'),
-            icon: const Icon(Icons.compare_arrows),
-            onPressed: () => context.push('/compare?mode=wells&wellA=$wellId'),
-          ),
-          IconButton(
-            tooltip: s('exportTooltip'),
-            icon: const Icon(Icons.download_outlined),
-            onPressed: () => _exportWell(ref, context, well),
-          ),
-        ],
-      ),
-      floatingActionButton: role.canEnterData
-          ? FloatingActionButton.extended(
-              onPressed: () => context.push('/entry?wellId=$wellId'),
-              icon: const Icon(Icons.add),
-              label: Text(s('wellDetailAddAnalysis')),
-            )
-          : null,
-      body: ListView(
-        padding: pagePadding(context, top: 8, bottom: 130),
-        children: [
-          HeroHeader(
-            icon: Icons.water_drop_outlined,
-            title: well.name,
-            subtitle: well.group.trim().isEmpty ? well.code : '${well.code} · ${well.group.trim()}',
-            pillLabel: s(well.active ? 'wellStatusActive' : 'wellStatusStopped'),
-            pillColor: well.active ? AppStatus.ok.color(scheme) : scheme.outline,
-            stats: [
-              HeroStat(value: '${progress.$1}/${progress.$2}', label: s('wellKpiToday')),
-              HeroStat(value: '$recent30', label: s('wellKpi30d')),
-              HeroStat(
-                value: '$out30',
-                label: s('wellKpiOut'),
-                valueColor: out30 > 0 ? const Color(0xFFFF8A80) : null,
-              ),
-              HeroStat(
-                value: history.isEmpty ? '—' : DateFormat('d MMM', locale.languageCode).format(history.first.dateTime),
-                label: s('wellKpiLast'),
-              ),
+    return DefaultTabController(
+      length: 4,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(well.name),
+          actions: [
+            IconButton(
+              tooltip: s('compareTitle'),
+              icon: const Icon(Icons.compare_arrows),
+              onPressed: () => context.push('/compare?mode=wells&wellA=$wellId'),
+            ),
+            IconButton(
+              tooltip: s('exportTooltip'),
+              icon: const Icon(Icons.download_outlined),
+              onPressed: () => _exportWell(ref, context, well),
+            ),
+          ],
+          bottom: TabBar(
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
+            tabs: [
+              Tab(text: s('wellTabOverview')),
+              Tab(text: s('wellTabAnalyses')),
+              Tab(text: s('wellTabHistory')),
+              Tab(text: s('wellTabInterventions')),
             ],
           ),
-          const SizedBox(height: 14),
-          _HealthBanner(wellId: wellId, types: types),
-          const SizedBox(height: 16),
-          _ProductionCard(wellId: wellId),
-          const SizedBox(height: 16),
-          RatiosCard(wellId: wellId),
-          const SizedBox(height: 16),
-          DeclineCard(wellId: wellId),
-          const SizedBox(height: 20),
-          InterventionsSection(wellId: wellId),
-          const SizedBox(height: 20),
-          _GroupedLastValues(types: types, wellId: wellId, canEnterData: role.canEnterData),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  s('wellDetailHistory'),
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-                ),
-              ),
-              if (history.isNotEmpty)
-                TextButton(
-                  onPressed: () => context.push('/wells/$wellId/history'),
-                  child: Text(s('wellDetailViewAllHistory')),
-                ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          if (history.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 24),
-              child: Center(
-                child: Text(s('wellDetailNoHistory'), style: TextStyle(color: scheme.onSurfaceVariant)),
-              ),
-            )
-          else
-            Card(
-              child: Column(
-                children: [
-                  for (var i = 0; i < history.length; i++) ...[
-                    if (i > 0) Divider(height: 1, color: scheme.outlineVariant),
-                    _HistoryTile(
-                      record: history[i],
-                      type: controller.typeById(history[i].typeId),
-                      dateFormat: dateFormat,
+        ),
+        floatingActionButton: role.canEnterData
+            ? FloatingActionButton.extended(
+                onPressed: () => context.push('/entry?wellId=$wellId'),
+                icon: const Icon(Icons.add),
+                label: Text(s('wellDetailAddAnalysis')),
+              )
+            : null,
+        body: TabBarView(
+          children: [
+            // Aperçu : identité du puits, santé, production, ratios, déclin.
+            ListView(
+              padding: pagePadding(context, top: 12, bottom: 130),
+              children: [
+                HeroHeader(
+                  icon: Icons.water_drop_outlined,
+                  title: well.name,
+                  subtitle: well.group.trim().isEmpty ? well.code : '${well.code} · ${well.group.trim()}',
+                  pillLabel: s(well.active ? 'wellStatusActive' : 'wellStatusStopped'),
+                  pillColor: well.active ? AppStatus.ok.color(scheme) : scheme.outline,
+                  stats: [
+                    HeroStat(value: '${progress.$1}/${progress.$2}', label: s('wellKpiToday')),
+                    HeroStat(value: '$recent30', label: s('wellKpi30d')),
+                    HeroStat(
+                      value: '$out30',
+                      label: s('wellKpiOut'),
+                      valueColor: out30 > 0 ? const Color(0xFFFF8A80) : null,
+                    ),
+                    HeroStat(
+                      value: history.isEmpty
+                          ? '—'
+                          : DateFormat('d MMM', locale.languageCode).format(history.first.dateTime),
+                      label: s('wellKpiLast'),
                     ),
                   ],
-                ],
-              ),
+                ),
+                const SizedBox(height: 14),
+                _HealthBanner(wellId: wellId, types: types),
+                const SizedBox(height: 16),
+                _ProductionCard(wellId: wellId),
+                const SizedBox(height: 16),
+                RatiosCard(wellId: wellId),
+                const SizedBox(height: 16),
+                DeclineCard(wellId: wellId),
+              ],
             ),
-        ],
+            // Analyses : dernières valeurs, regroupées par fiche de test.
+            ListView(
+              padding: pagePadding(context, top: 12, bottom: 130),
+              children: [_GroupedLastValues(types: types, wellId: wellId, canEnterData: role.canEnterData)],
+            ),
+            // Historique : les 20 dernières analyses, avec lien vers
+            // l'historique complet (paginé, filtrable par type).
+            ListView(
+              padding: pagePadding(context, top: 12, bottom: 130),
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        s('wellDetailHistory'),
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    if (history.isNotEmpty)
+                      TextButton(
+                        onPressed: () => context.push('/wells/$wellId/history'),
+                        child: Text(s('wellDetailViewAllHistory')),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                if (history.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    child: Center(
+                      child: Text(s('wellDetailNoHistory'), style: TextStyle(color: scheme.onSurfaceVariant)),
+                    ),
+                  )
+                else
+                  Card(
+                    child: Column(
+                      children: [
+                        for (var i = 0; i < history.length; i++) ...[
+                          if (i > 0) Divider(height: 1, color: scheme.outlineVariant),
+                          _HistoryTile(
+                            record: history[i],
+                            type: controller.typeById(history[i].typeId),
+                            dateFormat: dateFormat,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+            // Interventions : journal des travaux sur ce puits.
+            ListView(
+              padding: pagePadding(context, top: 12, bottom: 130),
+              children: [InterventionsSection(wellId: wellId)],
+            ),
+          ],
+        ),
       ),
     );
   }

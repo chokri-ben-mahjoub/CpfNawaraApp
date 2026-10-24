@@ -26,8 +26,11 @@ class WellHistoryScreen extends ConsumerStatefulWidget {
   ConsumerState<WellHistoryScreen> createState() => _WellHistoryScreenState();
 }
 
+const _pageSize = 20;
+
 class _WellHistoryScreenState extends ConsumerState<WellHistoryScreen> {
   String? _typeFilter; // null = tous les types
+  int _page = 0;
 
   Future<void> _export(List<AnalysisRecord> records) async {
     final locale = ref.read(localeProvider);
@@ -88,8 +91,15 @@ class _WellHistoryScreenState extends ConsumerState<WellHistoryScreen> {
 
     final history = _typeFilter == null ? allHistory : allHistory.where((r) => r.typeId == _typeFilter).toList();
 
+    // Pagination par bloc de [_pageSize] analyses (toutes dates confondues) —
+    // l'historique complet d'un puits actif peut contenir des milliers de
+    // lignes, trop pour un seul ListView.
+    final totalPages = history.isEmpty ? 1 : (history.length / _pageSize).ceil();
+    final page = _page.clamp(0, totalPages - 1);
+    final pageRecords = history.skip(page * _pageSize).take(_pageSize).toList();
+
     final byDay = <DateTime, List<AnalysisRecord>>{};
-    for (final record in history) {
+    for (final record in pageRecords) {
       final day = DateTime(record.dateTime.year, record.dateTime.month, record.dateTime.day);
       (byDay[day] ??= []).add(record);
     }
@@ -132,14 +142,20 @@ class _WellHistoryScreenState extends ConsumerState<WellHistoryScreen> {
                     _FilterChip(
                       label: s('wellHistoryAllTypes'),
                       selected: _typeFilter == null,
-                      onTap: () => setState(() => _typeFilter = null),
+                      onTap: () => setState(() {
+                        _typeFilter = null;
+                        _page = 0;
+                      }),
                     ),
                     const SizedBox(width: 8),
                     for (final type in filterTypes) ...[
                       _FilterChip(
                         label: type.label,
                         selected: _typeFilter == type.id,
-                        onTap: () => setState(() => _typeFilter = type.id),
+                        onTap: () => setState(() {
+                          _typeFilter = type.id;
+                          _page = 0;
+                        }),
                       ),
                       const SizedBox(width: 8),
                     ],
@@ -184,6 +200,33 @@ class _WellHistoryScreenState extends ConsumerState<WellHistoryScreen> {
                     ],
                   ),
           ),
+          if (history.isNotEmpty)
+            Padding(
+              padding: pagePadding(context, top: 8, bottom: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  TextButton.icon(
+                    onPressed: page > 0 ? () => setState(() => _page = page - 1) : null,
+                    icon: const Icon(Icons.chevron_left),
+                    label: Text(s('paginationPrevious')),
+                  ),
+                  SizedBox(
+                    width: 120,
+                    child: Text(
+                      fill(s('paginationPageOf'), {'page': '${page + 1}', 'total': '$totalPages'}),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: scheme.onSurfaceVariant, fontWeight: FontWeight.w600, fontSize: 12.5),
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: page < totalPages - 1 ? () => setState(() => _page = page + 1) : null,
+                    icon: const Icon(Icons.chevron_right),
+                    label: Text(s('paginationNext')),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );
