@@ -331,6 +331,7 @@ final _strings = <String, Map<String, String>>{
   },
   'entryBatchDateLabel': {'fr': 'Date du test', 'en': 'Test date'},
   'entryBatchStartTimeLabel': {'fr': 'Heure de début', 'en': 'Start time'},
+  'entryBatchEndTimeLabel': {'fr': 'Heure de fin (optionnel)', 'en': 'End time (optional)'},
   'entryBatchSave': {'fr': 'Enregistrer la fiche', 'en': 'Save the sheet'},
   'entryBatchSavedCount': {
     'fr': '{n} valeur(s) enregistrée(s) pour ce puits.',

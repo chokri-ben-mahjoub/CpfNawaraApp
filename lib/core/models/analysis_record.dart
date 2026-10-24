@@ -11,6 +11,11 @@ class AnalysisRecord {
   final DateTime dateTime;
   final String? comment;
 
+  /// Heure de début / fin du test de puits (facultatives, format "HH:mm"),
+  /// ex: pour un test de puits saisi en fiche groupée.
+  final String? startTime;
+  final String? endTime;
+
   const AnalysisRecord({
     required this.id,
     required this.wellId,
@@ -21,6 +26,8 @@ class AnalysisRecord {
     this.operatorId,
     required this.dateTime,
     this.comment,
+    this.startTime,
+    this.endTime,
   });
 
   bool isSameDay(DateTime other) =>

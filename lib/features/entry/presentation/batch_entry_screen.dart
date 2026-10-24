@@ -38,8 +38,12 @@ class _BatchEntryScreenState extends ConsumerState<BatchEntryScreen> {
   String? _service;
   DateTime _date = DateTime.now();
   TimeOfDay _startTime = TimeOfDay.now();
+  TimeOfDay? _endTime;
   bool _saving = false;
   bool _touched = false;
+
+  static String? _formatTime(TimeOfDay? t) =>
+      t == null ? null : '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
   @override
   void initState() {
@@ -105,6 +109,8 @@ class _BatchEntryScreenState extends ConsumerState<BatchEntryScreen> {
         operatorId: profile?.id,
         replaceId: existing?.id,
         recordedAt: recordedAt,
+        startTime: _formatTime(_startTime),
+        endTime: _formatTime(_endTime),
       );
     }
     unawaited(refreshReminders(ref));
@@ -245,6 +251,27 @@ class _BatchEntryScreenState extends ConsumerState<BatchEntryScreen> {
                             ),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 16),
+                      InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () async {
+                          final picked = await showTimePicker(context: context, initialTime: _endTime ?? _startTime);
+                          if (picked != null) setState(() => _endTime = picked);
+                        },
+                        child: InputDecorator(
+                          decoration: InputDecoration(
+                            labelText: s('entryBatchEndTimeLabel'),
+                            prefixIcon: const Icon(Icons.schedule_outlined),
+                            suffixIcon: _endTime == null
+                                ? null
+                                : IconButton(
+                                    icon: const Icon(Icons.close, size: 18),
+                                    onPressed: () => setState(() => _endTime = null),
+                                  ),
+                          ),
+                          child: Text(_endTime == null ? '—' : _endTime!.format(context)),
+                        ),
                       ),
                       for (final group in groupOrder) ...[
                         const SizedBox(height: 22),

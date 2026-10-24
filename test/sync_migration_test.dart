@@ -161,7 +161,10 @@ void main() {
       whereArgs: ['t_wellhead_pressure'],
     )).first;
     expect(wellhead['group_label'], 'Tête de puits');
-    expect(LocalDatabase.schemaVersion, 21);
+    // v22 : heure de début / fin du test de puits (facultatives).
+    final analysisRecordsColumns = await db.rawQuery('pragma table_info(analysis_records)');
+    expect(analysisRecordsColumns.map((r) => r['name']), containsAll(['start_time', 'end_time']));
+    expect(LocalDatabase.schemaVersion, 22);
 
     // Première connexion : tout ce qui a été saisi/modifié part au serveur.
     final engine = SyncEngine(

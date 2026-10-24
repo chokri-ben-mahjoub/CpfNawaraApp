@@ -312,7 +312,8 @@ class _DetailedHistoryTile extends ConsumerWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${s('colService')} : ${s(record.serviceKey)}  ·  ${timeFormat.format(record.dateTime)}  ·  ${record.operatorName}',
+                    '${s('colService')} : ${s(record.serviceKey)}  ·  ${timeFormat.format(record.dateTime)}  ·  ${record.operatorName}'
+                    '${record.startTime == null ? '' : '  ·  ${record.startTime}${record.endTime == null ? '' : ' – ${record.endTime}'}'}',
                     style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
                   ),
                   Text(

@@ -286,7 +286,8 @@ class WellsController extends StateNotifier<WellsState> {
 
   /// Ajoute (ou remplace, si [replaceId] est fourni) un enregistrement.
   /// [recordedAt], si fourni (ex: saisie groupée datée), remplace l'horodatage
-  /// par défaut (maintenant).
+  /// par défaut (maintenant). [startTime] / [endTime] (format "HH:mm") sont
+  /// l'heure de début / fin du test, facultatives.
   Future<void> addRecord({
     required String wellId,
     required String typeId,
@@ -297,6 +298,8 @@ class WellsController extends StateNotifier<WellsState> {
     String? comment,
     String? replaceId,
     DateTime? recordedAt,
+    String? startTime,
+    String? endTime,
   }) async {
     final id = replaceId ?? _uuid.v4();
     final db = await LocalDatabase.instance.database;
@@ -312,6 +315,8 @@ class WellsController extends StateNotifier<WellsState> {
         'operator_id': operatorId,
         'comment': comment,
         'recorded_at': (recordedAt ?? DateTime.now()).toIso8601String(),
+        'start_time': startTime,
+        'end_time': endTime,
       }),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -660,6 +665,8 @@ AnalysisRecord _recordFromRow(Map<String, Object?> row, String? storedUnit) => A
   operatorId: row['operator_id'] as String?,
   dateTime: DateTime.parse(row['recorded_at'] as String),
   comment: row['comment'] as String?,
+  startTime: row['start_time'] as String?,
+  endTime: row['end_time'] as String?,
 );
 
 Intervention _interventionFromRow(Map<String, Object?> row) => Intervention(

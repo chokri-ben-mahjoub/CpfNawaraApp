@@ -21,7 +21,7 @@ class LocalDatabase {
   static final LocalDatabase instance = LocalDatabase._();
 
   /// Version du schéma (voir `onUpgrade`), enregistrée dans les sauvegardes.
-  static const schemaVersion = 21;
+  static const schemaVersion = 22;
 
   /// Tables sauvegardées / restaurées / synchronisées.
   static const dataTables = [
@@ -149,7 +149,9 @@ class LocalDatabase {
             operator_name text not null,
             operator_id text,
             comment text,
-            recorded_at text not null
+            recorded_at text not null,
+            start_time text,
+            end_time text
           )
         ''');
           await _createInterventionsTable(db);
@@ -300,6 +302,12 @@ class LocalDatabase {
             // dans ce même passage, que s'ils existaient déjà depuis la v20).
             await db.execute("alter table analysis_types add column group_label text not null default ''");
             await _applyWellTestGroups(db);
+          }
+          if (oldVersion < 22) {
+            // Heure de début / fin du test de puits (facultatives), comme
+            // pour un prélèvement Usine (v15).
+            await db.execute('alter table analysis_records add column start_time text');
+            await db.execute('alter table analysis_records add column end_time text');
           }
         },
       ),
