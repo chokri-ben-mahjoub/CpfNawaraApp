@@ -203,23 +203,25 @@ class _WellHistoryScreenState extends ConsumerState<WellHistoryScreen> {
           if (history.isNotEmpty)
             Padding(
               padding: pagePadding(context, top: 8, bottom: 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              child: Wrap(
+                alignment: WrapAlignment.center,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 4,
+                runSpacing: 4,
                 children: [
                   TextButton.icon(
+                    style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8)),
                     onPressed: page > 0 ? () => setState(() => _page = page - 1) : null,
                     icon: const Icon(Icons.chevron_left),
                     label: Text(s('paginationPrevious')),
                   ),
-                  SizedBox(
-                    width: 120,
-                    child: Text(
-                      fill(s('paginationPageOf'), {'page': '${page + 1}', 'total': '$totalPages'}),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: scheme.onSurfaceVariant, fontWeight: FontWeight.w600, fontSize: 12.5),
-                    ),
+                  Text(
+                    fill(s('paginationPageOf'), {'page': '${page + 1}', 'total': '$totalPages'}),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: scheme.onSurfaceVariant, fontWeight: FontWeight.w600, fontSize: 12.5),
                   ),
                   TextButton.icon(
+                    style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8)),
                     onPressed: page < totalPages - 1 ? () => setState(() => _page = page + 1) : null,
                     icon: const Icon(Icons.chevron_right),
                     label: Text(s('paginationNext')),

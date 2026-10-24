@@ -175,13 +175,17 @@ class _QuickEntryScreenState extends ConsumerState<QuickEntryScreen> {
                       _FieldLabel(s('entryWellLabel')),
                       DropdownButtonFormField<String>(
                         initialValue: _wellId,
+                        isExpanded: true,
                         decoration: InputDecoration(
                           hintText: s('entrySelectWell'),
                           prefixIcon: const Icon(Icons.water_drop_outlined),
                         ),
                         items: [
                           for (final Well w in wells)
-                            DropdownMenuItem(value: w.id, child: Text('${w.name} (${w.code})')),
+                            DropdownMenuItem(
+                              value: w.id,
+                              child: Text('${w.name} (${w.code})', overflow: TextOverflow.ellipsis),
+                            ),
                         ],
                         onChanged: widget.initialWellId != null
                             ? null
@@ -192,6 +196,7 @@ class _QuickEntryScreenState extends ConsumerState<QuickEntryScreen> {
                       _FieldLabel(s('entryTypeLabel')),
                       DropdownButtonFormField<String>(
                         initialValue: _typeId,
+                        isExpanded: true,
                         decoration: InputDecoration(
                           hintText: s('entrySelectType'),
                           prefixIcon: const Icon(Icons.science_outlined),
@@ -225,13 +230,14 @@ class _QuickEntryScreenState extends ConsumerState<QuickEntryScreen> {
                       _FieldLabel(s('entryServiceLabel')),
                       DropdownButtonFormField<String>(
                         initialValue: _service,
+                        isExpanded: true,
                         decoration: InputDecoration(
                           hintText: s('signupServiceHint'),
                           prefixIcon: const Icon(Icons.groups_outlined),
                         ),
                         items: [
                           for (final key in serviceKeys)
-                            DropdownMenuItem(value: key, child: Text(s(key))),
+                            DropdownMenuItem(value: key, child: Text(s(key), overflow: TextOverflow.ellipsis)),
                         ],
                         onChanged: (value) => setState(() => _service = value),
                       ),
@@ -288,7 +294,8 @@ List<DropdownMenuItem<String>> _groupedTypeItems(List<AnalysisType> types) {
   }
 
   return [
-    for (final t in ungrouped) DropdownMenuItem(value: t.id, child: Text('${t.label} (${t.unit})')),
+    for (final t in ungrouped)
+      DropdownMenuItem(value: t.id, child: Text('${t.label} (${t.unit})', overflow: TextOverflow.ellipsis)),
     for (final group in groupOrder) ...[
       DropdownMenuItem(
         value: '__group_$group',
@@ -296,7 +303,13 @@ List<DropdownMenuItem<String>> _groupedTypeItems(List<AnalysisType> types) {
         child: Text(group, style: TextStyle(fontWeight: FontWeight.w800, color: accentColor)),
       ),
       for (final t in byGroup[group]!)
-        DropdownMenuItem(value: t.id, child: Padding(padding: const EdgeInsets.only(left: 12), child: Text('${t.label} (${t.unit})'))),
+        DropdownMenuItem(
+          value: t.id,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 12),
+            child: Text('${t.label} (${t.unit})', overflow: TextOverflow.ellipsis),
+          ),
+        ),
     ],
   ];
 }

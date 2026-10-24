@@ -50,7 +50,9 @@ import 'package:puitstrack/features/analysis/presentation/ratio_trend_screen.dar
 import 'package:puitstrack/core/analysis/production_metrics.dart';
 import 'package:puitstrack/features/interventions/presentation/interventions_screen.dart';
 import 'package:puitstrack/features/stats/presentation/stats_screen.dart';
+import 'package:puitstrack/features/entry/presentation/batch_entry_screen.dart';
 import 'package:puitstrack/features/wells/presentation/well_detail_screen.dart';
+import 'package:puitstrack/features/wells/presentation/well_history_screen.dart';
 import 'package:puitstrack/features/wells/presentation/wells_list_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:puitstrack/core/filters/well_filter.dart';
@@ -279,6 +281,14 @@ StockController _seedStock() {
   return StockController.seeded(StockState(items: items, movements: movements));
 }
 
+/// Force la langue de l'app (`localeProvider`, indépendant du `locale` de
+/// `MaterialApp` qui ne pilote que les textes Flutter intégrés).
+class _FixedLocale extends LocaleController {
+  _FixedLocale(Locale locale) {
+    state = locale;
+  }
+}
+
 class _AdminProfile extends ProfileController {
   _AdminProfile() {
     state = const AppProfile(
@@ -291,8 +301,13 @@ class _AdminProfile extends ProfileController {
   }
 }
 
-Widget _app(Widget home, WellsState data, {bool dark = false, PlantView plantView = PlantView.diagram}) =>
-    ProviderScope(
+Widget _app(
+  Widget home,
+  WellsState data, {
+  bool dark = false,
+  PlantView plantView = PlantView.diagram,
+  Locale locale = const Locale('fr'),
+}) => ProviderScope(
       overrides: [
         wellsControllerProvider.overrideWith((ref) => WellsController.seeded(data)),
         plantControllerProvider.overrideWith((ref) => _seedPlant()),
@@ -302,11 +317,12 @@ Widget _app(Widget home, WellsState data, {bool dark = false, PlantView plantVie
         sharedConfigProvider.overrideWith(
           (ref) => SharedConfigController.seeded(const SharedConfig({missingDeadlineKey: '00:00'})),
         ),
+        localeProvider.overrideWith((ref) => _FixedLocale(locale)),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         theme: dark ? AppTheme.dark() : AppTheme.light(),
-        locale: const Locale('fr'),
+        locale: locale,
         supportedLocales: supportedLocales,
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
@@ -324,11 +340,12 @@ Future<void> _render(
   double width = 390,
   bool dark = false,
   PlantView plantView = PlantView.diagram,
+  Locale locale = const Locale('fr'),
 }) async {
   tester.view.physicalSize = Size(width * 2.0, height * 2.0);
   tester.view.devicePixelRatio = 2.0;
   addTearDown(tester.view.reset);
-  await tester.pumpWidget(_app(home, _seed(), dark: dark, plantView: plantView));
+  await tester.pumpWidget(_app(home, _seed(), dark: dark, plantView: plantView, locale: locale));
   await tester.pumpAndSettle();
   expect(tester.takeException(), isNull);
 }
@@ -337,11 +354,39 @@ void main() {
   setUpAll(() async {
     SharedPreferences.setMockInitialValues({});
     await initializeDateFormatting('fr');
+    await initializeDateFormatting('en');
     DownloadSaver.debugForceSupported = true;
     ReminderService.debugForceSupported = true;
   });
 
   testWidgets('fiche puits', (t) => _render(t, const WellDetailScreen(wellId: 'w1'), height: 2700));
+  testWidgets(
+    'fiche puits (anglais)',
+    (t) async {
+      await _render(t, const WellDetailScreen(wellId: 'w1'), height: 2700, locale: const Locale('en'));
+      expect(find.text('Overview'), findsOneWidget);
+      expect(find.text('Analyses'), findsOneWidget);
+      expect(find.text('History'), findsOneWidget);
+      expect(find.text('Interventions'), findsOneWidget);
+    },
+  );
+  testWidgets(
+    'historique puits (anglais, pagination)',
+    (t) async {
+      await _render(t, const WellHistoryScreen(wellId: 'w1'), height: 1800, locale: const Locale('en'));
+      expect(find.textContaining('History'), findsWidgets);
+      expect(find.textContaining('Page 1 of'), findsOneWidget);
+    },
+  );
+  testWidgets(
+    'saisie groupée test de puits (anglais)',
+    (t) async {
+      await _render(t, const BatchEntryScreen(initialWellId: 'w1'), height: 2000, locale: const Locale('en'));
+      expect(find.text('Well test (batch entry)'), findsOneWidget);
+      expect(find.text('Start time'), findsOneWidget);
+      expect(find.text('End time (optional)'), findsOneWidget);
+    },
+  );
   testWidgets('comparer puits', (t) => _render(t, const CompareScreen(), height: 1250));
   testWidgets(
     'avant/après',

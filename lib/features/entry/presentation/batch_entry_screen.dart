@@ -184,13 +184,17 @@ class _BatchEntryScreenState extends ConsumerState<BatchEntryScreen> {
                       _FieldLabel(s('entryWellLabel')),
                       DropdownButtonFormField<String>(
                         initialValue: _wellId,
+                        isExpanded: true,
                         decoration: InputDecoration(
                           hintText: s('entrySelectWell'),
                           prefixIcon: const Icon(Icons.water_drop_outlined),
                         ),
                         items: [
                           for (final Well w in wells)
-                            DropdownMenuItem(value: w.id, child: Text('${w.name} (${w.code})')),
+                            DropdownMenuItem(
+                              value: w.id,
+                              child: Text('${w.name} (${w.code})', overflow: TextOverflow.ellipsis),
+                            ),
                         ],
                         onChanged: widget.initialWellId != null ? null : (value) => setState(() => _wellId = value),
                       ),
@@ -199,11 +203,15 @@ class _BatchEntryScreenState extends ConsumerState<BatchEntryScreen> {
                       _FieldLabel(s('entryServiceLabel')),
                       DropdownButtonFormField<String>(
                         initialValue: _service,
+                        isExpanded: true,
                         decoration: InputDecoration(
                           hintText: s('signupServiceHint'),
                           prefixIcon: const Icon(Icons.groups_outlined),
                         ),
-                        items: [for (final key in serviceKeys) DropdownMenuItem(value: key, child: Text(s(key)))],
+                        items: [
+                          for (final key in serviceKeys)
+                            DropdownMenuItem(value: key, child: Text(s(key), overflow: TextOverflow.ellipsis)),
+                        ],
                         onChanged: (value) => setState(() => _service = value),
                       ),
                       if (_touched && _service == null) _FieldError(s('entryInvalidService')),
