@@ -52,9 +52,10 @@ extension UserRoleX on UserRole {
       'plant_profiles',
       'stock_items',
       'stock_movements',
+      'well_rounds',
     },
-    UserRole.engineer => const {'analysis_records', 'interventions', 'plant_analyses', 'stock_movements'},
-    UserRole.operator => const {'analysis_records', 'plant_analyses', 'stock_movements'},
+    UserRole.engineer => const {'analysis_records', 'interventions', 'plant_analyses', 'stock_movements', 'well_rounds'},
+    UserRole.operator => const {'analysis_records', 'plant_analyses', 'stock_movements', 'well_rounds'},
     UserRole.reader => const <String>{},
   };
 

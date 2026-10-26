@@ -563,7 +563,7 @@ void main() {
   });
   // Navigation, chargements.
   testWidgets('accueil : menu latéral (téléphone)', (t) async {
-    await _render(t, const HomeShell(), height: 900);
+    await _render(t, const HomeShell(), height: 1000);
     await t.tap(find.byIcon(Icons.menu));
     await t.pumpAndSettle();
     expect(find.text('Outils'), findsOneWidget);

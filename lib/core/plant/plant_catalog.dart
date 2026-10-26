@@ -107,6 +107,10 @@ class PlantParam {
   /// reste affiché correctement partout où il est déjà utilisé.
   final bool hidden;
 
+  /// Valeur calculée automatiquement (jamais saisie) à partir d'autres
+  /// paramètres du même point — voir [plantComputedValues].
+  final bool computed;
+
   const PlantParam(
     this.key,
     this.labelKey,
@@ -117,6 +121,7 @@ class PlantParam {
     this.storedUnit,
     this.fixedUnit = false,
     this.hidden = false,
+    this.computed = false,
   });
 
   bool get isNumeric => kind == ParamKind.number;
@@ -172,6 +177,13 @@ const _waterParams = [
   ),
   PlantParam('iron', 'plantParamIron', 'mg/L'),
   PlantParam('tph', 'plantParamTph', 'mg/L'),
+  // Perte d'hydrocarbures dans l'eau produite : débit, TPH et densité du
+  // condensat saisis, le reste est calculé (voir [plantComputedValues]).
+  PlantParam('water_flow', 'plantParamWaterFlow', 'm³/d', fixedUnit: true),
+  PlantParam('cond_density', 'plantParamCondDensity', 'kg/m³', fixedUnit: true),
+  PlantParam('hc_mass', 'plantParamHcMass', 'kg/d', fixedUnit: true, computed: true),
+  PlantParam('hc_mass_t', 'plantParamHcMassT', 't/d', fixedUnit: true, computed: true),
+  PlantParam('hc_volume', 'plantParamHcVolume', 'L/d', fixedUnit: true, computed: true),
 ];
 
 /// Traitement de l'eau de puits (chloration, osmose inverse) : chlore libre
@@ -592,3 +604,23 @@ const plantSeedPoints = [
 
 /// Origine d'une analyse.
 const plantSources = ['plantSourceLab', 'plantSourceField', 'plantSourceImport'];
+
+/// Paramètres calculés à partir des valeurs saisies [v] d'un point (clé ->
+/// valeur). Pertes d'hydrocarbures dans l'eau produite :
+/// * masse (kg/j) = débit d'eau (m³/j) × TPH (mg/L) / 1000
+///   (m³ → 1000 L, mg → kg : 1e-6), soit (débit × TPH) / 1 000 000 en t/j ;
+/// * volume (L/j) = masse (kg/j) / densité du condensat (kg/m³) × 1000.
+/// Un résultat n'est donné que si toutes les valeurs nécessaires sont
+/// présentes (densité > 0 pour le volume).
+Map<String, double> plantComputedValues(Map<String, double> v) {
+  final flow = v['water_flow'];
+  final tph = v['tph'];
+  final density = v['cond_density'];
+  final out = <String, double>{};
+  if (flow == null || tph == null) return out;
+  final kg = flow * tph / 1000;
+  out['hc_mass'] = kg;
+  out['hc_mass_t'] = flow * tph / 1000000;
+  if (density != null && density > 0) out['hc_volume'] = kg / density * 1000;
+  return out;
+}

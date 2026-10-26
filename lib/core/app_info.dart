@@ -6,7 +6,7 @@ const appDisplayName = 'CPF Laboratory NAWARA';
 
 /// Version affichÃ©e dans RÃ©glages â€º Ã€ propos â€” Ã  garder alignÃ©e sur
 /// `version:` dans pubspec.yaml.
-const appVersion = '0.12.1';
+const appVersion = '0.14.0';
 
 /// PropriÃ©taire de PuitsTrack : seul compte qui crÃ©e les codes d'activation
 /// (Ã©cran Clients) et une entreprise sans code. Doit rester identique Ã 

@@ -72,12 +72,12 @@ service cloud.firestore {
     function dataTables() {
       return ['wells', 'analysis_types', 'analysis_records', 'interventions', 'sample_points',
               'plant_analyses', 'plant_thresholds', 'app_config', 'plant_circuits',
-              'plant_schemas', 'plant_params', 'plant_profiles', 'stock_items', 'stock_movements'];
+              'plant_schemas', 'plant_params', 'plant_profiles', 'stock_items', 'stock_movements', 'well_rounds'];
     }
     function writableBy(cid, table) {
       return isAdmin(cid)
-        || (hasRole(cid, ['ingenieur']) && table in ['analysis_records', 'plant_analyses', 'interventions', 'stock_movements'])
-        || (hasRole(cid, ['operateur']) && table in ['analysis_records', 'plant_analyses', 'stock_movements']);
+        || (hasRole(cid, ['ingenieur']) && table in ['analysis_records', 'plant_analyses', 'interventions', 'stock_movements', 'well_rounds'])
+        || (hasRole(cid, ['operateur']) && table in ['analysis_records', 'plant_analyses', 'stock_movements', 'well_rounds']);
     }
     // Invitation valide pour l'adhésion écrite (code non utilisé, non expiré,
     // même rôle, e-mail imposé respecté), marquée utilisée dans la même

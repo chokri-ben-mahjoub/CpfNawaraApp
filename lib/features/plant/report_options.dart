@@ -11,7 +11,7 @@ class ReportOptions {
   final bool samplingTime;
   final bool allAnalyses; // sinon : seulement la plus récente du jour
   final bool headerDateTime;
-  final bool signatureLine;
+  final bool signatureBottom;
   final bool logo;
 
   const ReportOptions({
@@ -23,7 +23,7 @@ class ReportOptions {
     this.samplingTime = true,
     this.allAnalyses = true,
     this.headerDateTime = true,
-    this.signatureLine = true,
+    this.signatureBottom = true,
     this.logo = true,
   });
 
@@ -36,7 +36,7 @@ class ReportOptions {
     'samplingTime',
     'allAnalyses',
     'headerDateTime',
-    'signatureLine',
+    'signatureBottom',
     'logo',
   ];
 
@@ -49,7 +49,7 @@ class ReportOptions {
     'samplingTime' => samplingTime,
     'allAnalyses' => allAnalyses,
     'headerDateTime' => headerDateTime,
-    'signatureLine' => signatureLine,
+    'signatureBottom' => signatureBottom,
     _ => logo,
   };
 
@@ -62,7 +62,7 @@ class ReportOptions {
     samplingTime: m['samplingTime'] ?? true,
     allAnalyses: m['allAnalyses'] ?? true,
     headerDateTime: m['headerDateTime'] ?? true,
-    signatureLine: m['signatureLine'] ?? true,
+    signatureBottom: m['signatureBottom'] ?? true,
     logo: m['logo'] ?? true,
   );
 
@@ -71,7 +71,8 @@ class ReportOptions {
       final prefs = await SharedPreferences.getInstance();
       return ReportOptions.fromMap({
         for (final k in keys)
-          if (prefs.containsKey('report_opt_$k')) k: prefs.getBool('report_opt_$k')!,
+          if (prefs.containsKey('report_opt_$k'))
+            k: prefs.getBool('report_opt_$k')!,
       });
     } catch (_) {
       return const ReportOptions();

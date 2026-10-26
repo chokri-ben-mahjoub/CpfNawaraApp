@@ -10,6 +10,7 @@ import '../../../core/l10n/app_strings.dart';
 import '../../../core/plant/plant_catalog.dart';
 import '../../../core/plant/plant_repository.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/units/unit_system.dart';
 import '../../../core/widgets/responsive.dart';
 import 'plant_schema_screens.dart' show pickSchemaImage;
 import '../../../core/voice/spoken_number.dart';
@@ -54,6 +55,7 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
     _date = DateTime(d.year, d.month, d.day);
     final point = ref.read(plantControllerProvider.notifier).point(widget.pointId);
     for (final param in point?.params ?? const <PlantParam>[]) {
+      if (param.computed) continue;
       if (param.isNumeric) {
         _fields[param.key] = TextEditingController()..addListener(() => setState(() {}));
       } else {
@@ -62,7 +64,32 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
     }
     final locale = ref.read(localeProvider);
     _sourceController = TextEditingController(text: tr(locale, plantSources.first));
-    if (_editingId != null) _loadExisting();
+    if (_editingId != null) {
+      _loadExisting();
+    } else {
+      _prefillCondensateDensity();
+    }
+  }
+
+  bool _densityPrefilled = false;
+
+  /// Densité du condensat reprise de la dernière analyse d'un point du circuit
+  /// condensat (seulement en unités SI : la valeur affichée est alors celle
+  /// enregistrée, en kg/m³).
+  void _prefillCondensateDensity() {
+    final field = _fields['cond_density'];
+    if (field == null || Units.unit('kg/m³') != 'kg/m³') return;
+    final plant = ref.read(plantControllerProvider.notifier);
+    PlantAnalysis? best;
+    for (final a in ref.read(plantControllerProvider).analyses) {
+      final point = plant.point(a.pointId);
+      if (point == null || point.profile != 'condensate' || a.number('density') == null) continue;
+      if (best == null || a.date.isAfter(best.date)) best = a;
+    }
+    final v = best?.number('density');
+    if (v == null) return;
+    field.text = v == v.roundToDouble() ? v.toInt().toString() : v.toString();
+    _densityPrefilled = true;
   }
 
   /// Pré-remplit avec l'analyse à corriger (mode édition uniquement : la
@@ -131,6 +158,14 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
       for (final e in _choices.entries)
         if (e.value != null) e.key: e.value,
     };
+    final computed = plantComputedValues({
+      for (final e in values.entries)
+        if (e.value is num) e.key: (e.value as num).toDouble(),
+    });
+    final point = ref.read(plantControllerProvider.notifier).point(widget.pointId);
+    for (final param in point?.params ?? const <PlantParam>[]) {
+      if (param.computed && computed[param.key] != null) values[param.key] = computed[param.key];
+    }
     if (values.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s('plantEntryEmpty'))));
       return;
@@ -223,7 +258,12 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
       );
     }
 
-    final numeric = point.params.where((p) => p.isNumeric).toList();
+    final numeric = point.params.where((p) => p.isNumeric && !p.computed).toList();
+    final computedParams = point.params.where((p) => p.computed).toList();
+    final liveComputed = plantComputedValues({
+      for (final e in _fields.entries)
+        if (_parse(e.value.text) != null) e.key: _parse(e.value.text)!,
+    });
     final composition = numeric.where((p) => gasCompositionKeys.contains(p.key)).toList();
     final others = numeric.where((p) => !gasCompositionKeys.contains(p.key)).toList();
     final compositionSum = composition.fold<double>(0, (sum, p) => sum + (_parse(_fields[p.key]!.text) ?? 0));
@@ -315,6 +355,33 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
               const SizedBox(height: 16),
             ],
             ResponsiveWrapGrid(minItemWidth: 260, spacing: 10, children: [for (final p in others) numberField(p)]),
+            if (computedParams.isNotEmpty) ...[
+              const SizedBox(height: 18),
+              Text(s('plantCalcTitle'), style: const TextStyle(fontWeight: FontWeight.w800)),
+              const SizedBox(height: 4),
+              Text(s('plantCalcHint'), style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
+              if (_densityPrefilled)
+                Text(s('plantCalcPrefilled'), style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
+              const SizedBox(height: 8),
+              ResponsiveWrapGrid(
+                minItemWidth: 260,
+                spacing: 10,
+                children: [
+                  for (final p in computedParams)
+                    InputDecorator(
+                      decoration: InputDecoration(
+                        labelText: s(p.labelKey),
+                        suffixText: p.unit,
+                        prefixIcon: const Icon(Icons.calculate_outlined),
+                      ),
+                      child: Text(
+                        liveComputed[p.key] == null ? '—' : formatNumber(liveComputed[p.key]!),
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                ],
+              ),
+            ],
             for (final param in point.params.where((p) => !p.isNumeric)) ...[
               const SizedBox(height: 16),
               Text(s(param.labelKey), style: const TextStyle(fontWeight: FontWeight.w800)),

@@ -295,7 +295,7 @@ class SyncEngine {
   /// Élément vers lequel mène une entrée du journal (puits, point, article).
   static String? _refIdOf(String table, Map<String, Object?> row) => switch (table) {
     'wells' || 'sample_points' || 'stock_items' => row['id'] as String?,
-    'analysis_records' || 'interventions' => row['well_id'] as String?,
+    'analysis_records' || 'interventions' || 'well_rounds' => row['well_id'] as String?,
     'plant_analyses' || 'plant_thresholds' => row['point_id'] as String?,
     'stock_movements' => row['item_id'] as String?,
     _ => null,

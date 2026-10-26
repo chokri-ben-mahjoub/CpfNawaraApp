@@ -36,6 +36,9 @@ Future<Uint8List> buildPlantDailyReport({
   required String operatorName,
   required String reportNumber,
   bool includeMissing = false,
+  String? onlyPointId,
+  Set<String>? analysisIds,
+  Set<String>? paramKeys,
   ReportOptions options = const ReportOptions(),
 }) async {
   // Polices standard du PDF : pas de tiret long ni de ≤ / ≥.
@@ -47,15 +50,50 @@ Future<Uint8List> buildPlantDailyReport({
   final headerStamp = (await PdfExportSettings.load()).stamp();
   final reportDay = DateFormat('dd-MM-yyyy').format(day);
 
+  // Bloc « Date : … / Nom : fonction », en gras comme sur le modèle.
+  pw.Widget signatureBlock() => pw.Column(
+    crossAxisAlignment: pw.CrossAxisAlignment.start,
+    children: [
+      pw.Text(
+        '${t('plantReportDateLabel')}: $reportDay',
+        style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold),
+      ),
+      if (operatorName.isNotEmpty) ...[
+        pw.SizedBox(height: 12),
+        pw.Text(
+          '${_safe(operatorName)}: ${t('plantReportRole')}',
+          style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold),
+        ),
+      ],
+    ],
+  );
+
+  // Analyses choisies (une, plusieurs ou toutes) d'un point, de la plus
+  // ancienne à la plus récente.
+  List<PlantAnalysis> selectedFor(SamplePoint p) =>
+      [
+        for (final id in analysisIds ?? <String>{}) ?controller.byId(id),
+      ].where((a) => a.pointId == p.id).toList()..sort((x, y) {
+        final byDate = x.date.compareTo(y.date);
+        return byDate != 0 ? byDate : x.samplingTime.compareTo(y.samplingTime);
+      });
+
   final sections = <pw.Widget>[];
 
   for (final circuit in circuits) {
-    final points = controller.pointsOf(circuit);
+    final points = [
+      for (final p in controller.pointsOf(circuit))
+        if (onlyPointId == null || p.id == onlyPointId) p,
+    ];
     // Circuit sans rien à montrer (tous ses points non analysés, exclus du
     // rapport) : pas d'en-tête orphelin.
     final hasVisiblePoint =
         includeMissing ||
-        points.any((p) => controller.analysisOn(p.id, day) != null);
+        points.any(
+          (p) => analysisIds != null
+              ? selectedFor(p).isNotEmpty
+              : controller.analysisOn(p.id, day) != null,
+        );
     if (hasVisiblePoint) {
       sections.add(pw.SizedBox(height: 14));
       sections.add(
@@ -77,8 +115,19 @@ Future<Uint8List> buildPlantDailyReport({
       );
     }
     for (final point in points) {
-      final analysis = controller.analysisOn(point.id, day);
-      final status = controller.status(point, day);
+      final selected = analysisIds == null ? null : selectedFor(point);
+      final analysis = selected != null
+          ? (selected.isEmpty ? null : selected.last)
+          : controller.analysisOn(point.id, day);
+      final status = selected != null
+          ? (selected.isEmpty
+                ? PlantStatus.missing
+                : (selected.any(
+                        (x) => controller.outOfRange(point, x).isNotEmpty,
+                      )
+                      ? PlantStatus.outOfRange
+                      : PlantStatus.ok))
+          : controller.status(point, day);
       if (analysis == null && !includeMissing) continue;
       sections.add(pw.SizedBox(height: 8));
       sections.add(
@@ -129,15 +178,38 @@ Future<Uint8List> buildPlantDailyReport({
         continue;
       }
       // Toutes les analyses du jour (ex: 8 h et 17 h), par heure de prélèvement.
-      var daily = controller.analysesOnDay(point.id, day).toList()
-        ..sort((x, y) => x.samplingTime.compareTo(y.samplingTime));
-      if (!options.allAnalyses) daily = [daily.last];
+      var daily =
+          selected ??
+          (controller.analysesOnDay(point.id, day).toList()
+            ..sort((x, y) => x.samplingTime.compareTo(y.samplingTime)));
+      if (paramKeys != null) {
+        daily = daily
+            .where(
+              (x) => point.params.any(
+                (p) => paramKeys.contains(p.key) && x.values[p.key] != null,
+              ),
+            )
+            .toList();
+      }
+      if (daily.isEmpty) {
+        sections.add(
+          pw.Padding(
+            padding: const pw.EdgeInsets.only(top: 3),
+            child: pw.Text(
+              t('plantNoValuesForParams'),
+              style: const pw.TextStyle(color: _grey, fontSize: 9),
+            ),
+          ),
+        );
+        continue;
+      }
+      if (!options.allAnalyses && analysisIds == null) daily = [daily.last];
       for (final a in daily) {
         sections.add(pw.SizedBox(height: 4));
-        if (options.samplingTime) {
+        if (options.samplingTime || analysisIds != null) {
           sections.add(
             pw.Text(
-              '${t('plantSamplingTime')}: ${a.samplingTime}',
+              '${t('plantSamplingTime')}: ${analysisIds != null ? '${DateFormat('dd-MM-yyyy').format(a.date)} ' : ''}${a.samplingTime}',
               style: pw.TextStyle(
                 fontSize: 9,
                 fontWeight: pw.FontWeight.bold,
@@ -171,7 +243,8 @@ Future<Uint8List> buildPlantDailyReport({
             },
             data: [
               for (final param in point.params)
-                if (a.values[param.key] != null)
+                if (a.values[param.key] != null &&
+                    (paramKeys == null || paramKeys.contains(param.key)))
                   [
                     t(param.labelKey),
                     param.unit,
@@ -225,7 +298,12 @@ Future<Uint8List> buildPlantDailyReport({
         }
       }
       if (options.curves) {
-        for (final chart in plantPointCharts(controller, point, s)) {
+        for (final chart in plantPointCharts(
+          controller,
+          point,
+          s,
+          keys: paramKeys,
+        )) {
           final widget = buildPdfChartSection(chart, height: 130);
           sections.add(pw.SizedBox(height: 8));
           sections.add(pw.Container(child: widget));
@@ -298,17 +376,12 @@ Future<Uint8List> buildPlantDailyReport({
           ),
         ),
         pw.SizedBox(height: 6),
-        pw.Text(
-          '${t('plantReportDateLabel')}: $reportDay',
-          style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
-        ),
-        if (operatorName.isNotEmpty && options.signatureLine)
-          pw.Text(
-            '${_safe(operatorName)}: ${t('plantReportRole')}',
-            style: const pw.TextStyle(fontSize: 9.5, color: _grey),
-          ),
         pw.SizedBox(height: 10),
         ...sections,
+        if (options.signatureBottom) ...[
+          pw.SizedBox(height: 24),
+          signatureBlock(),
+        ],
         if (sections.isEmpty)
           pw.Padding(
             padding: const pw.EdgeInsets.only(top: 24),

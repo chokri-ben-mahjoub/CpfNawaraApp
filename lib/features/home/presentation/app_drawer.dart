@@ -17,6 +17,7 @@ const homeDestinations = [
   (Icons.notifications_outlined, Icons.notifications, 'navAlerts'),
   (Icons.water_drop_outlined, Icons.water_drop, 'navWells'),
   (Icons.factory_outlined, Icons.factory, 'navPlant'),
+  (Icons.engineering_outlined, Icons.engineering, 'navRounds'),
   (Icons.bar_chart_outlined, Icons.bar_chart, 'navStats'),
 ];
 

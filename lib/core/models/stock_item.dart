@@ -78,10 +78,20 @@ class StockItem {
     pendingOrder: pendingOrder ?? this.pendingOrder,
   );
 
-  /// Quantité à commander : besoin annuel [consumption] moins le stock
-  /// disponible et la commande déjà en route (jamais négative).
+  /// Besoin annuel : la consommation de l'année en cours [consumption], ou
+  /// celle de l'année précédente si elle est plus élevée (en début d'année,
+  /// ou pour un produit encore peu utilisé, les sorties de l'année ne
+  /// reflètent pas encore le besoin réel). Un nouveau produit (sans
+  /// historique) n'a que sa consommation de l'année.
+  double annualNeed(double consumption) {
+    final prev = prevConsumption ?? 0;
+    return consumption > prev ? consumption : prev;
+  }
+
+  /// Quantité à commander : besoin annuel moins le stock disponible et la
+  /// commande déjà en route (jamais négative).
   double toOrder(double consumption) {
-    final v = consumption - quantity - pendingOrder;
+    final v = annualNeed(consumption) - quantity - pendingOrder;
     return v > 0 ? v : 0;
   }
 }

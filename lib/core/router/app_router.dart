@@ -31,6 +31,7 @@ import '../../features/owner/owner_screen.dart';
 import '../../features/plant/presentation/plant_schema_screens.dart';
 import '../../features/plant/presentation/plant_trend_screen.dart';
 import '../../features/settings/presentation/pdf_export_settings_screen.dart';
+import '../../features/rounds/presentation/round_entry_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/setup/presentation/setup_screen.dart';
 import '../../features/stock/presentation/stock_item_detail_screen.dart';
@@ -89,6 +90,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (loc == '/entry' && !role.canEnterData) return '/home';
       if (loc == '/entry/batch' && !role.canEnterData) return '/home';
       if (loc.startsWith('/plant/entry') && !role.canEnterData) return '/home';
+      if (loc.startsWith('/rounds/entry') && !role.canEnterData) return '/home';
       if (loc.startsWith('/plant/schema') && !role.canConfigure) return '/home';
       // Clients (codes d'activation) : propriétaire de PuitsTrack seulement.
       if (loc == '/owner' && !ref.read(syncControllerProvider.notifier).isOwner) return '/home';
@@ -180,6 +182,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/entry/batch',
         builder: (context, state) => BatchEntryScreen(initialWellId: state.uri.queryParameters['wellId']),
+      ),
+      GoRoute(
+        path: '/rounds/entry',
+        builder: (context, state) {
+          final q = state.uri.queryParameters;
+          final d = DateTime.tryParse(q['date'] ?? '') ?? DateTime.now();
+          return RoundEntryScreen(
+            wellId: q['wellId'] ?? '',
+            day: DateTime(d.year, d.month, d.day),
+            roundId: q['roundId'],
+          );
+        },
       ),
       GoRoute(path: '/admin', builder: (context, state) => const AdminScreen()),
       GoRoute(path: '/admin/users', builder: (context, state) => const UsersScreen()),

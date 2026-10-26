@@ -501,6 +501,23 @@ class _GroupedLastValues extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (groupOrder.isNotEmpty && canEnterData) ...[
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: FilledButton.icon(
+              onPressed: () => context.push('/entry/batch?wellId=$wellId'),
+              icon: const Icon(Icons.fact_check_outlined),
+              label: Text(s('entryBatchAction'), style: const TextStyle(fontWeight: FontWeight.w800)),
+              style: FilledButton.styleFrom(
+                backgroundColor: accentColor,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+        ],
         if (ungrouped.isNotEmpty) ...[
           Text(
             s('wellDetailLastValues'),
@@ -508,17 +525,6 @@ class _GroupedLastValues extends ConsumerWidget {
           ),
           const SizedBox(height: 10),
           grid(ungrouped),
-        ],
-        if (groupOrder.isNotEmpty && canEnterData) ...[
-          SizedBox(height: ungrouped.isEmpty ? 0 : 20),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () => context.push('/entry/batch?wellId=$wellId'),
-              icon: const Icon(Icons.fact_check_outlined),
-              label: Text(s('entryBatchAction')),
-            ),
-          ),
         ],
         for (final group in groupOrder) ...[
           const SizedBox(height: 20),

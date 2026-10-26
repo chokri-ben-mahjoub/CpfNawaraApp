@@ -21,7 +21,7 @@ class LocalDatabase {
   static final LocalDatabase instance = LocalDatabase._();
 
   /// Version du schéma (voir `onUpgrade`), enregistrée dans les sauvegardes.
-  static const schemaVersion = 22;
+  static const schemaVersion = 23;
 
   /// Tables sauvegardées / restaurées / synchronisées.
   static const dataTables = [
@@ -45,6 +45,8 @@ class LocalDatabase {
     // Gestion de stock (articles + mouvements), v13.
     'stock_items',
     'stock_movements',
+    // Tournées des opérateurs de puits (relevés par puits et du site), v23.
+    'well_rounds',
   ];
 
   /// Tables qui ont reçu les colonnes de synchronisation par migration (v6) ;
@@ -162,6 +164,7 @@ class LocalDatabase {
           await _createPlantSchemasTable(db);
           await _createPlantParamTables(db);
           await _createStockTables(db);
+          await _createRoundsTable(db);
           await _seed(db);
         },
         onUpgrade: (db, oldVersion, newVersion) async {
@@ -302,6 +305,9 @@ class LocalDatabase {
             // dans ce même passage, que s'ils existaient déjà depuis la v20).
             await db.execute("alter table analysis_types add column group_label text not null default ''");
             await _applyWellTestGroups(db);
+          }
+          if (oldVersion < 23) {
+            await _createRoundsTable(db);
           }
           if (oldVersion < 22) {
             // Heure de début / fin du test de puits (facultatives), comme
@@ -512,6 +518,25 @@ class LocalDatabase {
     ''');
   }
 
+  /// Tournées des opérateurs de puits : une ligne par puits (ou par relevé du
+  /// site, `well_id` vide), les valeurs relevées en JSON.
+  static Future<void> _createRoundsTable(DatabaseExecutor db) async {
+    await db.execute('''
+      create table if not exists well_rounds (
+        id text primary key,
+        well_id text not null default '',
+        round_date text not null,
+        round_time text not null default '',
+        values_json text not null default '{}',
+        operator_name text not null default '',
+        comment text,
+        recorded_at text not null,
+        updated_at integer not null default 0,
+        dirty integer not null default 0
+      )
+    ''');
+  }
+
   static Future<void> _seedPlantSchemas(DatabaseExecutor db) async {
     await db.insert('plant_schemas', {
       'id': 'pfd',
@@ -579,6 +604,9 @@ class LocalDatabase {
     }
     if (fromVersion < 13) {
       await _createStockTables(db);
+    }
+    if (fromVersion < 23) {
+      await _createRoundsTable(db);
     }
     if (fromVersion < 20) {
       for (final type in _wellTestTypes) {

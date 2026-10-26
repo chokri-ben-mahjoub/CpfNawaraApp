@@ -165,6 +165,29 @@ class _BatchEntryScreenState extends ConsumerState<BatchEntryScreen> {
     }
     final groupedTypes = [for (final g in groupOrder) ...byGroup[g]!];
 
+    // Clavier ouvert : le bouton « Enregistrer » suit le contenu (en fin de
+    // liste) au lieu de manger la place des champs ; sinon il reste fixe en bas.
+    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final saveButton = SizedBox(
+                  width: double.infinity,
+                  height: 54,
+                  child: ElevatedButton(
+                    onPressed: _saving ? null : () => _submit(groupedTypes),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: scheme.primary,
+                      foregroundColor: scheme.onPrimary,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    ),
+                    child: _saving
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : Text(s('entryBatchSave'), style: const TextStyle(fontWeight: FontWeight.w700)),
+                  ),
+                );
+
     return Scaffold(
       appBar: AppBar(title: Text(s('entryBatchTitle'))),
       body: NarrowSafeArea(
@@ -178,6 +201,8 @@ class _BatchEntryScreenState extends ConsumerState<BatchEntryScreen> {
               children: [
                 Expanded(
                   child: ListView(
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    padding: const EdgeInsets.only(bottom: 24),
                     children: [
                       Text(s('entryBatchHint'), style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13)),
                       const SizedBox(height: 16),
@@ -294,6 +319,8 @@ class _BatchEntryScreenState extends ConsumerState<BatchEntryScreen> {
                             child: TextFormField(
                               controller: _controllerFor(type.id),
                               keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                              textInputAction: type.id == groupedTypes.last.id ? TextInputAction.done : TextInputAction.next,
+                              scrollPadding: const EdgeInsets.only(bottom: 140),
                               decoration: InputDecoration(
                                 labelText: type.shownLabel,
                                 suffixText: type.unit,
@@ -311,28 +338,11 @@ class _BatchEntryScreenState extends ConsumerState<BatchEntryScreen> {
                         ],
                       ],
                       const SizedBox(height: 8),
+                      if (keyboardOpen) ...[const SizedBox(height: 8), saveButton],
                     ],
                   ),
                 ),
-                SizedBox(
-                  width: double.infinity,
-                  height: 54,
-                  child: ElevatedButton(
-                    onPressed: _saving ? null : () => _submit(groupedTypes),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: scheme.primary,
-                      foregroundColor: scheme.onPrimary,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                    ),
-                    child: _saving
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                          )
-                        : Text(s('entryBatchSave'), style: const TextStyle(fontWeight: FontWeight.w700)),
-                  ),
-                ),
+                if (!keyboardOpen) ...[const SizedBox(height: 10), saveButton],
               ],
             ),
           ),

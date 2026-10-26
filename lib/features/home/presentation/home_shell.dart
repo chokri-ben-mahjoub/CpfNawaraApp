@@ -1,3 +1,4 @@
+import '../../rounds/presentation/rounds_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -33,6 +34,9 @@ Widget? _exportAction(BuildContext context, WidgetRef ref, int index) {
     case 3:
       action = () => exportPlantAnalyses(ref, context);
       break;
+    case 4:
+      action = () => exportRounds(ref, context);
+      break;
     default:
       return null;
   }
@@ -42,7 +46,7 @@ Widget? _exportAction(BuildContext context, WidgetRef ref, int index) {
 
 final homeTabIndexProvider = StateProvider<int>((ref) => 0);
 
-const _tabTitleKeys = ['dashboardTitle', 'navAlerts', 'wellsTitle', 'plantTitle', 'statsTitle'];
+const _tabTitleKeys = ['dashboardTitle', 'navAlerts', 'wellsTitle', 'plantTitle', 'roundsTitle', 'statsTitle'];
 
 /// Coquille principale de l'app une fois connecté : navigation par onglets
 /// entre le tableau de bord du jour, les alertes, les puits, les stats et le
@@ -93,6 +97,7 @@ class HomeShell extends ConsumerWidget {
         wellsReady && plantReady ? const AlertsScreen() : const SkeletonPage(),
         wellsReady ? const WellsListScreen() : const SkeletonPage(layout: SkeletonLayout.list),
         plantReady ? const PlantScreen() : const SkeletonPage(layout: SkeletonLayout.plant),
+        wellsReady ? const RoundsScreen() : const SkeletonPage(layout: SkeletonLayout.list),
         wellsReady ? const StatsScreen() : const SkeletonPage(),
       ],
     );

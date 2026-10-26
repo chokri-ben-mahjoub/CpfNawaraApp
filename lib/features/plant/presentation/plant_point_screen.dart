@@ -48,7 +48,12 @@ class _PhotoThumbnail extends StatelessWidget {
       onTap: () => showPlantPhoto(context, base64),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(14),
-        child: Image.memory(base64Decode(base64), height: 140, width: double.infinity, fit: BoxFit.cover),
+        child: Image.memory(
+          base64Decode(base64),
+          height: 140,
+          width: double.infinity,
+          fit: BoxFit.cover,
+        ),
       ),
     );
   }
@@ -56,7 +61,11 @@ class _PhotoThumbnail extends StatelessWidget {
 
 /// Export Excel/CSV/PDF de l'historique d'un seul point de prélèvement
 /// (toutes les analyses, une colonne par paramètre).
-Future<void> _exportPoint(WidgetRef ref, BuildContext context, SamplePoint point) async {
+Future<void> _exportPoint(
+  WidgetRef ref,
+  BuildContext context,
+  SamplePoint point,
+) async {
   final locale = ref.read(localeProvider);
   String s(String key) => tr(locale, key);
   final controller = ref.read(plantControllerProvider.notifier);
@@ -68,7 +77,11 @@ Future<void> _exportPoint(WidgetRef ref, BuildContext context, SamplePoint point
         a.startTime ?? '',
         a.endTime ?? '',
         for (final param in params)
-          param.isNumeric ? a.number(param.key) : (a.values[param.key] == null ? null : s('${a.values[param.key]}')),
+          param.isNumeric
+              ? a.number(param.key)
+              : (a.values[param.key] == null
+                    ? null
+                    : s('${a.values[param.key]}')),
         s(a.source),
         a.operatorName,
         a.comment ?? '',
@@ -86,7 +99,10 @@ Future<void> _exportPoint(WidgetRef ref, BuildContext context, SamplePoint point
           s('colDate'),
           s('colStartTime'),
           s('colEndTime'),
-          for (final param in params) param.unit.isEmpty ? s(param.labelKey) : '${s(param.labelKey)} (${param.unit})',
+          for (final param in params)
+            param.unit.isEmpty
+                ? s(param.labelKey)
+                : '${s(param.labelKey)} (${param.unit})',
           s('plantColSource'),
           s('colOperator'),
           s('colComment'),
@@ -121,7 +137,8 @@ class PlantPointScreen extends ConsumerWidget {
         body: Center(child: Text(s('plantPointNotFound'))),
       );
     }
-    final current = controller.analysisOn(point.id, day) ?? controller.latest(point.id);
+    final current =
+        controller.analysisOn(point.id, day) ?? controller.latest(point.id);
     // Toutes les analyses du jour (ex: 8 h et 17 h), sinon la plus récente.
     final shown = controller.analysesOnDay(point.id, day).toList()
       ..sort((x, y) => x.samplingTime.compareTo(y.samplingTime));
@@ -136,7 +153,9 @@ class PlantPointScreen extends ConsumerWidget {
           IconButton(
             tooltip: s('exportTooltip'),
             icon: const Icon(Icons.ios_share_outlined),
-            onPressed: history.isEmpty ? null : () => _exportPoint(ref, context, point),
+            onPressed: history.isEmpty
+                ? null
+                : () => _exportPoint(ref, context, point),
           ),
           if (role.canConfigure)
             IconButton(
@@ -148,7 +167,9 @@ class PlantPointScreen extends ConsumerWidget {
       ),
       floatingActionButton: role.canEnterData
           ? FloatingActionButton.extended(
-              onPressed: () => context.push('/plant/entry/${point.id}?date=${plantDateKey(day)}'),
+              onPressed: () => context.push(
+                '/plant/entry/${point.id}?date=${plantDateKey(day)}',
+              ),
               icon: const Icon(Icons.edit_note),
               label: Text(s('plantEnter')),
             )
@@ -177,9 +198,18 @@ class PlantPointScreen extends ConsumerWidget {
                       children: [
                         Text(
                           s(point.circuit.labelKey),
-                          style: TextStyle(color: point.circuit.color, fontWeight: FontWeight.w800),
+                          style: TextStyle(
+                            color: point.circuit.color,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
-                        Text(point.equipment, style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12.5)),
+                        Text(
+                          point.equipment,
+                          style: TextStyle(
+                            color: scheme.onSurfaceVariant,
+                            fontSize: 12.5,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -193,7 +223,10 @@ class PlantPointScreen extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 30),
               child: Center(
-                child: Text(s('plantNeverAnalysed'), style: TextStyle(color: scheme.onSurfaceVariant)),
+                child: Text(
+                  s('plantNeverAnalysed'),
+                  style: TextStyle(color: scheme.onSurfaceVariant),
+                ),
               ),
             )
           else ...[
@@ -203,11 +236,24 @@ class PlantPointScreen extends ConsumerWidget {
                   Expanded(
                     child: Text(
                       '${s('plantAnalysisOf')} ${dateFormat.format(a.date)} · ${a.samplingTime}',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                      style: Theme.of(context).textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w700),
                     ),
                   ),
                   if (a.date != day)
-                    Text(s('plantLatestAvailable'), style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
+                    Text(
+                      s('plantLatestAvailable'),
+                      style: TextStyle(
+                        color: scheme.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    ),
+                  IconButton(
+                    tooltip: s('exportTooltip'),
+                    icon: const Icon(Icons.picture_as_pdf_outlined),
+                    onPressed: () =>
+                        exportSinglePlantAnalysis(ref, context, point, a),
+                  ),
                 ],
               ),
               const SizedBox(height: 4),
@@ -228,29 +274,130 @@ class PlantPointScreen extends ConsumerWidget {
               ],
               const SizedBox(height: 16),
             ],
-            Text(s('plantTapForTrend'), style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
+            Text(
+              s('plantTapForTrend'),
+              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
+            ),
           ],
           const SizedBox(height: 22),
-          Text(
-            s('plantHistory'),
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          _HistorySection(
+            point: point,
+            history: history,
+            dateFormat: dateFormat,
           ),
-          const SizedBox(height: 8),
-          if (history.isEmpty)
-            Text('—', style: TextStyle(color: scheme.onSurfaceVariant))
-          else
-            Card(
-              child: Column(
-                children: [
-                  for (var i = 0; i < history.length && i < 60; i++) ...[
-                    if (i > 0) Divider(height: 1, color: scheme.outlineVariant),
-                    _HistoryTile(point: point, analysis: history[i], dateFormat: dateFormat),
-                  ],
-                ],
-              ),
-            ),
         ],
       ),
+    );
+  }
+}
+
+class _HistorySection extends ConsumerStatefulWidget {
+  final SamplePoint point;
+  final List<PlantAnalysis> history;
+  final DateFormat dateFormat;
+  const _HistorySection({
+    required this.point,
+    required this.history,
+    required this.dateFormat,
+  });
+
+  @override
+  ConsumerState<_HistorySection> createState() => _HistorySectionState();
+}
+
+class _HistorySectionState extends ConsumerState<_HistorySection> {
+  bool _selecting = false;
+  final _selected = <String>{};
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final locale = ref.watch(localeProvider);
+    String s(String key) => tr(locale, key);
+    final shown = widget.history.take(60).toList();
+    final allSelected =
+        shown.isNotEmpty && shown.every((a) => _selected.contains(a.id));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                s('plantHistory'),
+                style: Theme.of(context).textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w700),
+              ),
+            ),
+            if (_selecting)
+              TextButton(
+                onPressed: () => setState(() {
+                  if (allSelected) {
+                    _selected.clear();
+                  } else {
+                    _selected.addAll(shown.map((a) => a.id));
+                  }
+                }),
+                child: Text(
+                  s(allSelected ? 'plantSelectNone' : 'plantSelectAll'),
+                ),
+              ),
+            if (shown.isNotEmpty)
+              TextButton.icon(
+                onPressed: () => setState(() {
+                  _selecting = !_selecting;
+                  _selected.clear();
+                }),
+                icon: Icon(
+                  _selecting ? Icons.close : Icons.checklist_rounded,
+                  size: 18,
+                ),
+                label: Text(
+                  s(_selecting ? 'plantSelectDone' : 'plantSelectMode'),
+                ),
+              ),
+          ],
+        ),
+        if (_selecting && _selected.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          FilledButton.icon(
+            onPressed: () =>
+                exportPlantAnalysesSelection(ref, context, widget.point, [
+                  for (final a in shown)
+                    if (_selected.contains(a.id)) a,
+                ]),
+            icon: const Icon(Icons.picture_as_pdf_outlined),
+            label: Text(
+              fill(s('plantExportSelected'), {'n': '${_selected.length}'}),
+            ),
+          ),
+        ],
+        const SizedBox(height: 8),
+        if (shown.isEmpty)
+          Text('—', style: TextStyle(color: scheme.onSurfaceVariant))
+        else
+          Card(
+            child: Column(
+              children: [
+                for (var i = 0; i < shown.length; i++) ...[
+                  if (i > 0) Divider(height: 1, color: scheme.outlineVariant),
+                  _HistoryTile(
+                    point: widget.point,
+                    analysis: shown[i],
+                    dateFormat: widget.dateFormat,
+                    selecting: _selecting,
+                    selected: _selected.contains(shown[i].id),
+                    onToggle: () => setState(() {
+                      if (!_selected.remove(shown[i].id))
+                        _selected.add(shown[i].id);
+                    }),
+                  ),
+                ],
+              ],
+            ),
+          ),
+      ],
     );
   }
 }
@@ -259,7 +406,17 @@ class _HistoryTile extends ConsumerWidget {
   final SamplePoint point;
   final PlantAnalysis analysis;
   final DateFormat dateFormat;
-  const _HistoryTile({required this.point, required this.analysis, required this.dateFormat});
+  final bool selecting;
+  final bool selected;
+  final VoidCallback? onToggle;
+  const _HistoryTile({
+    required this.point,
+    required this.analysis,
+    required this.dateFormat,
+    this.selecting = false,
+    this.selected = false,
+    this.onToggle,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -273,31 +430,69 @@ class _HistoryTile extends ConsumerWidget {
     final color = plantStatusColor(status, scheme);
 
     return ListTile(
-      leading: Icon(out.isEmpty ? Icons.check_circle_outline : Icons.warning_amber_rounded, color: color),
-      title: Text('${dateFormat.format(analysis.date)} · ${analysis.samplingTime}', style: const TextStyle(fontWeight: FontWeight.w700)),
+      leading: selecting
+          ? Checkbox(value: selected, onChanged: (_) => onToggle?.call())
+          : Icon(
+              out.isEmpty
+                  ? Icons.check_circle_outline
+                  : Icons.warning_amber_rounded,
+              color: color,
+            ),
+      title: Text(
+        '${dateFormat.format(analysis.date)} · ${analysis.samplingTime}',
+        style: const TextStyle(fontWeight: FontWeight.w700),
+      ),
       subtitle: Text(
         out.isEmpty
             ? '${analysis.values.length} ${s('plantValuesCount')} · ${s(analysis.source)}'
             : '${s('plantStatusOut')} : ${out.map((p) => s(p.labelKey)).join(', ')}',
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(fontSize: 12, color: out.isEmpty ? scheme.onSurfaceVariant : color),
+        style: TextStyle(
+          fontSize: 12,
+          color: out.isEmpty ? scheme.onSurfaceVariant : color,
+        ),
       ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (analysis.photo != null)
-            IconButton(
-              tooltip: s('plantPhotoLabel'),
-              icon: Icon(Icons.photo_outlined, size: 20, color: scheme.onSurfaceVariant),
-              onPressed: () => showPlantPhoto(context, analysis.photo!),
+      trailing: selecting
+          ? null
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (analysis.photo != null)
+                  IconButton(
+                    tooltip: s('plantPhotoLabel'),
+                    icon: Icon(
+                      Icons.photo_outlined,
+                      size: 20,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                    onPressed: () => showPlantPhoto(context, analysis.photo!),
+                  ),
+                IconButton(
+                  tooltip: s('exportTooltip'),
+                  icon: Icon(
+                    Icons.picture_as_pdf_outlined,
+                    size: 20,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                  onPressed: () =>
+                      exportSinglePlantAnalysis(ref, context, point, analysis),
+                ),
+                if (role.canEnterData)
+                  Icon(
+                    Icons.edit_outlined,
+                    size: 18,
+                    color: scheme.onSurfaceVariant,
+                  ),
+              ],
             ),
-          if (role.canEnterData) Icon(Icons.edit_outlined, size: 18, color: scheme.onSurfaceVariant),
-        ],
-      ),
-      onTap: role.canEnterData
-          ? () => context.push('/plant/entry/${point.id}?analysisId=${analysis.id}')
-          : null,
+      onTap: selecting
+          ? onToggle
+          : (role.canEnterData
+                ? () => context.push(
+                    '/plant/entry/${point.id}?analysisId=${analysis.id}',
+                  )
+                : null),
     );
   }
 }
@@ -308,7 +503,9 @@ Future<void> showPlantThresholdsSheet(BuildContext context, SamplePoint point) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
     builder: (sheetContext) => _ThresholdsSheet(point: point),
   );
 }
@@ -330,7 +527,9 @@ class _ThresholdsSheetState extends ConsumerState<_ThresholdsSheet> {
   void initState() {
     super.initState();
     final controller = ref.read(plantControllerProvider.notifier);
-    String fmt(double? v) => v == null ? '' : (v == v.roundToDouble() ? v.toInt().toString() : v.toString());
+    String fmt(double? v) => v == null
+        ? ''
+        : (v == v.roundToDouble() ? v.toInt().toString() : v.toString());
     for (final param in widget.point.params.where((p) => p.isNumeric)) {
       final t = controller.threshold(widget.point.id, param.key);
       _min[param.key] = TextEditingController(text: fmt(t?.min));
@@ -346,7 +545,8 @@ class _ThresholdsSheetState extends ConsumerState<_ThresholdsSheet> {
     super.dispose();
   }
 
-  double? _parse(String text) => double.tryParse(text.trim().replaceAll(',', '.'));
+  double? _parse(String text) =>
+      double.tryParse(text.trim().replaceAll(',', '.'));
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
@@ -361,7 +561,11 @@ class _ThresholdsSheetState extends ConsumerState<_ThresholdsSheet> {
     if (!mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     Navigator.of(context).pop();
-    messenger.showSnackBar(SnackBar(content: Text(tr(ref.read(localeProvider), 'plantThresholdsSaved'))));
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(tr(ref.read(localeProvider), 'plantThresholdsSaved')),
+      ),
+    );
   }
 
   @override
@@ -370,30 +574,48 @@ class _ThresholdsSheetState extends ConsumerState<_ThresholdsSheet> {
     final locale = ref.watch(localeProvider);
     String s(String key) => tr(locale, key);
     String? numberOrEmpty(String? v) =>
-        (v ?? '').trim().isEmpty || _parse(v!) != null ? null : s('adminInvalidThreshold');
+        (v ?? '').trim().isEmpty || _parse(v!) != null
+        ? null
+        : s('adminInvalidThreshold');
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.fromLTRB(
+        20,
+        20,
+        20,
+        20 + MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: Form(
         key: _formKey,
         child: ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.8),
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(context).height * 0.8,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
                 '${s('plantThresholds')} · ${widget.point.code}',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                style: Theme.of(context).textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 4),
-              Text(s('plantThresholdsHint'), style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12.5)),
+              Text(
+                s('plantThresholdsHint'),
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant,
+                  fontSize: 12.5,
+                ),
+              ),
               const SizedBox(height: 12),
               Flexible(
                 child: ListView(
                   shrinkWrap: true,
                   children: [
-                    for (final param in widget.point.params.where((p) => p.isNumeric))
+                    for (final param in widget.point.params.where(
+                      (p) => p.isNumeric,
+                    ))
                       Padding(
                         padding: const EdgeInsets.only(bottom: 10),
                         child: Row(
@@ -404,8 +626,13 @@ class _ThresholdsSheetState extends ConsumerState<_ThresholdsSheet> {
                               child: Padding(
                                 padding: const EdgeInsets.only(top: 14),
                                 child: Text(
-                                  param.unit.isEmpty ? s(param.labelKey) : '${s(param.labelKey)} (${param.unit})',
-                                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                                  param.unit.isEmpty
+                                      ? s(param.labelKey)
+                                      : '${s(param.labelKey)} (${param.unit})',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                  ),
                                 ),
                               ),
                             ),
@@ -414,8 +641,15 @@ class _ThresholdsSheetState extends ConsumerState<_ThresholdsSheet> {
                               flex: 3,
                               child: TextFormField(
                                 controller: _min[param.key],
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-                                decoration: InputDecoration(labelText: 'Min', isDense: true),
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                      signed: true,
+                                    ),
+                                decoration: InputDecoration(
+                                  labelText: 'Min',
+                                  isDense: true,
+                                ),
                                 validator: numberOrEmpty,
                               ),
                             ),
@@ -424,14 +658,23 @@ class _ThresholdsSheetState extends ConsumerState<_ThresholdsSheet> {
                               flex: 3,
                               child: TextFormField(
                                 controller: _max[param.key],
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-                                decoration: InputDecoration(labelText: 'Max', isDense: true),
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                      signed: true,
+                                    ),
+                                decoration: InputDecoration(
+                                  labelText: 'Max',
+                                  isDense: true,
+                                ),
                                 validator: (v) {
                                   final base = numberOrEmpty(v);
                                   if (base != null) return base;
                                   final min = _parse(_min[param.key]!.text);
                                   final max = _parse(v ?? '');
-                                  return min != null && max != null && min > max ? s('adminMinMaxOrder') : null;
+                                  return min != null && max != null && min > max
+                                      ? s('adminMinMaxOrder')
+                                      : null;
                                 },
                               ),
                             ),
@@ -445,9 +688,15 @@ class _ThresholdsSheetState extends ConsumerState<_ThresholdsSheet> {
               SizedBox(
                 height: 50,
                 child: FilledButton(
-                  style: FilledButton.styleFrom(backgroundColor: accentColor, foregroundColor: Colors.white),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: accentColor,
+                    foregroundColor: Colors.white,
+                  ),
                   onPressed: _save,
-                  child: Text(s('wellsManageSave'), style: const TextStyle(fontWeight: FontWeight.w700)),
+                  child: Text(
+                    s('wellsManageSave'),
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
                 ),
               ),
             ],
