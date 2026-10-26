@@ -14,9 +14,9 @@ import '../../core/plant/plant_point_charts.dart';
 import '../../core/plant/plant_repository.dart';
 import '../../core/export/pdf_export_settings.dart';
 import '../../core/export/export_table.dart';
+import '../../core/export/pdf_style.dart';
 import 'report_options.dart';
 
-const _accent = PdfColor.fromInt(0xFFFF7A33);
 const _navy = PdfColor.fromInt(0xFF0B1E2D);
 const _ok = PdfColor.fromInt(0xFF2E7D32);
 const _out = PdfColor.fromInt(0xFFC62828);
@@ -47,6 +47,8 @@ Future<Uint8List> buildPlantDailyReport({
   String t(String key) => _safe(s(key));
   final pdfCfg = await PdfExportSettings.load(allCircuits ? PdfReportKind.allCircuits : PdfReportKind.samples);
   final k = pdfCfg.textScale;
+  final look = PdfLook(pdfCfg);
+  final accentC = look.accent;
   final reportTitle = pdfCfg.reportTitle.trim().isEmpty ? t(allCircuits ? 'plantReportTitle' : 'plantSampleReportTitle') : _safe(pdfCfg.reportTitle.trim());
   final roleText = pdfCfg.signatureRole.trim().isEmpty ? t('plantReportRole') : _safe(pdfCfg.signatureRole.trim());
   final doc = pw.Document(title: reportTitle, author: currentAppName);
@@ -233,7 +235,7 @@ Future<Uint8List> buildPlantDailyReport({
         }
         sections.add(pw.SizedBox(height: 3));
         sections.add(
-          pw.TableHelper.fromTextArray(
+          look.table(
             headers: [
               t('plantColParam'),
               t('colUnit'),
@@ -241,13 +243,7 @@ Future<Uint8List> buildPlantDailyReport({
               if (options.limitColumn) t('plantColThreshold'),
               if (options.statusColumn) t('colStatus'),
             ],
-            headerStyle: pw.TextStyle(
-              fontWeight: pw.FontWeight.bold,
-              fontSize: 8.5,
-              color: PdfColors.white,
-            ),
-            headerDecoration: const pw.BoxDecoration(color: _navy),
-            cellStyle: const pw.TextStyle(fontSize: 8.5),
+            fontSize: 8.5 * k,
             cellAlignments: {
               1: pw.Alignment.center,
               2: pw.Alignment.centerRight,
@@ -326,8 +322,11 @@ Future<Uint8List> buildPlantDailyReport({
 
   doc.addPage(
     pw.MultiPage(
-      pageFormat: pageFormat,
-      margin: const pw.EdgeInsets.fromLTRB(32, 28, 32, 28),
+      pageTheme: pw.PageTheme(
+        pageFormat: pageFormat,
+        margin: look.margin(32, 28),
+        buildBackground: look.background,
+      ),
       header: (context) => pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
@@ -340,7 +339,7 @@ Future<Uint8List> buildPlantDailyReport({
               if (pdfCfg.showAppName)
                 pw.Text(
                   currentAppName,
-                  style: pw.TextStyle(color: _accent, fontWeight: pw.FontWeight.bold, fontSize: 12 * k),
+                  style: pw.TextStyle(color: accentC, fontWeight: pw.FontWeight.bold, fontSize: 12 * k),
                 ),
               pw.Spacer(),
               if (pdfCfg.datePlacement == PdfDatePlacement.header)
@@ -352,7 +351,7 @@ Future<Uint8List> buildPlantDailyReport({
               padding: const pw.EdgeInsets.only(top: 2),
               child: pw.Text(_safe(pdfCfg.headerText.trim()), style: pw.TextStyle(color: _grey, fontSize: 8.5 * k)),
             ),
-          pw.Divider(color: _accent, thickness: 1.5),
+          pw.Divider(color: accentC, thickness: 1.5),
         ],
       ),
       footer: (context) => pw.Row(
@@ -370,7 +369,7 @@ Future<Uint8List> buildPlantDailyReport({
           pw.SizedBox(height: 2),
           pw.Text(
             '${t('plantReportNumberLabel')} $reportNumber',
-            style: pw.TextStyle(fontSize: 12 * k, fontWeight: pw.FontWeight.bold, color: _accent),
+            style: pw.TextStyle(fontSize: 12 * k, fontWeight: pw.FontWeight.bold, color: accentC),
           ),
         ],
         if (pdfCfg.datePlacement == PdfDatePlacement.top) ...[

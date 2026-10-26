@@ -9,8 +9,8 @@ import '../l10n/app_strings.dart';
 import 'export_table.dart';
 import 'pdf_chart.dart';
 import 'pdf_export_settings.dart';
+import 'pdf_style.dart';
 
-const _accent = PdfColor.fromInt(0xFFFF7A33);
 const _navy = PdfColor.fromInt(0xFF0B1E2D);
 const _grey = PdfColor.fromInt(0xFF757575);
 
@@ -32,6 +32,7 @@ class PdfTableExporter {
     List<PdfReportChart> charts = const [],
   }) async {
     final cfg = await PdfExportSettings.load();
+    final look = PdfLook(cfg);
     final k = cfg.textScale;
     final safeTitle = _safe(title);
     final doc = pw.Document(title: safeTitle, author: currentAppName);
@@ -64,15 +65,11 @@ class PdfTableExporter {
       );
       sections.add(pw.SizedBox(height: 6));
       sections.add(
-        pw.TableHelper.fromTextArray(
+        look.table(
           headers: table.headers.map(_safe).toList(),
-          headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: fontSize, color: PdfColors.white),
-          headerDecoration: const pw.BoxDecoration(color: _navy),
-          headerPadding: cellPadding,
-          cellStyle: pw.TextStyle(fontSize: fontSize),
-          cellPadding: cellPadding,
-          cellAlignment: pw.Alignment.centerLeft,
           data: [for (final row in table.rows) row.map(_cell).toList()],
+          fontSize: fontSize,
+          cellPadding: cellPadding,
         ),
       );
     }
@@ -95,8 +92,11 @@ class PdfTableExporter {
 
     doc.addPage(
       pw.MultiPage(
-        pageFormat: pageFormat,
-        margin: const pw.EdgeInsets.fromLTRB(20, 24, 20, 24),
+        pageTheme: pw.PageTheme(
+          pageFormat: pageFormat,
+          margin: look.margin(20, 24),
+          buildBackground: look.background,
+        ),
         header: (context) => pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
@@ -106,7 +106,7 @@ class PdfTableExporter {
                 if (cfg.showAppName)
                   pw.Text(
                     currentAppName,
-                    style: pw.TextStyle(color: _accent, fontWeight: pw.FontWeight.bold, fontSize: 12 * k),
+                    style: pw.TextStyle(color: look.accent, fontWeight: pw.FontWeight.bold, fontSize: 12 * k),
                   ),
                 pw.Spacer(),
                 if (cfg.showTitle) pw.Text(safeTitle, style: pw.TextStyle(color: _grey, fontSize: 9 * k)),
@@ -121,7 +121,7 @@ class PdfTableExporter {
                 padding: const pw.EdgeInsets.only(top: 2),
                 child: pw.Text(_safe(cfg.headerText.trim()), style: pw.TextStyle(color: _grey, fontSize: 8.5 * k)),
               ),
-            pw.Divider(color: _accent, thickness: 1.5),
+            pw.Divider(color: look.accent, thickness: 1.5),
           ],
         ),
         footer: (context) => pw.Row(

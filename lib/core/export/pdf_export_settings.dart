@@ -32,6 +32,19 @@ extension PdfReportKindX on PdfReportKind {
   };
 }
 
+/// Palettes proposées : couleur d'accent + couleur d'en-tête de tableau.
+const pdfPalettes = <({int accent, int header, String nameKey})>[
+  (accent: 0xFFFF7A33, header: 0xFF0B1E2D, nameKey: 'pdfPalOrange'),
+  (accent: 0xFF1E88E5, header: 0xFF16344A, nameKey: 'pdfPalBlue'),
+  (accent: 0xFF2E9E5B, header: 0xFF14402B, nameKey: 'pdfPalGreen'),
+  (accent: 0xFF8E24AA, header: 0xFF2E1A47, nameKey: 'pdfPalPurple'),
+  (accent: 0xFFC62828, header: 0xFF2B2B2B, nameKey: 'pdfPalRed'),
+  (accent: 0xFF00897B, header: 0xFF0B2E2B, nameKey: 'pdfPalTeal'),
+];
+
+/// Modèles prêts à l'emploi : un geste applique plusieurs réglages d'un coup.
+enum PdfPreset { classic, minimal, compact, detailed }
+
 /// Réglages d'une famille de PDF : ce qui s'affiche et où. Mémorisés sur
 /// l'appareil.
 class PdfExportSettings {
@@ -64,6 +77,12 @@ class PdfExportSettings {
   final bool allAnalyses; // sinon : seulement la plus récente du jour
   final bool showSignature; // bloc « Date / Nom : fonction » en bas
 
+  // Apparence.
+  final int palette; // index dans [pdfPalettes]
+  final int tableStyle; // 0 en-tête plein, 1 filets, 2 lignes alternées
+  final int margins; // 0 serrées, 1 standard, 2 larges
+  final String watermark; // filigrane (ex: CONFIDENTIEL), vide = aucun
+
   const PdfExportSettings({
     this.kind = PdfReportKind.tables,
     this.charts = PdfChartsPosition.after,
@@ -89,6 +108,10 @@ class PdfExportSettings {
     this.showSamplingTime = true,
     this.allAnalyses = true,
     this.showSignature = true,
+    this.palette = 0,
+    this.tableStyle = 0,
+    this.margins = 1,
+    this.watermark = '',
   });
 
   /// Réglages par défaut d'une famille (les rapports usine n'ont pas de
@@ -97,6 +120,14 @@ class PdfExportSettings {
       PdfExportSettings(kind: kind, charts: kind.isPlant ? PdfChartsPosition.hidden : PdfChartsPosition.after);
 
   static const dateFormats = ['dd/MM/yyyy', 'dd-MM-yyyy', 'yyyy-MM-dd'];
+
+  /// Couleur d'accent (titres, filet, nom de l'app) et couleur d'en-tête de
+  /// tableau, au format ARGB.
+  int get accentArgb => pdfPalettes[palette.clamp(0, pdfPalettes.length - 1)].accent;
+  int get headerArgb => pdfPalettes[palette.clamp(0, pdfPalettes.length - 1)].header;
+
+  /// Facteur appliqué aux marges de la page.
+  double get marginScale => const [0.6, 1.0, 1.4][margins.clamp(0, 2)];
 
   double get textScale => const [0.88, 1.0, 1.15][textSize.clamp(0, 2)];
 
@@ -130,6 +161,10 @@ class PdfExportSettings {
     bool? showSamplingTime,
     bool? allAnalyses,
     bool? showSignature,
+    int? palette,
+    int? tableStyle,
+    int? margins,
+    String? watermark,
   }) => PdfExportSettings(
     kind: kind,
     charts: charts ?? this.charts,
@@ -155,6 +190,10 @@ class PdfExportSettings {
     showSamplingTime: showSamplingTime ?? this.showSamplingTime,
     allAnalyses: allAnalyses ?? this.allAnalyses,
     showSignature: showSignature ?? this.showSignature,
+    palette: palette ?? this.palette,
+    tableStyle: tableStyle ?? this.tableStyle,
+    margins: margins ?? this.margins,
+    watermark: watermark ?? this.watermark,
   );
 
   static T _enum<T>(List<T> values, int? i, T fallback) => i != null && i >= 0 && i < values.length ? values[i] : fallback;
@@ -189,6 +228,10 @@ class PdfExportSettings {
         showSamplingTime: p.getBool('${k}showSamplingTime') ?? d.showSamplingTime,
         allAnalyses: p.getBool('${k}allAnalyses') ?? d.allAnalyses,
         showSignature: p.getBool('${k}showSignature') ?? d.showSignature,
+        palette: p.getInt('${k}palette') ?? d.palette,
+        tableStyle: p.getInt('${k}tableStyle') ?? d.tableStyle,
+        margins: p.getInt('${k}margins') ?? d.margins,
+        watermark: p.getString('${k}watermark') ?? '',
       );
     } catch (_) {
       return d;
@@ -222,6 +265,98 @@ class PdfExportSettings {
       await p.setBool('${k}showSamplingTime', showSamplingTime);
       await p.setBool('${k}allAnalyses', allAnalyses);
       await p.setBool('${k}showSignature', showSignature);
+      await p.setInt('${k}palette', palette);
+      await p.setInt('${k}tableStyle', tableStyle);
+      await p.setInt('${k}margins', margins);
+      await p.setString('${k}watermark', watermark);
     } catch (_) {}
+  }
+}
+
+extension PdfPresetX on PdfPreset {
+  String get labelKey => 'pdfPreset_$name';
+  String get hintKey => 'pdfPresetHint_$name';
+
+  /// [base] avec les réglages de ce modèle (les textes libres, titre et
+  /// fonction saisis par l'utilisateur sont conservés).
+  PdfExportSettings applyTo(PdfExportSettings base) {
+    final plant = base.kind.isPlant;
+    return switch (this) {
+      PdfPreset.classic => base.copyWith(
+        palette: 0,
+        tableStyle: 0,
+        margins: 1,
+        textSize: 1,
+        showLogo: true,
+        showAppName: true,
+        showTitle: true,
+        showPageNumbers: true,
+        datePlacement: PdfDatePlacement.header,
+        showDetails: true,
+        showPhoto: true,
+        showLimit: true,
+        showStatus: true,
+        showSamplingTime: true,
+        allAnalyses: true,
+        showSignature: true,
+        watermark: '',
+      ),
+      PdfPreset.minimal => base.copyWith(
+        palette: 5,
+        tableStyle: 1,
+        margins: 2,
+        textSize: 1,
+        showLogo: true,
+        showAppName: false,
+        showTitle: true,
+        showPageNumbers: true,
+        datePlacement: PdfDatePlacement.footer,
+        showDetails: false,
+        showPhoto: true,
+        showLimit: true,
+        showStatus: true,
+        showSamplingTime: true,
+        showSignature: true,
+        watermark: '',
+      ),
+      PdfPreset.compact => base.copyWith(
+        palette: 1,
+        tableStyle: 2,
+        margins: 0,
+        textSize: 0,
+        showLogo: true,
+        showAppName: true,
+        showTitle: true,
+        showPageNumbers: true,
+        datePlacement: PdfDatePlacement.header,
+        showDetails: false,
+        showPhoto: false,
+        showSamplingTime: true,
+        allAnalyses: true,
+        showSignature: plant,
+        watermark: '',
+      ),
+      PdfPreset.detailed => base.copyWith(
+        palette: 0,
+        tableStyle: 2,
+        margins: 1,
+        textSize: 1,
+        showLogo: true,
+        showAppName: true,
+        showTitle: true,
+        showReportNumber: true,
+        showOperator: true,
+        showPageNumbers: true,
+        datePlacement: PdfDatePlacement.header,
+        showDetails: true,
+        showPhoto: true,
+        showLimit: true,
+        showStatus: true,
+        showSamplingTime: true,
+        allAnalyses: true,
+        showSignature: true,
+        charts: PdfChartsPosition.after,
+      ),
+    };
   }
 }

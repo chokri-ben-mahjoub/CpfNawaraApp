@@ -32,6 +32,7 @@ class _PdfExportSettingsScreenState
   final _footer = TextEditingController();
   final _title = TextEditingController();
   final _role = TextEditingController();
+  final _watermark = TextEditingController();
 
   @override
   void initState() {
@@ -45,6 +46,7 @@ class _PdfExportSettingsScreenState
     _footer.dispose();
     _title.dispose();
     _role.dispose();
+    _watermark.dispose();
     super.dispose();
   }
 
@@ -58,6 +60,7 @@ class _PdfExportSettingsScreenState
       _footer.text = c.footerText;
       _title.text = c.reportTitle;
       _role.text = c.signatureRole;
+      _watermark.text = c.watermark;
       _loaded = true;
     });
   }
@@ -115,9 +118,13 @@ class _PdfExportSettingsScreenState
                   style: const TextStyle(fontWeight: FontWeight.w800),
                 ),
               ),
-              Text(
-                s(_kind.labelKey),
-                style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
+              Flexible(
+                child: Text(
+                  s(_kind.labelKey),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
+                ),
               ),
             ],
           ),
@@ -149,6 +156,8 @@ class _PdfExportSettingsScreenState
           style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
         ),
         const SizedBox(height: 12),
+        _presets(context, s),
+        const SizedBox(height: 14),
         _card(context, Icons.title, s('pdfSecTexts'), [
           if (_kind.isPlant) ...[
             _field(
@@ -280,6 +289,66 @@ class _PdfExportSettingsScreenState
             ),
           ],
         ]),
+        _card(context, Icons.palette_outlined, s('pdfSecLook'), [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(s('pdfSetColors'), style: const TextStyle(fontSize: 13)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
+                  children: [
+                    for (var i = 0; i < pdfPalettes.length; i++)
+                      Tooltip(
+                        message: s(pdfPalettes[i].nameKey),
+                        child: InkWell(
+                          customBorder: const CircleBorder(),
+                          onTap: () => _update(_cfg.copyWith(palette: i)),
+                          child: Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [Color(pdfPalettes[i].accent), Color(pdfPalettes[i].header)],
+                              ),
+                              border: Border.all(
+                                color: _cfg.palette == i ? Theme.of(context).colorScheme.onSurface : Colors.transparent,
+                                width: 3,
+                              ),
+                            ),
+                            child: _cfg.palette == i ? const Icon(Icons.check, color: Colors.white, size: 18) : null,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          _chips<int>(s('pdfSetTableStyle'), _cfg.tableStyle, [
+            (0, s('pdfTableFilled')),
+            (1, s('pdfTableLines')),
+            (2, s('pdfTableZebra')),
+          ], (v) => _update(_cfg.copyWith(tableStyle: v))),
+          _chips<int>(s('pdfSetMargins'), _cfg.margins, [
+            (0, s('pdfMarginTight')),
+            (1, s('pdfSetNormal')),
+            (2, s('pdfMarginWide')),
+          ], (v) => _update(_cfg.copyWith(margins: v))),
+          _field(
+            _watermark,
+            s('pdfSetWatermark'),
+            hint: s('pdfSetWatermarkHint'),
+            helper: s('pdfSetEmptyNone'),
+            onChanged: (v) => _update(_cfg.copyWith(watermark: v)),
+          ),
+        ]),
         _card(context, Icons.crop_portrait, s('pdfSetPage'), [
           _chips<PdfOrientation>(s('pdfSetOrientation'), _cfg.orientation, [
             (PdfOrientation.auto, s('pdfSetAuto')),
@@ -299,6 +368,7 @@ class _PdfExportSettingsScreenState
             _footer.clear();
             _title.clear();
             _role.clear();
+            _watermark.clear();
             _update(PdfExportSettings.defaults(_kind));
           },
           icon: const Icon(Icons.restore),
@@ -415,6 +485,91 @@ class _PdfExportSettingsScreenState
           ),
         ),
       ),
+    );
+  }
+
+  /// Modèles prêts à l'emploi : un geste applique plusieurs réglages d'un coup
+  /// (les textes saisis, titre et fonction sont conservés).
+  Widget _presets(BuildContext context, String Function(String) s) {
+    final scheme = Theme.of(context).colorScheme;
+    const icons = {
+      PdfPreset.classic: Icons.auto_awesome_mosaic_outlined,
+      PdfPreset.minimal: Icons.crop_square,
+      PdfPreset.compact: Icons.density_small,
+      PdfPreset.detailed: Icons.dashboard_outlined,
+    };
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.auto_fix_high, size: 18, color: accentColor),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                s('pdfPresets'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 96,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              for (final preset in PdfPreset.values)
+                Padding(
+                  padding: const EdgeInsets.only(right: 10),
+                  child: Material(
+                    color: scheme.surfaceContainerLowest,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      side: BorderSide(color: scheme.outlineVariant),
+                    ),
+                    child: InkWell(
+                      customBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                      onTap: () => _update(preset.applyTo(_cfg)),
+                      child: Container(
+                        width: 170,
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(icons[preset], size: 18, color: accentColor),
+                                const SizedBox(width: 6),
+                                Flexible(
+                                  child: Text(
+                                    s(preset.labelKey),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontWeight: FontWeight.w800),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              s(preset.hintKey),
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 11.5, height: 1.3),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

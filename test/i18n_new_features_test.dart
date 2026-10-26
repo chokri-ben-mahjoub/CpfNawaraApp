@@ -73,6 +73,7 @@ void main() {
       'pdfSetFooterText', 'pdfSetPage', 'pdfSetOrientation', 'pdfSetAuto', 'pdfSetPortrait', 'pdfSetLandscape',
       'pdfKindAll', 'pdfKindSamples', 'pdfKindTables', 'pdfKindAllHint', 'pdfKindSamplesHint', 'pdfKindTablesHint',
       'pdfLivePreview', 'pdfPreviewHide', 'pdfPreviewShow', 'pdfSecTexts', 'pdfSecContent', 'pdfSetReportNumber',
+      'pdfPresets', 'pdfPreset_classic', 'pdfPreset_minimal', 'pdfPreset_compact', 'pdfPreset_detailed', 'pdfPresetHint_classic', 'pdfPresetHint_minimal', 'pdfPresetHint_compact', 'pdfPresetHint_detailed', 'pdfSecLook', 'pdfSetColors', 'pdfPalOrange', 'pdfPalBlue', 'pdfPalGreen', 'pdfPalPurple', 'pdfPalRed', 'pdfPalTeal', 'pdfSetTableStyle', 'pdfTableFilled', 'pdfTableLines', 'pdfTableZebra', 'pdfSetMargins', 'pdfMarginTight', 'pdfMarginWide', 'pdfSetWatermark', 'pdfSetWatermarkHint', 'pdfSetEmptyNone',
       'pdfSetPlantReport', 'pdfSetReportTitle', 'pdfSetSignatureRole', 'pdfSetEmptyDefault',
       'pdfSetTextSize', 'pdfSetSmall', 'pdfSetNormal', 'pdfSetLarge', 'pdfSetReset', 'pdfSetOpenHint',
       'stockTableFormula',

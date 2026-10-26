@@ -5,7 +5,6 @@ import '../../../core/branding/app_logo.dart';
 import '../../../core/export/pdf_export_settings.dart';
 import '../../../core/l10n/app_strings.dart' show currentAppName;
 
-const _accent = Color(0xFFFF7A33);
 const _navy = Color(0xFF0B1E2D);
 const _grey = Color(0xFF757575);
 const _ok = Color(0xFF2E7D32);
@@ -91,6 +90,7 @@ class _Page extends StatelessWidget {
   });
 
   double get k => cfg.textScale;
+  Color get accent => Color(cfg.accentArgb);
 
   String get _title {
     final custom = cfg.reportTitle.trim();
@@ -129,7 +129,7 @@ class _Page extends StatelessWidget {
           style: TextStyle(
             fontSize: 12 * k,
             fontWeight: FontWeight.w800,
-            color: _accent,
+            color: accent,
           ),
         ),
       if (cfg.datePlacement == PdfDatePlacement.top)
@@ -144,8 +144,8 @@ class _Page extends StatelessWidget {
       if (cfg.kind.isPlant) ..._plantBody() else ..._tablesBody(),
     ];
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(32, 28, 32, 28),
+    final page = Padding(
+      padding: EdgeInsets.symmetric(horizontal: 32 * cfg.marginScale, vertical: 28 * cfg.marginScale),
       child: Stack(
         children: [
           Positioned.fill(
@@ -175,7 +175,7 @@ class _Page extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                color: _accent,
+                                color: accent,
                                 fontWeight: FontWeight.w800,
                                 fontSize: 12 * k,
                               ),
@@ -215,9 +215,9 @@ class _Page extends StatelessWidget {
                           style: TextStyle(color: _grey, fontSize: 8.5 * k),
                         ),
                       ),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 6),
-                      child: Divider(color: _accent, thickness: 1.5, height: 1),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Divider(color: accent, thickness: 1.5, height: 1),
                     ),
                     ...body,
                   ],
@@ -248,6 +248,29 @@ class _Page extends StatelessWidget {
           ),
         ],
       ),
+    );
+    final wm = cfg.watermark.trim();
+    if (wm.isEmpty) return page;
+    return Stack(
+      children: [
+        page,
+        Positioned.fill(
+          child: IgnorePointer(
+            child: Center(
+              child: Transform.rotate(
+                angle: -0.62,
+                child: Opacity(
+                  opacity: 0.12,
+                  child: Text(
+                    wm.toUpperCase(),
+                    style: const TextStyle(fontSize: 64, fontWeight: FontWeight.w800, color: _grey),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -316,6 +339,9 @@ class _Page extends StatelessWidget {
           ),
         const SizedBox(height: 3),
         _MockTable(
+          accent: accent,
+          header: Color(cfg.headerArgb),
+          style: cfg.tableStyle,
           k: k,
           headers: [
             s('plantColParam'),
@@ -407,6 +433,9 @@ class _Page extends StatelessWidget {
       ),
       const SizedBox(height: 6),
       _MockTable(
+        accent: accent,
+        header: Color(cfg.headerArgb),
+        style: cfg.tableStyle,
         k: k,
         headers: [
           s('colDate'),
@@ -463,7 +492,7 @@ class _Page extends StatelessWidget {
         SizedBox(
           height: 80,
           width: double.infinity,
-          child: CustomPaint(painter: _LinePainter()),
+          child: CustomPaint(painter: _LinePainter(accent)),
         ),
       ],
     ),
@@ -490,19 +519,28 @@ class _MockTable extends StatelessWidget {
   final List<String> headers;
   final List<List<String>> rows;
   final int okColumn;
+  final Color accent;
+  final Color header;
+
+  /// 0 en-tête plein, 1 filets, 2 lignes alternées.
+  final int style;
   const _MockTable({
     required this.k,
     required this.headers,
     required this.rows,
+    required this.accent,
+    required this.header,
+    required this.style,
     this.okColumn = -1,
   });
 
   @override
   Widget build(BuildContext context) {
-    Widget cell(String text, int col, {bool header = false, String? status}) {
-      final isStatus = !header && col == okColumn;
-      final color = header
-          ? Colors.white
+    final filled = style != 1;
+    Widget cell(String text, int col, {bool head = false, String? status}) {
+      final isStatus = !head && col == okColumn;
+      final color = head
+          ? (filled ? Colors.white : header)
           : isStatus
           ? (text == status ? _out : _ok)
           : Colors.black;
@@ -515,13 +553,7 @@ class _MockTable extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             textAlign: col == 0 ? TextAlign.left : TextAlign.center,
-            style: TextStyle(
-              fontSize: 8.5 * k,
-              fontWeight: header || isStatus
-                  ? FontWeight.w800
-                  : FontWeight.w400,
-              color: color,
-            ),
+            style: TextStyle(fontSize: 8.5 * k, fontWeight: head || isStatus ? FontWeight.w800 : FontWeight.w400, color: color),
           ),
         ),
       );
@@ -529,33 +561,22 @@ class _MockTable extends StatelessWidget {
 
     final outText = rows.isEmpty || okColumn < 0 ? null : rows.first[okColumn];
     return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFFBDBDBD), width: 0.5),
-      ),
+      decoration: BoxDecoration(border: style == 1 ? null : Border.all(color: const Color(0xFFBDBDBD), width: 0.5)),
       child: Column(
         children: [
           Container(
-            color: _navy,
-            child: Row(
-              children: [
-                for (var i = 0; i < headers.length; i++)
-                  cell(headers[i], i, header: true),
-              ],
-            ),
+            decoration: filled
+                ? BoxDecoration(color: header)
+                : BoxDecoration(border: Border(bottom: BorderSide(color: accent, width: 1.4))),
+            child: Row(children: [for (var i = 0; i < headers.length; i++) cell(headers[i], i, head: true)]),
           ),
           for (var r = 0; r < rows.length; r++)
             Container(
-              decoration: const BoxDecoration(
-                border: Border(
-                  top: BorderSide(color: Color(0xFFBDBDBD), width: 0.5),
-                ),
+              decoration: BoxDecoration(
+                color: style == 2 && r.isEven ? accent.withValues(alpha: 0.08) : null,
+                border: const Border(top: BorderSide(color: Color(0xFFBDBDBD), width: 0.5)),
               ),
-              child: Row(
-                children: [
-                  for (var i = 0; i < rows[r].length; i++)
-                    cell(rows[r][i], i, status: outText),
-                ],
-              ),
+              child: Row(children: [for (var i = 0; i < rows[r].length; i++) cell(rows[r][i], i, status: outText)]),
             ),
         ],
       ),
@@ -564,6 +585,9 @@ class _MockTable extends StatelessWidget {
 }
 
 class _LinePainter extends CustomPainter {
+  final Color color;
+  _LinePainter(this.color);
+
   @override
   void paint(Canvas canvas, Size size) {
     final axis = Paint()
@@ -577,7 +601,7 @@ class _LinePainter extends CustomPainter {
     canvas.drawLine(Offset.zero, Offset(0, size.height), axis);
     final pts = [0.7, 0.55, 0.62, 0.35, 0.45, 0.2, 0.3];
     final line = Paint()
-      ..color = _accent
+      ..color = color
       ..strokeWidth = 1.8
       ..style = PaintingStyle.stroke;
     final path = Path();
