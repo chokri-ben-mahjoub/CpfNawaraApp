@@ -1,3 +1,5 @@
+import '../l10n/app_strings.dart';
+
 /// `onDemand` : analyse ponctuelle (ex: pression de fond mesurée lors d'un
 /// test de puits), jamais attendue un jour donné — n'apparaît donc ni dans
 /// le "à faire" du tableau de bord ni dans les alertes de retard.
@@ -80,6 +82,10 @@ class AnalysisType {
     String? storedUnit,
     this.group = '',
   }) : storedUnit = storedUnit ?? unit;
+
+  /// Nom et groupe traduits dans la langue courante (prédéfinis seulement).
+  String get shownLabel => trData(label);
+  String get shownGroup => trData(group);
 
   bool isOutOfRange(double value) => value < min || value > max;
 

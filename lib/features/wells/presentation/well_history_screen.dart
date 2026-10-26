@@ -61,10 +61,10 @@ class _WellHistoryScreenState extends ConsumerState<WellHistoryScreen> {
       for (var i = 0; i < typeIds.length; i++)
         if (typesById[typeIds[i]] != null)
           PdfReportChart(
-            title: '${typesById[typeIds[i]]!.label} (${typesById[typeIds[i]]!.unit})',
+            title: '${typesById[typeIds[i]]!.shownLabel} (${typesById[typeIds[i]]!.unit})',
             series: [
               PdfChartSeries(
-                label: typesById[typeIds[i]]!.label,
+                label: typesById[typeIds[i]]!.shownLabel,
                 color: pdfChartPalette[i % pdfChartPalette.length],
                 points: (byType[typeIds[i]]!..sort((a, b) => a.dateTime.compareTo(b.dateTime)))
                     .map((r) => (r.dateTime, r.value))
@@ -150,7 +150,7 @@ class _WellHistoryScreenState extends ConsumerState<WellHistoryScreen> {
                     const SizedBox(width: 8),
                     for (final type in filterTypes) ...[
                       _FilterChip(
-                        label: type.label,
+                        label: type.shownLabel,
                         selected: _typeFilter == type.id,
                         onTap: () => setState(() {
                           _typeFilter = type.id;
@@ -304,7 +304,7 @@ class _DetailedHistoryTile extends ConsumerWidget {
                   Row(
                     children: [
                       Expanded(
-                        child: Text(type.label, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                        child: Text(type.shownLabel, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
                       ),
                       Text(
                         '${record.value} ${type.unit}',

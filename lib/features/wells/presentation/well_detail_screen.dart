@@ -296,7 +296,7 @@ class _ProductionCard extends ConsumerWidget {
                       children: [
                         Container(width: 10, height: 10, decoration: BoxDecoration(color: ser.color, shape: BoxShape.circle)),
                         const SizedBox(width: 6),
-                        Text('${ser.label} (${ser.unit})', style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
+                        Text('${trData(ser.label)} (${ser.unit})', style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
                       ],
                     ),
                   if (markers.isNotEmpty)
@@ -341,7 +341,7 @@ class _FlowStatTile extends StatelessWidget {
               Container(width: 8, height: 8, decoration: BoxDecoration(color: series.color, shape: BoxShape.circle)),
               const SizedBox(width: 6),
               Expanded(
-                child: Text(series.label, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12), overflow: TextOverflow.ellipsis),
+                child: Text(trData(series.label), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12), overflow: TextOverflow.ellipsis),
               ),
             ],
           ),
@@ -441,7 +441,7 @@ class _HealthBanner extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(100),
                             ),
                             child: Text(
-                              type.label,
+                              type.shownLabel,
                               style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 11.5),
                             ),
                           ),
@@ -523,7 +523,7 @@ class _GroupedLastValues extends ConsumerWidget {
         for (final group in groupOrder) ...[
           const SizedBox(height: 20),
           Text(
-            group,
+            trData(group),
             style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, color: accentColor),
           ),
           const SizedBox(height: 10),
@@ -577,7 +577,7 @@ class _LastValueCard extends ConsumerWidget {
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    type.label,
+                    type.shownLabel,
                     style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5),
                     overflow: TextOverflow.ellipsis,
                   ),

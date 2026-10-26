@@ -295,19 +295,19 @@ List<DropdownMenuItem<String>> _groupedTypeItems(List<AnalysisType> types) {
 
   return [
     for (final t in ungrouped)
-      DropdownMenuItem(value: t.id, child: Text('${t.label} (${t.unit})', overflow: TextOverflow.ellipsis)),
+      DropdownMenuItem(value: t.id, child: Text('${t.shownLabel} (${t.unit})', overflow: TextOverflow.ellipsis)),
     for (final group in groupOrder) ...[
       DropdownMenuItem(
         value: '__group_$group',
         enabled: false,
-        child: Text(group, style: TextStyle(fontWeight: FontWeight.w800, color: accentColor)),
+        child: Text(trData(group), style: TextStyle(fontWeight: FontWeight.w800, color: accentColor)),
       ),
       for (final t in byGroup[group]!)
         DropdownMenuItem(
           value: t.id,
           child: Padding(
             padding: const EdgeInsets.only(left: 12),
-            child: Text('${t.label} (${t.unit})', overflow: TextOverflow.ellipsis),
+            child: Text('${t.shownLabel} (${t.unit})', overflow: TextOverflow.ellipsis),
           ),
         ),
     ],

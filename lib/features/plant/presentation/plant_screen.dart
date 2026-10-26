@@ -11,6 +11,7 @@ import '../../../core/config/shared_config.dart';
 import '../../../core/export/export_service.dart';
 import '../../../core/export/export_table.dart';
 import '../../../core/l10n/app_strings.dart';
+import '../report_options.dart';
 import '../../../core/models/user_role.dart';
 import '../../../core/plant/plant_catalog.dart';
 import '../../../core/plant/plant_repository.dart';
@@ -315,6 +316,8 @@ class PlantScreen extends ConsumerWidget {
       if (choice == null || !context.mounted) return;
       includeMissing = choice;
     }
+    final options = await _askReportOptions(context, s);
+    if (options == null || !context.mounted) return;
     final config = ref.read(sharedConfigProvider.notifier);
     final numberController = TextEditingController(text: '${config.peekNextReportNumber()}');
     final chosen = await showDialog<int>(
@@ -362,6 +365,7 @@ class PlantScreen extends ConsumerWidget {
         operatorName: ref.read(profileProvider)?.fullName ?? '',
         reportNumber: reportNumber,
         includeMissing: includeMissing,
+        options: options,
       ),
     );
     if (!context.mounted) return;
@@ -380,6 +384,45 @@ class PlantScreen extends ConsumerWidget {
       }),
     );
   }
+}
+
+/// Feuille « Contenu du rapport » : le client coche ce qui doit apparaître ;
+/// le choix est mémorisé pour les prochains exports.
+Future<ReportOptions?> _askReportOptions(BuildContext context, String Function(String) s) async {
+  final initial = await ReportOptions.load();
+  if (!context.mounted) return null;
+  final values = {for (final k in ReportOptions.keys) k: initial[k]};
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => StatefulBuilder(
+      builder: (_, setState) => AlertDialog(
+        title: Text(s('reportOptTitle')),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final k in ReportOptions.keys)
+                SwitchListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(s('reportOpt_$k')),
+                  value: values[k]!,
+                  onChanged: (v) => setState(() => values[k] = v),
+                ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: Text(s('cancel'))),
+          FilledButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: Text(s('ok'))),
+        ],
+      ),
+    ),
+  );
+  if (ok != true) return null;
+  final chosen = ReportOptions.fromMap(values);
+  await chosen.save();
+  return chosen;
 }
 
 /// Vue "Schéma" : choix du schéma (s'il y en a plusieurs), configuration et

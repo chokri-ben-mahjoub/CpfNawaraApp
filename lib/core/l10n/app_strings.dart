@@ -1148,6 +1148,26 @@ final _strings = <String, Map<String, String>>{
   'plantReportGenerated': {'fr': 'Généré le', 'en': 'Generated on'},
   'plantReportNothing': {'fr': 'Aucun point analysé ce jour.', 'en': 'No point analysed on this day.'},
   'plantReportCurves': {'fr': 'Courbes', 'en': 'Trends'},
+  'plantReportDateLabel': {'fr': 'Date', 'en': 'Date'},
+  'plantReportRole': {'fr': 'Responsable Qualité Production', 'en': 'Professional Production Quality Mgmt.'},
+  'reportOptTitle': {'fr': 'Contenu du rapport', 'en': 'Report content'},
+  'reportOpt_curves': {'fr': 'Courbes sous les tableaux', 'en': 'Trend curves under the tables'},
+  'reportOpt_photo': {'fr': 'Photo de l\'analyse', 'en': 'Analysis photo'},
+  'reportOpt_limitColumn': {'fr': 'Colonne Seuil', 'en': 'Limit column'},
+  'reportOpt_statusColumn': {'fr': 'Colonne Statut', 'en': 'Status column'},
+  'reportOpt_details': {'fr': 'Source, opérateur, commentaire', 'en': 'Source, operator, comment'},
+  'reportOpt_samplingTime': {'fr': 'Heure de prélèvement', 'en': 'Sampling time'},
+  'reportOpt_allAnalyses': {'fr': 'Toutes les analyses du jour (sinon la dernière)', 'en': 'All analyses of the day (else the latest)'},
+  'reportOpt_headerDateTime': {'fr': 'Date et heure dans l\'en-tête', 'en': 'Date and time in the header'},
+  'reportOpt_signatureLine': {'fr': 'Ligne nom / fonction sous la date', 'en': 'Name / role line under the date'},
+  'reportOpt_logo': {'fr': 'Logo', 'en': 'Logo'},
+  'plantReportCurvesTitle': {'fr': 'Courbes dans le rapport', 'en': 'Trends in the report'},
+  'plantReportCurvesBody': {
+    'fr': 'Afficher les courbes sous le tableau de chaque point ?',
+    'en': 'Show the trend curves under the table of each point?',
+  },
+  'plantReportCurvesInclude': {'fr': 'Avec les courbes', 'en': 'With curves'},
+  'plantReportCurvesExclude': {'fr': 'Sans les courbes', 'en': 'Without curves'},
   'plantReportMissingTitle': {'fr': 'Points non analysés', 'en': 'Points not analysed'},
   'plantReportMissingBody': {
     'fr': '{n} point(s) n\'ont pas d\'analyse ce jour-là. Les lister dans le rapport comme « Non analysé » ?',
@@ -2163,6 +2183,43 @@ String tr(Locale locale, String key) {
   return template.contains('{appName}') ? template.replaceAll('{appName}', currentAppName) : template;
 }
 
+/// Langue courante pour les libellés venant de la base (types d'analyse et
+/// groupes prédéfinis, enregistrés en français) — tenue à jour par
+/// [LocaleController].
+String dataLanguage = 'fr';
+
+const _dataEn = {
+  'Salinité': 'Salinity',
+  'Densité': 'Density',
+  'Pression': 'Pressure',
+  'Température': 'Temperature',
+  'Pression de fond (Pwf)': 'Bottomhole pressure (Pwf)',
+  'Choke': 'Choke',
+  'Pression aval choke': 'Choke downstream pressure',
+  'Température aval choke': 'Choke downstream temperature',
+  'Pression annulaire': 'Annulus pressure',
+  'Pression tête de puits': 'Wellhead pressure',
+  'Température tête de puits': 'Wellhead temperature',
+  'Injection méthanol': 'Methanol injection',
+  'Injection inhibiteur de corrosion': 'Corrosion inhibitor injection',
+  'Pression séparateur de test': 'Test separator pressure',
+  'Débit gaz (test séparateur)': 'Gas rate (test separator)',
+  'Débit condensat (test séparateur)': 'Condensate rate (test separator)',
+  'Débit eau (test séparateur)': 'Water rate (test separator)',
+  'Débit huile': 'Oil rate',
+  'Débit gaz': 'Gas rate',
+  'Débit eau': 'Water rate',
+  'Aval choke': 'Choke downstream',
+  'Annulaire': 'Annulus',
+  'Tête de puits': 'Wellhead',
+  'Injection chimique': 'Chemical injection',
+  'Séparateur de test': 'Test separator',
+};
+
+/// Traduit un libellé de la base (type d'analyse ou groupe) s'il fait partie
+/// des valeurs prédéfinies ; les noms saisis par l'Admin restent tels quels.
+String trData(String text) => dataLanguage == 'en' ? (_dataEn[text] ?? text) : text;
+
 /// Remplace les marqueurs `{nom}` d'une chaîne traduite par leurs valeurs.
 String fill(String template, Map<String, String> values) {
   var result = template;
@@ -2182,10 +2239,12 @@ class LocaleController extends StateNotifier<Locale> {
     final code = prefs.getString(_localeKey);
     if (code != null) {
       state = supportedLocales.firstWhere((l) => l.languageCode == code, orElse: () => const Locale('fr'));
+      dataLanguage = state.languageCode;
     }
   }
 
   Future<void> setLocale(Locale locale) async {
+    dataLanguage = locale.languageCode;
     state = locale;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_localeKey, locale.languageCode);

@@ -38,7 +38,7 @@ class AnalysisTypesScreen extends ConsumerWidget {
     Widget typeCard(AnalysisType type) => Card(
       child: ListTile(
         leading: const Icon(Icons.science_outlined, color: accentColor),
-        title: Text('${type.label} (${type.unit})', style: const TextStyle(fontWeight: FontWeight.w700)),
+        title: Text('${type.shownLabel} (${type.unit})', style: const TextStyle(fontWeight: FontWeight.w700)),
         subtitle: Text(
           '${type.min} – ${type.max} ${type.unit} · ${s(type.frequency.labelKey)}',
           style: TextStyle(color: scheme.onSurfaceVariant),
@@ -62,7 +62,7 @@ class AnalysisTypesScreen extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(4, 4, 4, 8),
               child: Text(
-                group,
+                trData(group),
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800, color: accentColor),
               ),
             ),

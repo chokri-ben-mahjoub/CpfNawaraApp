@@ -86,7 +86,7 @@ class _BatchEntryScreenState extends ConsumerState<BatchEntryScreen> {
     if (outOfRange.isNotEmpty) {
       final proceed = await _confirm(
         title: s('entryOutOfRangeTitle'),
-        body: '${s('entryOutOfRangeBody')}\n\n${outOfRange.map((t) => t.label).join(', ')}',
+        body: '${s('entryOutOfRangeBody')}\n\n${outOfRange.map((t) => t.shownLabel).join(', ')}',
         confirmLabel: s('confirm'),
       );
       if (proceed != true) return;
@@ -284,7 +284,7 @@ class _BatchEntryScreenState extends ConsumerState<BatchEntryScreen> {
                       for (final group in groupOrder) ...[
                         const SizedBox(height: 22),
                         Text(
-                          group,
+                          trData(group),
                           style: const TextStyle(fontWeight: FontWeight.w800, color: accentColor, fontSize: 15),
                         ),
                         const Divider(height: 14),
@@ -295,7 +295,7 @@ class _BatchEntryScreenState extends ConsumerState<BatchEntryScreen> {
                               controller: _controllerFor(type.id),
                               keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
                               decoration: InputDecoration(
-                                labelText: type.label,
+                                labelText: type.shownLabel,
                                 suffixText: type.unit,
                                 prefixIcon: const Icon(Icons.science_outlined),
                               ),
