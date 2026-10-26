@@ -86,6 +86,19 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ],
           const SizedBox(height: 16),
+          SectionCard(
+            title: s('pdfSetTitle'),
+            icon: Icons.picture_as_pdf_outlined,
+            children: [
+              _NavTile(
+                icon: Icons.tune,
+                title: s('pdfSetTitle'),
+                subtitle: s('pdfSetOpenHint'),
+                onTap: () => context.push('/settings/pdf'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
           const _DataSection(),
           const SizedBox(height: 16),
           SectionCard(

@@ -12,6 +12,7 @@ import '../../core/export/pdf_chart.dart';
 import '../../core/plant/plant_catalog.dart';
 import '../../core/plant/plant_point_charts.dart';
 import '../../core/plant/plant_repository.dart';
+import '../../core/export/pdf_export_settings.dart';
 import 'report_options.dart';
 
 const _accent = PdfColor.fromInt(0xFFFF7A33);
@@ -43,7 +44,7 @@ Future<Uint8List> buildPlantDailyReport({
   final logo = currentAppLogo;
   final logoImage = logo == null || !options.logo ? null : pw.MemoryImage(logo);
   final generated = DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now());
-  final headerStamp = DateFormat('dd-MM-yyyy HH:mm').format(DateTime.now());
+  final headerStamp = (await PdfExportSettings.load()).stamp();
   final reportDay = DateFormat('dd-MM-yyyy').format(day);
 
   final sections = <pw.Widget>[];

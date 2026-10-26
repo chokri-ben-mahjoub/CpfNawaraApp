@@ -8,6 +8,7 @@ import '../branding/app_logo.dart';
 import '../l10n/app_strings.dart';
 import 'export_table.dart';
 import 'pdf_chart.dart';
+import 'pdf_export_settings.dart';
 
 const _accent = PdfColor.fromInt(0xFFFF7A33);
 const _navy = PdfColor.fromInt(0xFF0B1E2D);
@@ -30,29 +31,32 @@ class PdfTableExporter {
     String operatorName = '',
     List<PdfReportChart> charts = const [],
   }) async {
+    final cfg = await PdfExportSettings.load();
+    final k = cfg.textScale;
     final safeTitle = _safe(title);
     final doc = pw.Document(title: safeTitle, author: currentAppName);
     final logo = currentAppLogo;
-    final logoImage = logo == null ? null : pw.MemoryImage(logo);
-    final generated = DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now());
+    final logoImage = logo == null || !cfg.showLogo ? null : pw.MemoryImage(logo);
+    final generated = cfg.stamp();
 
     // Beaucoup de colonnes (analyses usine...) : texte plus petit et marge
     // réduite, sinon les en-têtes se retrouvent coupés lettre par lettre.
     final maxColumns = tables.isEmpty ? 0 : tables.map((t) => t.headers.length).reduce((a, b) => a > b ? a : b);
     final fontSize = maxColumns > 12
-        ? 6.5
+        ? 6.5 * k
         : maxColumns > 8
-            ? 7.5
-            : 8.5;
+            ? 7.5 * k
+            : 8.5 * k;
     final cellPadding = maxColumns > 8
         ? const pw.EdgeInsets.symmetric(horizontal: 3, vertical: 4)
         : const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 5);
 
     final sections = <pw.Widget>[];
-    for (final chart in charts) {
-      sections.add(pw.SizedBox(height: 16));
-      sections.add(buildPdfChartSection(chart));
-    }
+    final chartWidgets = <pw.Widget>[
+      if (cfg.charts != PdfChartsPosition.hidden)
+        for (final chart in charts) ...[pw.SizedBox(height: 16), buildPdfChartSection(chart)],
+    ];
+    if (cfg.charts == PdfChartsPosition.before) sections.addAll(chartWidgets);
     for (final table in tables) {
       sections.add(pw.SizedBox(height: 16));
       sections.add(
@@ -73,9 +77,21 @@ class PdfTableExporter {
       );
     }
 
+    if (cfg.charts == PdfChartsPosition.after) sections.addAll(chartWidgets);
+
     // Paysage dès qu'un tableau a plus de 6 colonnes : largement plus de
     // place que le portrait pour que chaque en-tête tienne sur sa ligne.
-    final pageFormat = maxColumns > 6 ? PdfPageFormat.a4.landscape : PdfPageFormat.a4;
+    final pageFormat = switch (cfg.orientation) {
+      PdfOrientation.portrait => PdfPageFormat.a4,
+      PdfOrientation.landscape => PdfPageFormat.a4.landscape,
+      PdfOrientation.auto => maxColumns > 6 ? PdfPageFormat.a4.landscape : PdfPageFormat.a4,
+    };
+    final dateText = '${(dataLanguage == 'en' ? 'Generated on' : 'Genere le')} $generated';
+    final footerParts = [
+      if (cfg.datePlacement == PdfDatePlacement.footer) dateText,
+      if (cfg.showOperator && operatorName.isNotEmpty) _safe(operatorName),
+      if (cfg.footerText.trim().isNotEmpty) _safe(cfg.footerText.trim()),
+    ];
 
     doc.addPage(
       pw.MultiPage(
@@ -87,29 +103,46 @@ class PdfTableExporter {
             pw.Row(
               children: [
                 if (logoImage != null) ...[pw.Image(logoImage, height: 20), pw.SizedBox(width: 8)],
-                pw.Text(currentAppName, style: pw.TextStyle(color: _accent, fontWeight: pw.FontWeight.bold, fontSize: 12)),
+                if (cfg.showAppName)
+                  pw.Text(
+                    currentAppName,
+                    style: pw.TextStyle(color: _accent, fontWeight: pw.FontWeight.bold, fontSize: 12 * k),
+                  ),
                 pw.Spacer(),
-                pw.Text(safeTitle, style: const pw.TextStyle(color: _grey, fontSize: 9)),
+                if (cfg.showTitle) pw.Text(safeTitle, style: pw.TextStyle(color: _grey, fontSize: 9 * k)),
+                if (cfg.datePlacement == PdfDatePlacement.header) ...[
+                  if (cfg.showTitle) pw.SizedBox(width: 10),
+                  pw.Text(generated, style: pw.TextStyle(color: _navy, fontSize: 9 * k, fontWeight: pw.FontWeight.bold)),
+                ],
               ],
             ),
+            if (cfg.headerText.trim().isNotEmpty)
+              pw.Padding(
+                padding: const pw.EdgeInsets.only(top: 2),
+                child: pw.Text(_safe(cfg.headerText.trim()), style: pw.TextStyle(color: _grey, fontSize: 8.5 * k)),
+              ),
             pw.Divider(color: _accent, thickness: 1.5),
           ],
         ),
         footer: (context) => pw.Row(
           children: [
-            pw.Text(
-              'Genere le $generated${operatorName.isEmpty ? '' : ' - ${_safe(operatorName)}'}',
-              style: const pw.TextStyle(color: _grey, fontSize: 8),
-            ),
+            pw.Text(footerParts.join(' - '), style: pw.TextStyle(color: _grey, fontSize: 8 * k)),
             pw.Spacer(),
-            pw.Text(
-              '${context.pageNumber} / ${context.pagesCount}',
-              style: const pw.TextStyle(color: _grey, fontSize: 8),
-            ),
+            if (cfg.showPageNumbers)
+              pw.Text(
+                '${context.pageNumber} / ${context.pagesCount}',
+                style: pw.TextStyle(color: _grey, fontSize: 8 * k),
+              ),
           ],
         ),
         build: (context) => [
-          pw.Text(safeTitle, style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: _navy)),
+          if (cfg.showTitle)
+            pw.Text(safeTitle, style: pw.TextStyle(fontSize: 16 * k, fontWeight: pw.FontWeight.bold, color: _navy)),
+          if (cfg.datePlacement == PdfDatePlacement.top)
+            pw.Padding(
+              padding: const pw.EdgeInsets.only(top: 3),
+              child: pw.Text(dateText, style: pw.TextStyle(fontSize: 10 * k, color: _grey)),
+            ),
           ...sections,
         ],
       ),
