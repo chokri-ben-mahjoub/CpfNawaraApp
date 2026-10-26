@@ -950,3 +950,13 @@ final plantSchemaIdProvider = StateProvider<String?>((ref) => null);
 
 /// Jour consulté dans le module Usine (aujourd'hui par défaut).
 final plantDayProvider = StateProvider<DateTime>((ref) => _day(DateTime.now()));
+
+extension PlantAnalysisTimeX on PlantAnalysis {
+  /// Heure de prélèvement saisie ("HH:mm"), sinon l'heure d'enregistrement.
+  String get samplingTime {
+    final start = startTime;
+    if (start != null && start.isNotEmpty) return start;
+    final r = recordedAt;
+    return '${r.hour.toString().padLeft(2, '0')}:${r.minute.toString().padLeft(2, '0')}';
+  }
+}

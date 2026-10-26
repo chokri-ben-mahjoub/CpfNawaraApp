@@ -130,14 +130,14 @@ Future<Uint8List> buildPlantDailyReport({
       }
       // Toutes les analyses du jour (ex: 8 h et 17 h), par heure de prélèvement.
       var daily = controller.analysesOnDay(point.id, day).toList()
-        ..sort((x, y) => _samplingTime(x).compareTo(_samplingTime(y)));
+        ..sort((x, y) => x.samplingTime.compareTo(y.samplingTime));
       if (!options.allAnalyses) daily = [daily.last];
       for (final a in daily) {
         sections.add(pw.SizedBox(height: 4));
         if (options.samplingTime) {
           sections.add(
             pw.Text(
-              '${t('plantSamplingTime')}: ${_samplingTime(a)}',
+              '${t('plantSamplingTime')}: ${a.samplingTime}',
               style: pw.TextStyle(
                 fontSize: 9,
                 fontWeight: pw.FontWeight.bold,
@@ -340,12 +340,6 @@ String _safe(String text) => text
     .replaceAll('≥', '>=')
     .replaceAll('’', "'")
     .replaceAll('…', '...');
-
-/// Heure de prélèvement saisie, sinon l'heure d'enregistrement.
-String _samplingTime(PlantAnalysis a) =>
-    (a.startTime != null && a.startTime!.isNotEmpty)
-    ? a.startTime!
-    : DateFormat('HH:mm').format(a.recordedAt);
 
 pw.MemoryImage? _decodePhoto(String? base64Photo) {
   if (base64Photo == null || base64Photo.isEmpty) return null;

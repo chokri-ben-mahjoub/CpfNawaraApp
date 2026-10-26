@@ -712,12 +712,18 @@ class _PointSheet extends ConsumerWidget {
               if (analysis == null)
                 Text(s('plantNeverAnalysed'), style: TextStyle(color: scheme.onSurfaceVariant))
               else ...[
-                Text(
-                  '${s('plantAnalysisOf')} ${DateFormat('EEEE d MMMM yyyy', locale.languageCode).format(analysis.date)}',
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-                ),
-                const SizedBox(height: 8),
-                PlantValuesTable(point: point, analysis: analysis),
+                for (final a in controller.analysesOnDay(point.id, day).isEmpty
+                    ? [analysis]
+                    : (controller.analysesOnDay(point.id, day).toList()
+                        ..sort((x, y) => x.samplingTime.compareTo(y.samplingTime)))) ...[
+                  Text(
+                    '${s('plantAnalysisOf')} ${DateFormat('EEEE d MMMM yyyy', locale.languageCode).format(a.date)} · ${a.samplingTime}',
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                  ),
+                  const SizedBox(height: 8),
+                  PlantValuesTable(point: point, analysis: a),
+                  const SizedBox(height: 10),
+                ],
               ],
               const SizedBox(height: 16),
               Row(

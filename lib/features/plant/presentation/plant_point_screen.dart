@@ -122,6 +122,10 @@ class PlantPointScreen extends ConsumerWidget {
       );
     }
     final current = controller.analysisOn(point.id, day) ?? controller.latest(point.id);
+    // Toutes les analyses du jour (ex: 8 h et 17 h), sinon la plus récente.
+    final shown = controller.analysesOnDay(point.id, day).toList()
+      ..sort((x, y) => x.samplingTime.compareTo(y.samplingTime));
+    if (shown.isEmpty && current != null) shown.add(current);
     final history = controller.analysesFor(point.id);
     final dateFormat = DateFormat('EEE d MMM yyyy', locale.languageCode);
 
@@ -193,34 +197,37 @@ class PlantPointScreen extends ConsumerWidget {
               ),
             )
           else ...[
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    '${s('plantAnalysisOf')} ${dateFormat.format(current.date)}',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            for (final a in shown) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${s('plantAnalysisOf')} ${dateFormat.format(a.date)} · ${a.samplingTime}',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                    ),
                   ),
-                ),
-                if (current.date != day)
-                  Text(s('plantLatestAvailable'), style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              [
-                s(current.source),
-                if (current.operatorName.isNotEmpty) current.operatorName,
-                if (current.comment != null && current.comment!.isNotEmpty) current.comment!,
-              ].join(' · '),
-              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
-            ),
-            const SizedBox(height: 10),
-            PlantValuesTable(point: point, analysis: current),
-            if (current.photo != null) ...[
+                  if (a.date != day)
+                    Text(s('plantLatestAvailable'), style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                [
+                  '${s('plantSamplingTime')} ${a.samplingTime}',
+                  s(a.source),
+                  if (a.operatorName.isNotEmpty) a.operatorName,
+                  if (a.comment != null && a.comment!.isNotEmpty) a.comment!,
+                ].join(' · '),
+                style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
+              ),
               const SizedBox(height: 10),
-              _PhotoThumbnail(base64: current.photo!),
+              PlantValuesTable(point: point, analysis: a),
+              if (a.photo != null) ...[
+                const SizedBox(height: 10),
+                _PhotoThumbnail(base64: a.photo!),
+              ],
+              const SizedBox(height: 16),
             ],
-            const SizedBox(height: 6),
             Text(s('plantTapForTrend'), style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
           ],
           const SizedBox(height: 22),
@@ -267,7 +274,7 @@ class _HistoryTile extends ConsumerWidget {
 
     return ListTile(
       leading: Icon(out.isEmpty ? Icons.check_circle_outline : Icons.warning_amber_rounded, color: color),
-      title: Text(dateFormat.format(analysis.date), style: const TextStyle(fontWeight: FontWeight.w700)),
+      title: Text('${dateFormat.format(analysis.date)} · ${analysis.samplingTime}', style: const TextStyle(fontWeight: FontWeight.w700)),
       subtitle: Text(
         out.isEmpty
             ? '${analysis.values.length} ${s('plantValuesCount')} · ${s(analysis.source)}'
