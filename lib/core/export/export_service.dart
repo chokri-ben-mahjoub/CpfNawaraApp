@@ -51,7 +51,37 @@ Future<void> runExport({
   }
 
   final choice = await chooseExport(context, locale);
-  if (choice == null) return;
+  if (choice == null || !context.mounted) return;
+  await exportWithChoice(
+    context: context,
+    locale: locale,
+    choice: choice,
+    baseName: baseName,
+    tables: nonEmpty,
+    charts: charts,
+    shareSubject: shareSubject,
+  );
+}
+
+/// Génère et livre l'export (Excel, CSV ou PDF de tableaux) pour un [choice]
+/// déjà fait — pour les écrans qui proposent le format eux-mêmes (ex: le
+/// rapport usine, dont le PDF a sa propre mise en page).
+Future<void> exportWithChoice({
+  required BuildContext context,
+  required Locale locale,
+  required ExportChoice choice,
+  required String baseName,
+  required List<ExportTable> tables,
+  List<PdfReportChart> charts = const [],
+  String? shareSubject,
+}) async {
+  String s(String key) => tr(locale, key);
+  final messenger = ScaffoldMessenger.of(context);
+  final nonEmpty = tables.where((t) => !t.isEmpty).toList();
+  if (nonEmpty.isEmpty) {
+    messenger.showSnackBar(SnackBar(content: Text(s('exportEmpty'))));
+    return;
+  }
 
   messenger.showSnackBar(SnackBar(content: Text(s('exportStarted')), duration: const Duration(seconds: 1)));
   final safeBase = _safeFileName(baseName);

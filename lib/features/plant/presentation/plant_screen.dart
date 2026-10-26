@@ -10,6 +10,7 @@ import 'package:intl/intl.dart';
 import '../../../core/analysis/series.dart';
 import '../../../core/auth/auth_providers.dart';
 import '../../../core/config/shared_config.dart';
+import '../../../core/export/export_format_sheet.dart';
 import '../../../core/export/export_service.dart';
 import '../../../core/export/export_table.dart';
 import '../../../core/l10n/app_strings.dart';
@@ -341,6 +342,20 @@ class PlantScreen extends ConsumerWidget {
     if (circuits == null || !context.mounted) return;
     final day = ref.read(plantDayProvider);
     final plantController = ref.read(plantControllerProvider.notifier);
+    // Format d'abord : Excel / CSV exportent les mêmes données en tableaux ;
+    // seul le PDF est le rapport mis en page.
+    final fmt = await chooseExport(context, locale);
+    if (fmt == null || !context.mounted) return;
+    if (fmt.format != ExportFormat.pdf) {
+      await exportWithChoice(
+        context: context,
+        locale: locale,
+        choice: fmt,
+        baseName: 'rapport_usine_${circuits.length == 1 ? s(circuits.first.labelKey) : s('plantReportAllShort')}_${plantDateKey(day)}',
+        tables: plantReportTables(controller: plantController, day: day, circuits: circuits, s: s),
+      );
+      return;
+    }
     final missingCount = [
       for (final c in circuits)
         for (final p in plantController.pointsOf(c))
@@ -534,8 +549,29 @@ Future<void> exportPlantAnalysesSelection(
   if (analyses.isEmpty) return;
   final locale = ref.read(localeProvider);
   String s(String key) => tr(locale, key);
+  final fmt = await chooseExport(context, locale);
+  if (fmt == null || !context.mounted) return;
   final params = await askPlantParams(context, point, analyses, s);
   if (params == null || !context.mounted) return;
+  if (fmt.format != ExportFormat.pdf) {
+    final lastDay = analyses.map((a) => a.date).reduce((a, b) => a.isAfter(b) ? a : b);
+    await exportWithChoice(
+      context: context,
+      locale: locale,
+      choice: fmt,
+      baseName: 'analyse_${point.code}_${plantDateKey(lastDay)}',
+      tables: plantReportTables(
+        controller: ref.read(plantControllerProvider.notifier),
+        day: lastDay,
+        circuits: [point.circuit],
+        s: s,
+        onlyPointId: point.id,
+        analysisIds: {for (final a in analyses) a.id},
+        paramKeys: params.isEmpty ? null : params,
+      ),
+    );
+    return;
+  }
   final options = await askPlantReportOptions(context, s);
   if (options == null || !context.mounted) return;
   final reportNumber = await ref

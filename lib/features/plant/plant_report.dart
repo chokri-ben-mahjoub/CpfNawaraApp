@@ -13,6 +13,7 @@ import '../../core/plant/plant_catalog.dart';
 import '../../core/plant/plant_point_charts.dart';
 import '../../core/plant/plant_repository.dart';
 import '../../core/export/pdf_export_settings.dart';
+import '../../core/export/export_table.dart';
 import 'report_options.dart';
 
 const _accent = PdfColor.fromInt(0xFFFF7A33);
@@ -426,4 +427,79 @@ Future<String> plantReportTitleOf(String Function(String) s, {bool allCircuits =
   final c = await PdfExportSettings.load();
   final custom = c.reportTitle.trim();
   return custom.isEmpty ? s(allCircuits ? 'plantReportTitle' : 'plantSampleReportTitle') : custom;
+}
+
+/// Les mêmes données que le rapport PDF, en tableaux pour Excel / CSV : une
+/// feuille par circuit, une ligne par analyse (date, heure de prélèvement,
+/// point, valeurs, source, opérateur, commentaire). Mêmes filtres que le
+/// PDF : un seul point, des analyses choisies, des paramètres choisis.
+List<ExportTable> plantReportTables({
+  required PlantController controller,
+  required DateTime day,
+  required List<PlantCircuit> circuits,
+  required String Function(String) s,
+  String? onlyPointId,
+  Set<String>? analysisIds,
+  Set<String>? paramKeys,
+}) {
+  final tables = <ExportTable>[];
+  for (final circuit in circuits) {
+    final entries = <(SamplePoint, PlantAnalysis)>[];
+    for (final point in controller.pointsOf(circuit)) {
+      if (onlyPointId != null && point.id != onlyPointId) continue;
+      final analyses = analysisIds != null
+          ? [for (final id in analysisIds) ?controller.byId(id)].where((a) => a.pointId == point.id).toList()
+          : controller.analysesOnDay(point.id, day).toList();
+      for (final a in analyses) {
+        entries.add((point, a));
+      }
+    }
+    if (entries.isEmpty) continue;
+    entries.sort((x, y) {
+      final byDate = x.$2.date.compareTo(y.$2.date);
+      if (byDate != 0) return byDate;
+      final byTime = x.$2.samplingTime.compareTo(y.$2.samplingTime);
+      return byTime != 0 ? byTime : x.$1.code.compareTo(y.$1.code);
+    });
+    // Colonnes : paramètres des points du circuit réellement renseignés.
+    final params = <String, PlantParam>{};
+    for (final (point, a) in entries) {
+      for (final p in point.params) {
+        if (paramKeys != null && !paramKeys.contains(p.key)) continue;
+        if (a.values[p.key] != null) params.putIfAbsent(p.key, () => p);
+      }
+    }
+    final cols = params.values.toList();
+    final name = s(circuit.labelKey);
+    tables.add(
+      ExportTable(
+        name: name.length > 31 ? name.substring(0, 31) : name,
+        headers: [
+          s('colDate'),
+          s('plantSamplingTime'),
+          s('plantColPoint'),
+          s('plantColName'),
+          for (final p in cols) p.unit.isEmpty ? s(p.labelKey) : '${s(p.labelKey)} (${p.unit})',
+          s('plantColSource'),
+          s('colOperator'),
+          s('colComment'),
+        ],
+        rows: [
+          for (final (point, a) in entries)
+            [
+              DateOnly(a.date),
+              a.samplingTime,
+              point.code,
+              point.name,
+              for (final p in cols)
+                p.isNumeric ? a.number(p.key) : (a.values[p.key] == null ? null : s('${a.values[p.key]}')),
+              s(a.source),
+              a.operatorName,
+              a.comment ?? '',
+            ],
+        ],
+      ),
+    );
+  }
+  return tables;
 }
