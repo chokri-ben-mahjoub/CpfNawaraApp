@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:puitstrack/core/plant/plant_catalog.dart';
 
 void main() {
+  customPointTests();
   test('pertes d\'hydrocarbures : exemple 386,6 m³/j, TPH 4 100 mg/L, densité 745,5', () {
     final r = plantComputedValues({'water_flow': 386.6, 'tph': 4100, 'cond_density': 745.5});
     expect(r['hc_mass'], closeTo(1585.06, 1e-6)); // kg/j
@@ -25,5 +26,17 @@ void main() {
     for (final k in ['hc_mass', 'hc_mass_t', 'hc_volume']) {
       expect(keys[k]!.computed, isTrue);
     }
+  });
+}
+
+void customPointTests() {
+  test('un point à paramètres personnalisés qui mesure le TPH reçoit le calcul', () {
+    const custom = [PlantParam('ph', 'plantParamPh', ''), PlantParam('tph', 'plantParamTph', 'mg/L')];
+    final withCalc = withHydrocarbonCalc(custom);
+    expect(withCalc.map((p) => p.key), containsAll(hydrocarbonCalcKeys));
+    expect(withCalc.where((p) => p.computed).map((p) => p.key), ['hc_mass', 'hc_mass_t', 'hc_volume']);
+    // Sans TPH : rien n'est ajouté ; déjà présent : pas de doublon.
+    expect(withHydrocarbonCalc(const [PlantParam('ph', 'plantParamPh', '')]).length, 1);
+    expect(withHydrocarbonCalc(withCalc).length, withCalc.length);
   });
 }

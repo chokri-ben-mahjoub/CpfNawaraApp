@@ -1,43 +1,65 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/auth/auth_providers.dart';
 import '../../../core/export/pdf_export_settings.dart';
 import '../../../core/l10n/app_strings.dart';
+import '../../../core/theme/app_theme.dart';
+import 'pdf_page_preview.dart';
 
-/// Page « Exports PDF » : ce qui s'affiche dans tous les PDF et où (courbes,
-/// date et heure, en-tête, pied de page, orientation, taille du texte).
+/// Page « Exports PDF » : pour chaque famille de PDF (tous les circuits,
+/// échantillons CPI, tableaux), tout ce qui s'affiche et où — avec un aperçu
+/// de la page qui change en direct à chaque réglage.
 class PdfExportSettingsScreen extends ConsumerStatefulWidget {
   const PdfExportSettingsScreen({super.key});
 
   @override
-  ConsumerState<PdfExportSettingsScreen> createState() => _PdfExportSettingsScreenState();
+  ConsumerState<PdfExportSettingsScreen> createState() =>
+      _PdfExportSettingsScreenState();
 }
 
-class _PdfExportSettingsScreenState extends ConsumerState<PdfExportSettingsScreen> {
-  PdfExportSettings _cfg = const PdfExportSettings();
+class _PdfExportSettingsScreenState
+    extends ConsumerState<PdfExportSettingsScreen> {
+  PdfReportKind _kind = PdfReportKind.allCircuits;
+  PdfExportSettings _cfg = PdfExportSettings.defaults(
+    PdfReportKind.allCircuits,
+  );
   bool _loaded = false;
+  bool _showPreview = true;
   final _header = TextEditingController();
   final _footer = TextEditingController();
+  final _title = TextEditingController();
+  final _role = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    PdfExportSettings.load().then((c) {
-      if (!mounted) return;
-      setState(() {
-        _cfg = c;
-        _header.text = c.headerText;
-        _footer.text = c.footerText;
-        _loaded = true;
-      });
-    });
+    _load(_kind);
   }
 
   @override
   void dispose() {
     _header.dispose();
     _footer.dispose();
+    _title.dispose();
+    _role.dispose();
     super.dispose();
+  }
+
+  Future<void> _load(PdfReportKind kind) async {
+    final c = await PdfExportSettings.load(kind);
+    if (!mounted) return;
+    setState(() {
+      _kind = kind;
+      _cfg = c;
+      _header.text = c.headerText;
+      _footer.text = c.footerText;
+      _title.text = c.reportTitle;
+      _role.text = c.signatureRole;
+      _loaded = true;
+    });
   }
 
   void _update(PdfExportSettings c) {
@@ -49,108 +71,407 @@ class _PdfExportSettingsScreenState extends ConsumerState<PdfExportSettingsScree
   Widget build(BuildContext context) {
     final locale = ref.watch(localeProvider);
     String s(String key) => tr(locale, key);
-    final now = DateTime.now();
+    final operatorName = ref.watch(profileProvider)?.fullName ?? '';
+    final scheme = Theme.of(context).colorScheme;
 
-    Widget title(String text) => Padding(
-      padding: const EdgeInsets.only(top: 18, bottom: 6),
-      child: Text(text, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+    // Puces qui passent à la ligne (un sélecteur segmenté déborderait de
+    // l'écran d'un téléphone).
+    const kindIcons = {
+      PdfReportKind.allCircuits: Icons.layers_outlined,
+      PdfReportKind.samples: Icons.science_outlined,
+      PdfReportKind.tables: Icons.table_chart_outlined,
+    };
+    final kinds = Wrap(
+      spacing: 8,
+      runSpacing: 6,
+      children: [
+        for (final kind in PdfReportKind.values)
+          ChoiceChip(
+            avatar: Icon(kindIcons[kind], size: 18),
+            label: Text(s(kind.labelKey)),
+            selected: _kind == kind,
+            showCheckmark: false,
+            onSelected: (_) => _load(kind),
+          ),
+      ],
     );
 
-    Widget choice<T>(String label, T value, List<(T, String)> options, void Function(T) onChanged) => Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+    final preview = Container(
+      color: scheme.surfaceContainerHighest.withValues(alpha: 0.6),
+      padding: const EdgeInsets.all(14),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label),
-          const SizedBox(height: 6),
-          Wrap(
-            spacing: 8,
-            runSpacing: 4,
+          Row(
             children: [
-              for (final o in options)
-                ChoiceChip(label: Text(o.$2), selected: o.$1 == value, onSelected: (_) => onChanged(o.$1)),
+              const Icon(
+                Icons.visibility_outlined,
+                size: 18,
+                color: accentColor,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  s('pdfLivePreview'),
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
+              Text(
+                s(_kind.labelKey),
+                style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
+              ),
             ],
+          ),
+          const SizedBox(height: 10),
+          Expanded(
+            child: Center(
+              child: PdfPagePreview(
+                cfg: _cfg,
+                s: s,
+                operatorName: operatorName,
+              ),
+            ),
           ),
         ],
       ),
     );
 
-    Widget toggle(String label, bool value, void Function(bool) onChanged) => SwitchListTile(
-      dense: true,
-      contentPadding: EdgeInsets.zero,
-      title: Text(label),
-      value: value,
-      onChanged: onChanged,
+    final hintKey = switch (_kind) {
+      PdfReportKind.allCircuits => 'pdfKindAllHint',
+      PdfReportKind.samples => 'pdfKindSamplesHint',
+      PdfReportKind.tables => 'pdfKindTablesHint',
+    };
+
+    final settings = ListView(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 40),
+      children: [
+        Text(
+          s(hintKey),
+          style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+        ),
+        const SizedBox(height: 12),
+        _card(context, Icons.title, s('pdfSecTexts'), [
+          if (_kind.isPlant) ...[
+            _field(
+              _title,
+              s('pdfSetReportTitle'),
+              hint: s(
+                _kind == PdfReportKind.allCircuits
+                    ? 'plantReportTitle'
+                    : 'plantSampleReportTitle',
+              ),
+              helper: s('pdfSetEmptyDefault'),
+              onChanged: (v) => _update(_cfg.copyWith(reportTitle: v)),
+            ),
+            _field(
+              _role,
+              s('pdfSetSignatureRole'),
+              hint: s('plantReportRole'),
+              helper: s('pdfSetEmptyDefault'),
+              onChanged: (v) => _update(_cfg.copyWith(signatureRole: v)),
+            ),
+          ],
+          _field(
+            _header,
+            s('pdfSetHeaderText'),
+            onChanged: (v) => _update(_cfg.copyWith(headerText: v)),
+          ),
+          _field(
+            _footer,
+            s('pdfSetFooterText'),
+            onChanged: (v) => _update(_cfg.copyWith(footerText: v)),
+          ),
+        ]),
+        _card(context, Icons.event_outlined, s('pdfSetDate'), [
+          _chips<PdfDatePlacement>(
+            s('pdfSetDatePlacement'),
+            _cfg.datePlacement,
+            [
+              (PdfDatePlacement.header, s('pdfSetPlaceHeader')),
+              (PdfDatePlacement.footer, s('pdfSetPlaceFooter')),
+              (PdfDatePlacement.top, s('pdfSetPlaceTop')),
+              (PdfDatePlacement.hidden, s('pdfSetHidden')),
+            ],
+            (v) => _update(_cfg.copyWith(datePlacement: v)),
+          ),
+          _chips<int>(s('pdfSetDateFormat'), _cfg.dateFormat, [
+            for (var i = 0; i < PdfExportSettings.dateFormats.length; i++)
+              (i, _cfg.copyWith(dateFormat: i, showTime: false).stamp()),
+          ], (v) => _update(_cfg.copyWith(dateFormat: v))),
+          _switch(
+            s('pdfSetShowTime'),
+            _cfg.showTime,
+            (v) => _update(_cfg.copyWith(showTime: v)),
+          ),
+        ]),
+        _card(context, Icons.vertical_align_top, s('pdfSetHeaderFooter'), [
+          _switch(
+            s('pdfSetLogo'),
+            _cfg.showLogo,
+            (v) => _update(_cfg.copyWith(showLogo: v)),
+          ),
+          _switch(
+            s('pdfSetAppName'),
+            _cfg.showAppName,
+            (v) => _update(_cfg.copyWith(showAppName: v)),
+          ),
+          _switch(
+            s('pdfSetTitleShow'),
+            _cfg.showTitle,
+            (v) => _update(_cfg.copyWith(showTitle: v)),
+          ),
+          if (_kind.isPlant)
+            _switch(
+              s('pdfSetReportNumber'),
+              _cfg.showReportNumber,
+              (v) => _update(_cfg.copyWith(showReportNumber: v)),
+            ),
+          _switch(
+            s('pdfSetOperator'),
+            _cfg.showOperator,
+            (v) => _update(_cfg.copyWith(showOperator: v)),
+          ),
+          _switch(
+            s('pdfSetPages'),
+            _cfg.showPageNumbers,
+            (v) => _update(_cfg.copyWith(showPageNumbers: v)),
+          ),
+        ]),
+        _card(context, Icons.dashboard_customize_outlined, s('pdfSecContent'), [
+          _chips<PdfChartsPosition>(s('pdfSetChartsPos'), _cfg.charts, [
+            (PdfChartsPosition.after, s('pdfSetChartsAfter')),
+            (PdfChartsPosition.before, s('pdfSetChartsBefore')),
+            (PdfChartsPosition.hidden, s('pdfSetHidden')),
+          ], (v) => _update(_cfg.copyWith(charts: v))),
+          if (_kind.isPlant) ...[
+            _switch(
+              s('reportOpt_photo'),
+              _cfg.showPhoto,
+              (v) => _update(_cfg.copyWith(showPhoto: v)),
+            ),
+            _switch(
+              s('reportOpt_limitColumn'),
+              _cfg.showLimit,
+              (v) => _update(_cfg.copyWith(showLimit: v)),
+            ),
+            _switch(
+              s('reportOpt_statusColumn'),
+              _cfg.showStatus,
+              (v) => _update(_cfg.copyWith(showStatus: v)),
+            ),
+            _switch(
+              s('reportOpt_details'),
+              _cfg.showDetails,
+              (v) => _update(_cfg.copyWith(showDetails: v)),
+            ),
+            _switch(
+              s('reportOpt_samplingTime'),
+              _cfg.showSamplingTime,
+              (v) => _update(_cfg.copyWith(showSamplingTime: v)),
+            ),
+            _switch(
+              s('reportOpt_allAnalyses'),
+              _cfg.allAnalyses,
+              (v) => _update(_cfg.copyWith(allAnalyses: v)),
+            ),
+            _switch(
+              s('reportOpt_signatureBottom'),
+              _cfg.showSignature,
+              (v) => _update(_cfg.copyWith(showSignature: v)),
+            ),
+          ],
+        ]),
+        _card(context, Icons.crop_portrait, s('pdfSetPage'), [
+          _chips<PdfOrientation>(s('pdfSetOrientation'), _cfg.orientation, [
+            (PdfOrientation.auto, s('pdfSetAuto')),
+            (PdfOrientation.portrait, s('pdfSetPortrait')),
+            (PdfOrientation.landscape, s('pdfSetLandscape')),
+          ], (v) => _update(_cfg.copyWith(orientation: v))),
+          _chips<int>(s('pdfSetTextSize'), _cfg.textSize, [
+            (0, s('pdfSetSmall')),
+            (1, s('pdfSetNormal')),
+            (2, s('pdfSetLarge')),
+          ], (v) => _update(_cfg.copyWith(textSize: v))),
+        ]),
+        const SizedBox(height: 4),
+        OutlinedButton.icon(
+          onPressed: () {
+            _header.clear();
+            _footer.clear();
+            _title.clear();
+            _role.clear();
+            _update(PdfExportSettings.defaults(_kind));
+          },
+          icon: const Icon(Icons.restore),
+          label: Text(s('pdfSetReset')),
+        ),
+      ],
     );
 
     return Scaffold(
-      appBar: AppBar(title: Text(s('pdfSetTitle'))),
+      appBar: AppBar(
+        title: Text(s('pdfSetTitle')),
+        actions: [
+          if (MediaQuery.sizeOf(context).width < 900)
+            IconButton(
+              tooltip: s(_showPreview ? 'pdfPreviewHide' : 'pdfPreviewShow'),
+              icon: Icon(
+                _showPreview
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
+              ),
+              onPressed: () => setState(() => _showPreview = !_showPreview),
+            ),
+        ],
+      ),
       body: !_loaded
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
-              children: [
-                Text(s('pdfSetIntro'), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                title(s('pdfSetCharts')),
-                choice<PdfChartsPosition>(s('pdfSetChartsPos'), _cfg.charts, [
-                  (PdfChartsPosition.after, s('pdfSetChartsAfter')),
-                  (PdfChartsPosition.before, s('pdfSetChartsBefore')),
-                  (PdfChartsPosition.hidden, s('pdfSetHidden')),
-                ], (v) => _update(_cfg.copyWith(charts: v))),
-                title(s('pdfSetDate')),
-                choice<PdfDatePlacement>(s('pdfSetDatePlacement'), _cfg.datePlacement, [
-                  (PdfDatePlacement.header, s('pdfSetPlaceHeader')),
-                  (PdfDatePlacement.footer, s('pdfSetPlaceFooter')),
-                  (PdfDatePlacement.top, s('pdfSetPlaceTop')),
-                  (PdfDatePlacement.hidden, s('pdfSetHidden')),
-                ], (v) => _update(_cfg.copyWith(datePlacement: v))),
-                choice<int>(s('pdfSetDateFormat'), _cfg.dateFormat, [
-                  for (var i = 0; i < PdfExportSettings.dateFormats.length; i++)
-                    (i, _cfg.copyWith(dateFormat: i, showTime: false).stamp(now)),
-                ], (v) => _update(_cfg.copyWith(dateFormat: v))),
-                toggle(s('pdfSetShowTime'), _cfg.showTime, (v) => _update(_cfg.copyWith(showTime: v))),
-                Text('${s('pdfSetPreview')} : ${_cfg.stamp(now)}', style: const TextStyle(fontWeight: FontWeight.w700)),
-                title(s('pdfSetHeaderFooter')),
-                toggle(s('pdfSetLogo'), _cfg.showLogo, (v) => _update(_cfg.copyWith(showLogo: v))),
-                toggle(s('pdfSetAppName'), _cfg.showAppName, (v) => _update(_cfg.copyWith(showAppName: v))),
-                toggle(s('pdfSetTitleShow'), _cfg.showTitle, (v) => _update(_cfg.copyWith(showTitle: v))),
-                toggle(s('pdfSetOperator'), _cfg.showOperator, (v) => _update(_cfg.copyWith(showOperator: v))),
-                toggle(s('pdfSetPages'), _cfg.showPageNumbers, (v) => _update(_cfg.copyWith(showPageNumbers: v))),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _header,
-                  decoration: InputDecoration(labelText: s('pdfSetHeaderText'), border: const OutlineInputBorder()),
-                  onChanged: (v) => _update(_cfg.copyWith(headerText: v)),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: _footer,
-                  decoration: InputDecoration(labelText: s('pdfSetFooterText'), border: const OutlineInputBorder()),
-                  onChanged: (v) => _update(_cfg.copyWith(footerText: v)),
-                ),
-                title(s('pdfSetPage')),
-                choice<PdfOrientation>(s('pdfSetOrientation'), _cfg.orientation, [
-                  (PdfOrientation.auto, s('pdfSetAuto')),
-                  (PdfOrientation.portrait, s('pdfSetPortrait')),
-                  (PdfOrientation.landscape, s('pdfSetLandscape')),
-                ], (v) => _update(_cfg.copyWith(orientation: v))),
-                choice<int>(s('pdfSetTextSize'), _cfg.textSize, [
-                  (0, s('pdfSetSmall')),
-                  (1, s('pdfSetNormal')),
-                  (2, s('pdfSetLarge')),
-                ], (v) => _update(_cfg.copyWith(textSize: v))),
-                const SizedBox(height: 16),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    _header.clear();
-                    _footer.clear();
-                    _update(const PdfExportSettings());
-                  },
-                  icon: const Icon(Icons.restore),
-                  label: Text(s('pdfSetReset')),
-                ),
-              ],
+          : LayoutBuilder(
+              builder: (context, c) {
+                final wide = c.maxWidth >= 900;
+                final header = Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+                  child: kinds,
+                );
+                if (wide) {
+                  return Column(
+                    children: [
+                      header,
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Expanded(flex: 5, child: settings),
+                            VerticalDivider(
+                              width: 1,
+                              color: scheme.outlineVariant,
+                            ),
+                            Expanded(flex: 4, child: preview),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                }
+                final previewHeight = math.min(c.maxHeight * 0.42, 380.0);
+                return Column(
+                  children: [
+                    header,
+                    if (_showPreview)
+                      SizedBox(height: previewHeight, child: preview),
+                    Expanded(child: settings),
+                  ],
+                );
+              },
             ),
     );
   }
+
+  Widget _card(
+    BuildContext context,
+    IconData icon,
+    String title,
+    List<Widget> children,
+  ) {
+    final scheme = Theme.of(context).colorScheme;
+    // Material (et non un simple Container décoré) : les SwitchListTile
+    // qu'il contient ont besoin d'une surface pour leurs effets au toucher.
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Material(
+        color: scheme.surfaceContainerLowest,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: scheme.outlineVariant),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: accentColor.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(icon, size: 18, color: accentColor),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              ...children,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _switch(String label, bool value, void Function(bool) onChanged) =>
+      SwitchListTile(
+        dense: true,
+        contentPadding: EdgeInsets.zero,
+        title: Text(label),
+        value: value,
+        onChanged: onChanged,
+      );
+
+  Widget _field(
+    TextEditingController controller,
+    String label, {
+    String? hint,
+    String? helper,
+    required void Function(String) onChanged,
+  }) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 6),
+    child: TextField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        helperText: helper,
+        border: const OutlineInputBorder(),
+      ),
+      onChanged: onChanged,
+    ),
+  );
+
+  Widget _chips<T>(
+    String label,
+    T value,
+    List<(T, String)> options,
+    void Function(T) onChanged,
+  ) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 6),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 13)),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          children: [
+            for (final o in options)
+              ChoiceChip(
+                label: Text(o.$2),
+                selected: o.$1 == value,
+                onSelected: (_) => onChanged(o.$1),
+              ),
+          ],
+        ),
+      ],
+    ),
+  );
 }

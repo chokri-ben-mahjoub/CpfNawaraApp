@@ -81,6 +81,7 @@ class RoundsController extends StateNotifier<RoundsState> {
     required Map<String, Object?> values,
     required String operatorName,
     String? comment,
+    String? photo,
   }) async {
     final db = await LocalDatabase.instance.database;
     final row = LocalDatabase.stamp({
@@ -91,6 +92,7 @@ class RoundsController extends StateNotifier<RoundsState> {
       'values_json': jsonEncode(values),
       'operator_name': operatorName,
       'comment': comment,
+      'photo': photo,
       'recorded_at': DateTime.now().toIso8601String(),
     });
     await db.insert('well_rounds', row, conflictAlgorithm: ConflictAlgorithm.replace);
@@ -101,7 +103,7 @@ class RoundsController extends StateNotifier<RoundsState> {
   Future<void> delete(String id) async {
     final db = await LocalDatabase.instance.database;
     await db.transaction((txn) async {
-      await LocalDatabase.recordDeletion(txn, 'well_rounds', id, label: 'tournée');
+      await LocalDatabase.recordDeletion(txn, 'well_rounds', id, label: 'Round');
       await txn.delete('well_rounds', where: 'id = ?', whereArgs: [id]);
     });
     await _load();
@@ -125,6 +127,7 @@ class RoundsController extends StateNotifier<RoundsState> {
       values: values,
       operatorName: row['operator_name'] as String? ?? '',
       comment: row['comment'] as String?,
+      photo: row['photo'] as String?,
       recordedAt: DateTime.tryParse(row['recorded_at'] as String? ?? '') ?? DateTime.now(),
     );
   }

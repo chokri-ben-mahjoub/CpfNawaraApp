@@ -265,7 +265,12 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
         if (_parse(e.value.text) != null) e.key: _parse(e.value.text)!,
     });
     final composition = numeric.where((p) => gasCompositionKeys.contains(p.key)).toList();
-    final others = numeric.where((p) => !gasCompositionKeys.contains(p.key)).toList();
+    final others = numeric
+        .where((p) => !gasCompositionKeys.contains(p.key) && p.key != 'water_flow' && p.key != 'cond_density' && !(p.key == 'tph' && computedParams.isNotEmpty))
+        .toList();
+    final flowParam = numeric.where((p) => p.key == 'water_flow').firstOrNull;
+    final densityParam = numeric.where((p) => p.key == 'cond_density').firstOrNull;
+    final tphParam = numeric.where((p) => p.key == 'tph').firstOrNull;
     final compositionSum = composition.fold<double>(0, (sum, p) => sum + (_parse(_fields[p.key]!.text) ?? 0));
 
     return Scaffold(
@@ -356,30 +361,74 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
             ],
             ResponsiveWrapGrid(minItemWidth: 260, spacing: 10, children: [for (final p in others) numberField(p)]),
             if (computedParams.isNotEmpty) ...[
-              const SizedBox(height: 18),
-              Text(s('plantCalcTitle'), style: const TextStyle(fontWeight: FontWeight.w800)),
-              const SizedBox(height: 4),
-              Text(s('plantCalcHint'), style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
-              if (_densityPrefilled)
-                Text(s('plantCalcPrefilled'), style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
-              const SizedBox(height: 8),
-              ResponsiveWrapGrid(
-                minItemWidth: 260,
-                spacing: 10,
-                children: [
-                  for (final p in computedParams)
-                    InputDecorator(
-                      decoration: InputDecoration(
-                        labelText: s(p.labelKey),
-                        suffixText: p.unit,
-                        prefixIcon: const Icon(Icons.calculate_outlined),
-                      ),
-                      child: Text(
-                        liveComputed[p.key] == null ? '—' : formatNumber(liveComputed[p.key]!),
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
+              const SizedBox(height: 22),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: scheme.primaryContainer.withValues(alpha: 0.35),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: accentColor.withValues(alpha: 0.5)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.calculate_outlined, color: accentColor),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            s('plantCalcTitle'),
+                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                          ),
+                        ),
+                      ],
                     ),
-                ],
+                    const SizedBox(height: 6),
+                    Text(s('plantCalcHint'), style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12.5, height: 1.35)),
+                    const SizedBox(height: 14),
+                    Text(s('plantCalcInputs'), style: const TextStyle(fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 8),
+                    ResponsiveWrapGrid(
+                      minItemWidth: 240,
+                      spacing: 10,
+                      children: [
+                        if (flowParam != null) numberField(flowParam),
+                        if (tphParam != null) numberField(tphParam),
+                        if (densityParam != null) numberField(densityParam),
+                      ],
+                    ),
+                    if (_densityPrefilled)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(s('plantCalcPrefilled'), style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
+                      ),
+                    const Divider(height: 26),
+                    Text(s('plantCalcResults'), style: const TextStyle(fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 8),
+                    if (liveComputed.isEmpty)
+                      Text(s('plantCalcNeedMore'), style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13))
+                    else ...[
+                      for (final p in computedParams)
+                        if (liveComputed[p.key] != null)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Row(
+                              children: [
+                                Expanded(child: Text(s(p.labelKey), style: const TextStyle(fontSize: 13.5))),
+                                Text(
+                                  '${formatNumber(liveComputed[p.key]!)} ${p.unit}',
+                                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: accentColor),
+                                ),
+                              ],
+                            ),
+                          ),
+                      const SizedBox(height: 6),
+                      Text(s('plantCalcStepMass'), style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
+                      Text(s('plantCalcStepVolume'), style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
+                    ],
+                  ],
+                ),
               ),
             ],
             for (final param in point.params.where((p) => !p.isNumeric)) ...[

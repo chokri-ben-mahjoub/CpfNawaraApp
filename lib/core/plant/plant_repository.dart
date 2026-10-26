@@ -43,8 +43,10 @@ class SamplePoint {
   /// Paramètres analysés, unités enregistrées (SI).
   List<PlantParam> get storedParams {
     final keys = paramKeys;
-    if (keys == null) return paramsForProfile(profile);
-    return [for (final key in keys) ?plantParamByKey(key, profile: profile)];
+    final base = keys == null
+        ? paramsForProfile(profile)
+        : [for (final key in keys) ?plantParamByKey(key, profile: profile)];
+    return withHydrocarbonCalc(base);
   }
 
   String get title => '$code — $name';

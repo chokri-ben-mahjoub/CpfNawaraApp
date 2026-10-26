@@ -78,6 +78,9 @@ class WellRound {
   final String? comment;
   final DateTime recordedAt;
 
+  /// Photo jointe (JPEG en base64), facultative.
+  final String? photo;
+
   const WellRound({
     required this.id,
     required this.wellId,
@@ -87,6 +90,7 @@ class WellRound {
     required this.operatorName,
     this.comment,
     required this.recordedAt,
+    this.photo,
   });
 
   bool get isSite => wellId == siteRoundId;

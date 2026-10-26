@@ -13,6 +13,7 @@ import '../../../core/config/shared_config.dart';
 import '../../../core/export/export_service.dart';
 import '../../../core/export/export_table.dart';
 import '../../../core/l10n/app_strings.dart';
+import '../../../core/export/pdf_export_settings.dart';
 import '../report_options.dart';
 import '../../../core/models/user_role.dart';
 import '../../../core/plant/plant_catalog.dart';
@@ -371,7 +372,12 @@ class PlantScreen extends ConsumerWidget {
       if (choice == null || !context.mounted) return;
       includeMissing = choice;
     }
-    final options = await askPlantReportOptions(context, s);
+    final allCircuitsReport = circuits.length == ref.read(plantControllerProvider).circuits.length;
+    final options = await askPlantReportOptions(
+      context,
+      s,
+      kind: allCircuitsReport ? PdfReportKind.allCircuits : PdfReportKind.samples,
+    );
     if (options == null || !context.mounted) return;
     final config = ref.read(sharedConfigProvider.notifier);
     final numberController = TextEditingController(
@@ -422,6 +428,7 @@ class PlantScreen extends ConsumerWidget {
         operatorName: ref.read(profileProvider)?.fullName ?? '',
         reportNumber: reportNumber,
         includeMissing: includeMissing,
+        allCircuits: circuits.length == ref.read(plantControllerProvider).circuits.length,
         options: options,
       ),
     );
@@ -438,7 +445,7 @@ class PlantScreen extends ConsumerWidget {
         '_',
       ),
       bytes: bytes,
-      subject: '${s('plantReportTitle')} N° $reportNumber — $dayText',
+      subject: '${await plantReportTitleOf(s, allCircuits: circuits.length == ref.read(plantControllerProvider).circuits.length)} N° $reportNumber — $dayText',
       body: fill(s('reportMailBody'), {
         'n': reportNumber,
         'date': dayText,
@@ -567,7 +574,7 @@ Future<void> exportPlantAnalysesSelection(
         .replaceAll(RegExp(r'[^A-Za-z0-9_.-]+'), '_'),
     bytes: bytes,
     subject:
-        '${s('plantReportTitle')} N° $reportNumber - ${point.code} - $dayText',
+        '${await plantReportTitleOf(s)} N° $reportNumber - ${point.code} - $dayText',
     body: fill(s('reportMailBody'), {
       'n': reportNumber,
       'date': dayText,
@@ -580,9 +587,11 @@ Future<void> exportPlantAnalysesSelection(
 /// le choix est mémorisé pour les prochains exports.
 Future<ReportOptions?> askPlantReportOptions(
   BuildContext context,
-  String Function(String) s,
-) async {
-  final initial = await ReportOptions.load();
+  String Function(String) s, {
+  PdfReportKind kind = PdfReportKind.samples,
+}) async {
+  final settings = await PdfExportSettings.load(kind);
+  final initial = ReportOptions.of(settings);
   if (!context.mounted) return null;
   final values = {for (final k in ReportOptions.keys) k: initial[k]};
   final ok = await showDialog<bool>(
@@ -620,7 +629,7 @@ Future<ReportOptions?> askPlantReportOptions(
   );
   if (ok != true) return null;
   final chosen = ReportOptions.fromMap(values);
-  await chosen.save();
+  await chosen.applyTo(settings).save();
   return chosen;
 }
 

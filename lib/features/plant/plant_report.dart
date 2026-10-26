@@ -36,6 +36,7 @@ Future<Uint8List> buildPlantDailyReport({
   required String operatorName,
   required String reportNumber,
   bool includeMissing = false,
+  bool allCircuits = false,
   String? onlyPointId,
   Set<String>? analysisIds,
   Set<String>? paramKeys,
@@ -43,11 +44,14 @@ Future<Uint8List> buildPlantDailyReport({
 }) async {
   // Polices standard du PDF : pas de tiret long ni de ≤ / ≥.
   String t(String key) => _safe(s(key));
-  final doc = pw.Document(title: t('plantReportTitle'), author: currentAppName);
+  final pdfCfg = await PdfExportSettings.load(allCircuits ? PdfReportKind.allCircuits : PdfReportKind.samples);
+  final k = pdfCfg.textScale;
+  final reportTitle = pdfCfg.reportTitle.trim().isEmpty ? t(allCircuits ? 'plantReportTitle' : 'plantSampleReportTitle') : _safe(pdfCfg.reportTitle.trim());
+  final roleText = pdfCfg.signatureRole.trim().isEmpty ? t('plantReportRole') : _safe(pdfCfg.signatureRole.trim());
+  final doc = pw.Document(title: reportTitle, author: currentAppName);
   final logo = currentAppLogo;
   final logoImage = logo == null || !options.logo ? null : pw.MemoryImage(logo);
-  final generated = DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now());
-  final headerStamp = (await PdfExportSettings.load()).stamp();
+  final headerStamp = pdfCfg.stamp();
   final reportDay = DateFormat('dd-MM-yyyy').format(day);
 
   // Bloc « Date : … / Nom : fonction », en gras comme sur le modèle.
@@ -61,7 +65,7 @@ Future<Uint8List> buildPlantDailyReport({
       if (operatorName.isNotEmpty) ...[
         pw.SizedBox(height: 12),
         pw.Text(
-          '${_safe(operatorName)}: ${t('plantReportRole')}',
+          '${_safe(operatorName)}: $roleText',
           style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold),
         ),
       ],
@@ -204,6 +208,14 @@ Future<Uint8List> buildPlantDailyReport({
         continue;
       }
       if (!options.allAnalyses && analysisIds == null) daily = [daily.last];
+      void addCharts() {
+        for (final chart in plantPointCharts(controller, point, s, keys: paramKeys)) {
+          sections.add(pw.SizedBox(height: 8));
+          sections.add(buildPdfChartSection(chart, height: 130));
+        }
+      }
+
+      if (options.curves && pdfCfg.charts == PdfChartsPosition.before) addCharts();
       for (final a in daily) {
         sections.add(pw.SizedBox(height: 4));
         if (options.samplingTime || analysisIds != null) {
@@ -297,24 +309,23 @@ Future<Uint8List> buildPlantDailyReport({
           );
         }
       }
-      if (options.curves) {
-        for (final chart in plantPointCharts(
-          controller,
-          point,
-          s,
-          keys: paramKeys,
-        )) {
-          final widget = buildPdfChartSection(chart, height: 130);
-          sections.add(pw.SizedBox(height: 8));
-          sections.add(pw.Container(child: widget));
-        }
-      }
+      if (options.curves && pdfCfg.charts != PdfChartsPosition.before) addCharts();
     }
   }
 
+  final pageFormat = switch (pdfCfg.orientation) {
+    PdfOrientation.landscape => PdfPageFormat.a4.landscape,
+    _ => PdfPageFormat.a4,
+  };
+  final footerParts = [
+    if (pdfCfg.datePlacement == PdfDatePlacement.footer) '${t('plantReportGenerated')} $headerStamp',
+    if (pdfCfg.showOperator && operatorName.isNotEmpty) _safe(operatorName),
+    if (pdfCfg.footerText.trim().isNotEmpty) _safe(pdfCfg.footerText.trim()),
+  ];
+
   doc.addPage(
     pw.MultiPage(
-      pageFormat: PdfPageFormat.a4,
+      pageFormat: pageFormat,
       margin: const pw.EdgeInsets.fromLTRB(32, 28, 32, 28),
       header: (context) => pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -325,58 +336,47 @@ Future<Uint8List> buildPlantDailyReport({
                 pw.Image(logoImage, height: 30),
                 pw.SizedBox(width: 8),
               ],
-              pw.Text(
-                currentAppName,
-                style: pw.TextStyle(
-                  color: _accent,
-                  fontWeight: pw.FontWeight.bold,
-                  fontSize: 12,
-                ),
-              ),
-              pw.Spacer(),
-              if (options.headerDateTime)
+              if (pdfCfg.showAppName)
                 pw.Text(
-                  headerStamp,
-                  style: const pw.TextStyle(color: _grey, fontSize: 9),
+                  currentAppName,
+                  style: pw.TextStyle(color: _accent, fontWeight: pw.FontWeight.bold, fontSize: 12 * k),
                 ),
+              pw.Spacer(),
+              if (pdfCfg.datePlacement == PdfDatePlacement.header)
+                pw.Text(headerStamp, style: pw.TextStyle(color: _grey, fontSize: 9 * k)),
             ],
           ),
+          if (pdfCfg.headerText.trim().isNotEmpty)
+            pw.Padding(
+              padding: const pw.EdgeInsets.only(top: 2),
+              child: pw.Text(_safe(pdfCfg.headerText.trim()), style: pw.TextStyle(color: _grey, fontSize: 8.5 * k)),
+            ),
           pw.Divider(color: _accent, thickness: 1.5),
         ],
       ),
       footer: (context) => pw.Row(
         children: [
-          pw.Text(
-            '${t('plantReportGenerated')} $generated${operatorName.isEmpty ? '' : ' - ${_safe(operatorName)}'}',
-            style: const pw.TextStyle(color: _grey, fontSize: 8),
-          ),
+          pw.Text(footerParts.join(' - '), style: pw.TextStyle(color: _grey, fontSize: 8 * k)),
           pw.Spacer(),
-          pw.Text(
-            '${context.pageNumber} / ${context.pagesCount}',
-            style: const pw.TextStyle(color: _grey, fontSize: 8),
-          ),
+          if (pdfCfg.showPageNumbers)
+            pw.Text('${context.pageNumber} / ${context.pagesCount}', style: pw.TextStyle(color: _grey, fontSize: 8 * k)),
         ],
       ),
       build: (context) => [
-        pw.Text(
-          t('plantReportTitle'),
-          style: pw.TextStyle(
-            fontSize: 18,
-            fontWeight: pw.FontWeight.bold,
-            color: _navy,
+        if (pdfCfg.showTitle)
+          pw.Text(reportTitle, style: pw.TextStyle(fontSize: 18 * k, fontWeight: pw.FontWeight.bold, color: _navy)),
+        if (pdfCfg.showReportNumber) ...[
+          pw.SizedBox(height: 2),
+          pw.Text(
+            '${t('plantReportNumberLabel')} $reportNumber',
+            style: pw.TextStyle(fontSize: 12 * k, fontWeight: pw.FontWeight.bold, color: _accent),
           ),
-        ),
-        pw.SizedBox(height: 2),
-        pw.Text(
-          '${t('plantReportNumberLabel')} $reportNumber',
-          style: pw.TextStyle(
-            fontSize: 12,
-            fontWeight: pw.FontWeight.bold,
-            color: _accent,
-          ),
-        ),
-        pw.SizedBox(height: 6),
-        pw.SizedBox(height: 10),
+        ],
+        if (pdfCfg.datePlacement == PdfDatePlacement.top) ...[
+          pw.SizedBox(height: 4),
+          pw.Text('${t('plantReportGenerated')} $headerStamp', style: pw.TextStyle(fontSize: 10 * k, color: _grey)),
+        ],
+        pw.SizedBox(height: 16),
         ...sections,
         if (options.signatureBottom) ...[
           pw.SizedBox(height: 24),
@@ -385,10 +385,7 @@ Future<Uint8List> buildPlantDailyReport({
         if (sections.isEmpty)
           pw.Padding(
             padding: const pw.EdgeInsets.only(top: 24),
-            child: pw.Text(
-              t('plantReportNothing'),
-              style: const pw.TextStyle(color: _grey, fontSize: 11),
-            ),
+            child: pw.Text(t('plantReportNothing'), style: const pw.TextStyle(color: _grey, fontSize: 11)),
           ),
       ],
     ),
@@ -421,4 +418,12 @@ pw.MemoryImage? _decodePhoto(String? base64Photo) {
   } catch (_) {
     return null;
   }
+}
+
+/// Titre du rapport usine : celui choisi dans Réglages › Exports PDF, sinon
+/// le titre par défaut (aussi utilisé pour l'objet des e-mails).
+Future<String> plantReportTitleOf(String Function(String) s, {bool allCircuits = false}) async {
+  final c = await PdfExportSettings.load();
+  final custom = c.reportTitle.trim();
+  return custom.isEmpty ? s(allCircuits ? 'plantReportTitle' : 'plantSampleReportTitle') : custom;
 }

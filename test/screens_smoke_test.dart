@@ -66,6 +66,7 @@ import 'package:puitstrack/features/plant/presentation/plant_schema_screens.dart
 import 'package:puitstrack/features/plant/presentation/plant_screen.dart';
 import 'package:puitstrack/features/plant/presentation/plant_trend_screen.dart';
 import 'package:puitstrack/core/notifications/reminder_service.dart';
+import 'package:puitstrack/features/settings/presentation/pdf_export_settings_screen.dart';
 import 'package:puitstrack/features/settings/presentation/settings_screen.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -472,7 +473,46 @@ void main() {
   testWidgets('administration : paramètres et modèles', (t) => _render(t, const ParamsScreen(), height: 1600));
   testWidgets('usine : fiche point', (t) => _render(t, const PlantPointScreen(pointId: 'pp_c1'), height: 1600));
   testWidgets('usine : saisie gaz export', (t) => _render(t, const PlantEntryScreen(pointId: 'pp_g3'), height: 1700));
+  testWidgets('réglages exports PDF : aperçu en direct (téléphone)', (t) async {
+    await _render(t, const PdfExportSettingsScreen(), height: 1000);
+    expect(find.text('Aperçu en direct'), findsOneWidget);
+    for (final kind in ['Échantillons CPI', 'Tableaux', 'Tous les circuits']) {
+      await t.tap(find.text(kind));
+      await t.pumpAndSettle();
+      expect(t.takeException(), isNull, reason: kind);
+    }
+    await t.dragUntilVisible(find.text('Paysage'), find.byType(ListView).last, const Offset(0, -300));
+    await t.tap(find.text('Paysage'));
+    await t.pumpAndSettle();
+    expect(t.takeException(), isNull);
+  });
+  testWidgets(
+    'réglages exports PDF : aperçu en direct (grand écran, anglais)',
+    (t) async {
+      await _render(t, const PdfExportSettingsScreen(), width: 1280, height: 900, locale: const Locale('en'));
+      expect(find.text('Live preview'), findsOneWidget);
+      await t.tap(find.text('CPI samples'));
+      await t.pumpAndSettle();
+      expect(find.text('Produced samples from CPI'), findsWidgets, reason: 'titre de la page d\'aperçu');
+      expect(t.takeException(), isNull);
+    },
+  );
   testWidgets('usine : saisie eau', (t) => _render(t, const PlantEntryScreen(pointId: 'pp_w1'), height: 1500));
+  testWidgets('usine : saisie eau, calcul automatique des hydrocarbures', (t) async {
+    await _render(t, const PlantEntryScreen(pointId: 'pp_w1'), height: 1700);
+    Future<void> type(String label, String value) async {
+      await t.enterText(find.widgetWithText(TextFormField, label), value);
+      await t.pump();
+    }
+
+    expect(find.textContaining('Renseigne le débit'), findsOneWidget, reason: 'avant la saisie : consigne');
+    await type("Débit d'eau produite vers les bassins d'évaporation", '386.6');
+    await type('TPH (hydrocarbures)', '4100');
+    await type('Densité du condensat', '745.5');
+    expect(find.textContaining('1585'), findsWidgets, reason: 'masse en kg/j');
+    expect(find.textContaining('2126'), findsWidgets, reason: 'volume en L/j');
+    expect(find.textContaining('Renseigne le débit'), findsNothing);
+  });
   testWidgets(
     'usine : tendance',
     (t) => _render(t, const PlantTrendScreen(pointId: 'pp_c1', paramKey: 'bsw'), height: 1400),

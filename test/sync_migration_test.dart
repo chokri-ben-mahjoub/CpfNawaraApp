@@ -164,7 +164,7 @@ void main() {
     // v22 : heure de début / fin du test de puits (facultatives).
     final analysisRecordsColumns = await db.rawQuery('pragma table_info(analysis_records)');
     expect(analysisRecordsColumns.map((r) => r['name']), containsAll(['start_time', 'end_time']));
-    expect(LocalDatabase.schemaVersion, 23);
+    expect(LocalDatabase.schemaVersion, 24);
 
     // Première connexion : tout ce qui a été saisi/modifié part au serveur.
     final engine = SyncEngine(

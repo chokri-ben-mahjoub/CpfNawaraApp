@@ -1,7 +1,9 @@
-import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/export/pdf_export_settings.dart';
 
-/// Ce qui apparaît dans le rapport usine PDF, au choix du client — mémorisé
-/// sur l'appareil et repris à l'export suivant.
+/// Contenu d'un export de rapport usine, tel que choisi dans la fenêtre
+/// « Contenu du rapport » à l'export. Les valeurs de départ viennent des
+/// réglages de la famille de PDF (Réglages › Exports PDF) et le choix fait à
+/// l'export y est mémorisé.
 class ReportOptions {
   final bool curves;
   final bool photo;
@@ -10,7 +12,6 @@ class ReportOptions {
   final bool details; // source, opérateur, commentaire
   final bool samplingTime;
   final bool allAnalyses; // sinon : seulement la plus récente du jour
-  final bool headerDateTime;
   final bool signatureBottom;
   final bool logo;
 
@@ -22,7 +23,6 @@ class ReportOptions {
     this.details = true,
     this.samplingTime = true,
     this.allAnalyses = true,
-    this.headerDateTime = true,
     this.signatureBottom = true,
     this.logo = true,
   });
@@ -35,7 +35,6 @@ class ReportOptions {
     'details',
     'samplingTime',
     'allAnalyses',
-    'headerDateTime',
     'signatureBottom',
     'logo',
   ];
@@ -48,7 +47,6 @@ class ReportOptions {
     'details' => details,
     'samplingTime' => samplingTime,
     'allAnalyses' => allAnalyses,
-    'headerDateTime' => headerDateTime,
     'signatureBottom' => signatureBottom,
     _ => logo,
   };
@@ -61,30 +59,33 @@ class ReportOptions {
     details: m['details'] ?? true,
     samplingTime: m['samplingTime'] ?? true,
     allAnalyses: m['allAnalyses'] ?? true,
-    headerDateTime: m['headerDateTime'] ?? true,
     signatureBottom: m['signatureBottom'] ?? true,
     logo: m['logo'] ?? true,
   );
 
-  static Future<ReportOptions> load() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      return ReportOptions.fromMap({
-        for (final k in keys)
-          if (prefs.containsKey('report_opt_$k'))
-            k: prefs.getBool('report_opt_$k')!,
-      });
-    } catch (_) {
-      return const ReportOptions();
-    }
-  }
+  /// Contenu défini par les réglages d'une famille de PDF.
+  factory ReportOptions.of(PdfExportSettings c) => ReportOptions(
+    curves: c.charts != PdfChartsPosition.hidden,
+    photo: c.showPhoto,
+    limitColumn: c.showLimit,
+    statusColumn: c.showStatus,
+    details: c.showDetails,
+    samplingTime: c.showSamplingTime,
+    allAnalyses: c.allAnalyses,
+    signatureBottom: c.showSignature,
+    logo: c.showLogo,
+  );
 
-  Future<void> save() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      for (final k in keys) {
-        await prefs.setBool('report_opt_$k', this[k]);
-      }
-    } catch (_) {}
-  }
+  /// Réglages [c] mis à jour avec ce contenu (choix fait à l'export).
+  PdfExportSettings applyTo(PdfExportSettings c) => c.copyWith(
+    charts: curves ? (c.charts == PdfChartsPosition.hidden ? PdfChartsPosition.after : c.charts) : PdfChartsPosition.hidden,
+    showPhoto: photo,
+    showLimit: limitColumn,
+    showStatus: statusColumn,
+    showDetails: details,
+    showSamplingTime: samplingTime,
+    allAnalyses: allAnalyses,
+    showSignature: signatureBottom,
+    showLogo: logo,
+  );
 }

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -9,6 +11,7 @@ import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/well_round.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/responsive.dart';
+import '../../plant/presentation/plant_schema_screens.dart' show pickSchemaImage;
 
 /// Saisie d'une tournée de l'opérateur pour un puits (ou pour le site si
 /// [wellId] est vide) : un champ par paramètre, regroupés par section, avec
@@ -31,6 +34,7 @@ class _RoundEntryScreenState extends ConsumerState<RoundEntryScreen> {
   final _comment = TextEditingController();
   late TimeOfDay _time;
   bool _saving = false;
+  String? _photo;
 
   bool get _isSite => widget.wellId == siteRoundId;
   List<RoundField> get _defs => _isSite ? siteRoundFields : wellRoundFields;
@@ -56,6 +60,7 @@ class _RoundEntryScreenState extends ConsumerState<RoundEntryScreen> {
         _choices[k] = existing.choice(k);
       }
       _comment.text = existing.comment ?? '';
+      _photo = existing.photo;
       final parts = existing.time.split(':');
       if (parts.length == 2) {
         _time = TimeOfDay(hour: int.tryParse(parts[0]) ?? 0, minute: int.tryParse(parts[1]) ?? 0);
@@ -100,11 +105,18 @@ class _RoundEntryScreenState extends ConsumerState<RoundEntryScreen> {
           values: values,
           operatorName: ref.read(profileProvider)?.fullName ?? '',
           comment: _comment.text.trim().isEmpty ? null : _comment.text.trim(),
+          photo: _photo,
         );
     if (!mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     Navigator.of(context).pop();
     messenger.showSnackBar(SnackBar(content: Text(tr(locale, 'roundsSaved'))));
+  }
+
+  Future<void> _pickPhoto() async {
+    final locale = ref.read(localeProvider);
+    final image = await pickSchemaImage(context, (key) => tr(locale, key));
+    if (image != null && mounted) setState(() => _photo = image.base64);
   }
 
   Future<void> _delete() async {
@@ -234,6 +246,43 @@ class _RoundEntryScreenState extends ConsumerState<RoundEntryScreen> {
               maxLines: 4,
               decoration: InputDecoration(labelText: s('entryCommentLabel')),
             ),
+            const SizedBox(height: 18),
+            Text(s('plantPhotoLabel'), style: const TextStyle(fontWeight: FontWeight.w800)),
+            const SizedBox(height: 8),
+            if (_photo == null)
+              OutlinedButton.icon(
+                onPressed: _pickPhoto,
+                icon: const Icon(Icons.add_a_photo_outlined),
+                label: Text(s('plantPhotoAdd')),
+              )
+            else
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Stack(
+                  children: [
+                    Image.memory(base64Decode(_photo!), height: 180, width: double.infinity, fit: BoxFit.cover),
+                    Positioned(
+                      top: 6,
+                      right: 6,
+                      child: Row(
+                        children: [
+                          IconButton.filledTonal(
+                            tooltip: s('plantPhotoReplace'),
+                            icon: const Icon(Icons.sync),
+                            onPressed: _pickPhoto,
+                          ),
+                          const SizedBox(width: 6),
+                          IconButton.filledTonal(
+                            tooltip: s('plantPhotoRemove'),
+                            icon: const Icon(Icons.delete_outline),
+                            onPressed: () => setState(() => _photo = null),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             const SizedBox(height: 20),
             SizedBox(
               height: 52,

@@ -624,3 +624,17 @@ Map<String, double> plantComputedValues(Map<String, double> v) {
   if (density != null && density > 0) out['hc_volume'] = kg / density * 1000;
   return out;
 }
+
+/// Clés du calcul des pertes d'hydrocarbures (voir [plantComputedValues]).
+const hydrocarbonCalcKeys = ['water_flow', 'cond_density', 'hc_mass', 'hc_mass_t', 'hc_volume'];
+
+/// Ajoute le calcul des pertes d'hydrocarbures (débit, densité du condensat
+/// et résultats) à tout point qui mesure le TPH, même si sa liste de
+/// paramètres a été personnalisée avant l'ajout de ce calcul.
+List<PlantParam> withHydrocarbonCalc(List<PlantParam> params) {
+  if (!params.any((p) => p.key == 'tph') || params.any((p) => p.key == 'water_flow')) return params;
+  return [
+    ...params,
+    for (final key in hydrocarbonCalcKeys) ?_paramIn(key, builtInPlantProfiles['water']),
+  ];
+}

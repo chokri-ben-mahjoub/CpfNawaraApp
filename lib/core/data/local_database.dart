@@ -21,7 +21,7 @@ class LocalDatabase {
   static final LocalDatabase instance = LocalDatabase._();
 
   /// Version du schéma (voir `onUpgrade`), enregistrée dans les sauvegardes.
-  static const schemaVersion = 23;
+  static const schemaVersion = 24;
 
   /// Tables sauvegardées / restaurées / synchronisées.
   static const dataTables = [
@@ -309,6 +309,10 @@ class LocalDatabase {
           if (oldVersion < 23) {
             await _createRoundsTable(db);
           }
+          if (oldVersion == 23) {
+            // Photo jointe à une tournée.
+            await db.execute('alter table well_rounds add column photo text');
+          }
           if (oldVersion < 22) {
             // Heure de début / fin du test de puits (facultatives), comme
             // pour un prélèvement Usine (v15).
@@ -530,6 +534,7 @@ class LocalDatabase {
         values_json text not null default '{}',
         operator_name text not null default '',
         comment text,
+        photo text,
         recorded_at text not null,
         updated_at integer not null default 0,
         dirty integer not null default 0

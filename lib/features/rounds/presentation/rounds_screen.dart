@@ -191,7 +191,7 @@ class _WellRoundCard extends ConsumerWidget {
               children: [
                 for (final r in rounds)
                   ActionChip(
-                    avatar: const Icon(Icons.schedule, size: 16),
+                    avatar: Icon(r.photo == null ? Icons.schedule : Icons.photo_camera_outlined, size: 16),
                     label: Text(r.time),
                     onPressed: () => context.push('/rounds/entry?wellId=${well.id}&date=${_key(day)}&roundId=${r.id}'),
                   ),
@@ -247,7 +247,7 @@ class _SiteRoundCard extends ConsumerWidget {
               children: [
                 for (final r in rounds)
                   ActionChip(
-                    avatar: const Icon(Icons.schedule, size: 16),
+                    avatar: Icon(r.photo == null ? Icons.schedule : Icons.photo_camera_outlined, size: 16),
                     label: Text(r.time),
                     onPressed: () => context.push('/rounds/entry?wellId=&date=${_key(day)}&roundId=${r.id}'),
                   ),
