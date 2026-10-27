@@ -21,7 +21,7 @@ class LocalDatabase {
   static final LocalDatabase instance = LocalDatabase._();
 
   /// Version du schéma (voir `onUpgrade`), enregistrée dans les sauvegardes.
-  static const schemaVersion = 26;
+  static const schemaVersion = 27;
 
   /// Tables sauvegardées / restaurées / synchronisées.
   static const dataTables = [
@@ -330,6 +330,11 @@ class LocalDatabase {
             await db.execute('alter table stock_items add column attachment text');
             await db.execute('alter table stock_items add column attachment_name text');
           }
+          if (oldVersion < 27) {
+            // Consommation de l'année en cours saisie à la main (relevé
+            // connu), au lieu du calcul automatique depuis les sorties.
+            await db.execute('alter table stock_items add column consumption_override real');
+          }
         },
       ),
     );
@@ -517,6 +522,7 @@ class LocalDatabase {
         pending_order real not null default 0,
         attachment text,
         attachment_name text,
+        consumption_override real,
         updated_at integer not null default 0,
         dirty integer not null default 0
       )

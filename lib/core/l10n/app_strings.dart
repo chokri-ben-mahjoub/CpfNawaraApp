@@ -492,6 +492,14 @@ final _strings = <String, Map<String, String>>{
   'stockMmnLabel': {'fr': 'MMN', 'en': 'MMN'},
   'stockPrevConsumptionLabel': {'fr': 'Consommation année précédente', 'en': 'Previous year consumption'},
   'stockPrevConsumptionHint': {'fr': 'Vide = nouveau produit', 'en': 'Empty = new product'},
+  'stockConsumptionOverrideLabel': {
+    'fr': 'Consommation année en cours (si connue)',
+    'en': 'Current year consumption (if known)',
+  },
+  'stockConsumptionOverrideHint': {
+    'fr': 'Vide = calculée depuis les sorties de stock enregistrées',
+    'en': 'Empty = calculated from recorded stock exits',
+  },
   'stockPendingOrderLabel': {'fr': 'Commande en attente de livraison', 'en': 'Order waiting for delivery'},
   'stockTableTooltip': {'fr': 'Tableau de suivi annuel', 'en': 'Annual follow-up table'},
   'stockTableTitle': {'fr': 'Suivi annuel du stock', 'en': 'Annual stock follow-up'},

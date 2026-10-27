@@ -35,7 +35,15 @@ List<StockTableRow> stockTableRows(StockState stock, int year) {
       final byCategory = a.category.compareTo(b.category);
       return byCategory != 0 ? byCategory : a.name.toLowerCase().compareTo(b.name.toLowerCase());
     });
-  return [for (final i in items) StockTableRow(i, stock.consumptionOf(i.id, year), stock.forecastOf(i))];
+  final isCurrentYear = year == DateTime.now().year;
+  return [
+    for (final i in items)
+      StockTableRow(
+        i,
+        (isCurrentYear ? i.consumptionOverride : null) ?? stock.consumptionOf(i.id, year),
+        stock.forecastOf(i),
+      ),
+  ];
 }
 
 /// En-têtes du tableau de suivi annuel pour l'année [year].

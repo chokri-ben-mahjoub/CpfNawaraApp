@@ -35,6 +35,7 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
   late final TextEditingController _mmnController;
   late final TextEditingController _prevController;
   late final TextEditingController _pendingController;
+  late final TextEditingController _consumptionController;
   String? _attachment;
   String? _attachmentName;
 
@@ -56,6 +57,9 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
     _mmnController = TextEditingController(text: e?.mmn ?? '');
     _prevController = TextEditingController(text: e?.prevConsumption == null ? '' : decimalText(e!.prevConsumption));
     _pendingController = TextEditingController(text: e == null || e.pendingOrder == 0 ? '' : decimalText(e.pendingOrder));
+    _consumptionController = TextEditingController(
+      text: e?.consumptionOverride == null ? '' : decimalText(e!.consumptionOverride),
+    );
   }
 
   @override
@@ -70,6 +74,7 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
     _mmnController.dispose();
     _prevController.dispose();
     _pendingController.dispose();
+    _consumptionController.dispose();
     super.dispose();
   }
 
@@ -110,6 +115,7 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
     final threshold = parseDecimal(_thresholdController.text) ?? 0;
     final prev = parseDecimal(_prevController.text);
     final pending = parseDecimal(_pendingController.text) ?? 0;
+    final consumption = parseDecimal(_consumptionController.text);
     if (_isNew) {
       await controller.addItem(
         name: _nameController.text.trim(),
@@ -124,6 +130,7 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
         pendingOrder: pending,
         attachment: _attachment,
         attachmentName: _attachmentName,
+        consumptionOverride: consumption,
       );
       messenger.showSnackBar(SnackBar(content: Text(s('stockItemAdded'))));
     } else {
@@ -142,6 +149,8 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
           attachment: _attachment,
           attachmentName: _attachmentName,
           clearAttachment: _attachment == null,
+          consumptionOverride: consumption,
+          clearConsumptionOverride: consumption == null,
         ),
       );
       messenger.showSnackBar(SnackBar(content: Text(s('stockItemUpdated'))));
@@ -187,6 +196,14 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
                 controller: _prevController,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(labelText: s('stockPrevConsumptionLabel'), helperText: s('stockPrevConsumptionHint')),
+              ),
+              TextFormField(
+                controller: _consumptionController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  labelText: s('stockConsumptionOverrideLabel'),
+                  helperText: s('stockConsumptionOverrideHint'),
+                ),
               ),
               TextFormField(
                 controller: _pendingController,

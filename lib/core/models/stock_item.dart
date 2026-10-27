@@ -41,6 +41,11 @@ class StockItem {
   final String? attachment;
   final String? attachmentName;
 
+  /// Consommation de l'année en cours saisie à la main (ex: relevé d'un
+  /// totalisateur sur une période), au lieu de celle calculée depuis les
+  /// sorties de stock enregistrées ; nul = garder le calcul automatique.
+  final double? consumptionOverride;
+
   const StockItem({
     required this.id,
     required this.name,
@@ -55,6 +60,7 @@ class StockItem {
     this.pendingOrder = 0,
     this.attachment,
     this.attachmentName,
+    this.consumptionOverride,
   });
 
   bool get isOut => quantity <= 0;
@@ -75,6 +81,8 @@ class StockItem {
     String? attachment,
     String? attachmentName,
     bool clearAttachment = false,
+    double? consumptionOverride,
+    bool clearConsumptionOverride = false,
   }) => StockItem(
     id: id,
     name: name ?? this.name,
@@ -89,6 +97,7 @@ class StockItem {
     pendingOrder: pendingOrder ?? this.pendingOrder,
     attachment: clearAttachment ? null : (attachment ?? this.attachment),
     attachmentName: clearAttachment ? null : (attachmentName ?? this.attachmentName),
+    consumptionOverride: clearConsumptionOverride ? null : (consumptionOverride ?? this.consumptionOverride),
   );
 
   /// Besoin annuel : la consommation de l'année en cours [consumption], ou
