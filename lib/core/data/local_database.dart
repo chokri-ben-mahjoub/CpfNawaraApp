@@ -21,7 +21,7 @@ class LocalDatabase {
   static final LocalDatabase instance = LocalDatabase._();
 
   /// Version du schéma (voir `onUpgrade`), enregistrée dans les sauvegardes.
-  static const schemaVersion = 25;
+  static const schemaVersion = 26;
 
   /// Tables sauvegardées / restaurées / synchronisées.
   static const dataTables = [
@@ -324,6 +324,12 @@ class LocalDatabase {
             // valeur), en plus du commentaire général de l'analyse.
             await db.execute('alter table plant_analyses add column param_comments_json text');
           }
+          if (oldVersion < 26) {
+            // Pièce jointe d'un article de stock (certificat, fiche de
+            // données de sécurité...), PDF ou image.
+            await db.execute('alter table stock_items add column attachment text');
+            await db.execute('alter table stock_items add column attachment_name text');
+          }
         },
       ),
     );
@@ -509,6 +515,8 @@ class LocalDatabase {
         mmn text not null default '',
         prev_consumption real,
         pending_order real not null default 0,
+        attachment text,
+        attachment_name text,
         updated_at integer not null default 0,
         dirty integer not null default 0
       )

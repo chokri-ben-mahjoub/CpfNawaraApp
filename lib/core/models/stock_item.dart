@@ -35,6 +35,12 @@ class StockItem {
   /// Quantité commandée, en attente de livraison.
   final double pendingOrder;
 
+  /// Pièce jointe (certificat, fiche de données de sécurité...), PDF ou
+  /// image encodé en base64, avec son nom de fichier d'origine (extension
+  /// utilisée pour le type MIME à l'ouverture/au partage).
+  final String? attachment;
+  final String? attachmentName;
+
   const StockItem({
     required this.id,
     required this.name,
@@ -47,6 +53,8 @@ class StockItem {
     this.mmn = '',
     this.prevConsumption,
     this.pendingOrder = 0,
+    this.attachment,
+    this.attachmentName,
   });
 
   bool get isOut => quantity <= 0;
@@ -64,6 +72,9 @@ class StockItem {
     double? prevConsumption,
     bool clearPrevConsumption = false,
     double? pendingOrder,
+    String? attachment,
+    String? attachmentName,
+    bool clearAttachment = false,
   }) => StockItem(
     id: id,
     name: name ?? this.name,
@@ -76,6 +87,8 @@ class StockItem {
     mmn: mmn ?? this.mmn,
     prevConsumption: clearPrevConsumption ? null : (prevConsumption ?? this.prevConsumption),
     pendingOrder: pendingOrder ?? this.pendingOrder,
+    attachment: clearAttachment ? null : (attachment ?? this.attachment),
+    attachmentName: clearAttachment ? null : (attachmentName ?? this.attachmentName),
   );
 
   /// Besoin annuel : la consommation de l'année en cours [consumption], ou

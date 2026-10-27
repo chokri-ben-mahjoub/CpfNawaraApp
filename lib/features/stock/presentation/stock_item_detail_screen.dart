@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -5,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../../core/auth/auth_providers.dart';
 import '../../../core/data/stock_repository.dart';
 import '../../../core/data/wells_repository.dart';
+import '../../../core/export/share_files.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/stock_item.dart';
 import '../../../core/models/user_role.dart';
@@ -71,6 +74,10 @@ class StockItemDetailScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 14),
+          if (item.attachment != null && item.attachmentName != null) ...[
+            _AttachmentCard(item: item, s: s),
+            const SizedBox(height: 14),
+          ],
           _ForecastCard(item: item, stock: stock, s: s),
           if (role.canEnterData) ...[
             const SizedBox(height: 16),
@@ -161,6 +168,46 @@ class _MovementTile extends ConsumerWidget {
           style: TextStyle(fontWeight: FontWeight.w800, color: color),
         ),
         subtitle: Text(subtitleParts.join(' · '), style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12.5)),
+      ),
+    );
+  }
+}
+
+/// Pièce jointe d'un article (certificat, fiche de données de sécurité...) :
+/// ouvre le volet de partage natif, qui propose de l'afficher dans une
+/// visionneuse PDF/image installée sur l'appareil.
+class _AttachmentCard extends StatelessWidget {
+  final StockItem item;
+  final String Function(String) s;
+  const _AttachmentCard({required this.item, required this.s});
+
+  Future<void> _open() async {
+    final bytes = base64Decode(item.attachment!);
+    await shareFiles([ShareableFile(item.attachmentName!, _mimeOf(item.attachmentName!), bytes)]);
+  }
+
+  static String _mimeOf(String name) {
+    final lower = name.toLowerCase();
+    if (lower.endsWith('.pdf')) return 'application/pdf';
+    if (lower.endsWith('.png')) return 'image/png';
+    return 'image/jpeg';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final isPdf = item.attachmentName!.toLowerCase().endsWith('.pdf');
+    return Card(
+      child: ListTile(
+        leading: IconBadge(isPdf ? Icons.picture_as_pdf_outlined : Icons.image_outlined, color: scheme.primary),
+        title: Text(s('stockAttachmentLabel'), style: const TextStyle(fontWeight: FontWeight.w700)),
+        subtitle: Text(item.attachmentName!, overflow: TextOverflow.ellipsis),
+        trailing: IconButton(
+          tooltip: s('stockAttachmentOpen'),
+          icon: const Icon(Icons.open_in_new),
+          onPressed: _open,
+        ),
+        onTap: _open,
       ),
     );
   }

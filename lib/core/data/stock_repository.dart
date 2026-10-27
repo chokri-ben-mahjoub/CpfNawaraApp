@@ -170,6 +170,8 @@ class StockController extends StateNotifier<StockState> {
     String mmn = '',
     double? prevConsumption,
     double pendingOrder = 0,
+    String? attachment,
+    String? attachmentName,
   }) async {
     final db = await LocalDatabase.instance.database;
     await db.insert(
@@ -186,6 +188,8 @@ class StockController extends StateNotifier<StockState> {
         'mmn': mmn,
         'prev_consumption': prevConsumption,
         'pending_order': pendingOrder,
+        'attachment': attachment,
+        'attachment_name': attachmentName,
       }),
     );
     await _afterWrite();
@@ -207,6 +211,8 @@ class StockController extends StateNotifier<StockState> {
         'mmn': item.mmn,
         'prev_consumption': item.prevConsumption,
         'pending_order': item.pendingOrder,
+        'attachment': item.attachment,
+        'attachment_name': item.attachmentName,
       }),
       where: 'id = ?',
       whereArgs: [item.id],
@@ -295,6 +301,8 @@ class StockController extends StateNotifier<StockState> {
     mmn: row['mmn'] as String? ?? '',
     prevConsumption: (row['prev_consumption'] as num?)?.toDouble(),
     pendingOrder: (row['pending_order'] as num?)?.toDouble() ?? 0,
+    attachment: row['attachment'] as String?,
+    attachmentName: row['attachment_name'] as String?,
   );
 
   StockMovement _movementFromRow(Map<String, Object?> row) => StockMovement(

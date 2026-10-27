@@ -1,6 +1,10 @@
+import 'dart:convert';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/auth/app_lock.dart';
 import '../../../../core/data/stock_repository.dart';
 import '../../../../core/l10n/app_strings.dart';
 import '../../../../core/models/stock_item.dart';
@@ -31,6 +35,8 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
   late final TextEditingController _mmnController;
   late final TextEditingController _prevController;
   late final TextEditingController _pendingController;
+  String? _attachment;
+  String? _attachmentName;
 
   bool get _isNew => widget.existing == null;
 
@@ -38,6 +44,8 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
   void initState() {
     super.initState();
     final e = widget.existing;
+    _attachment = e?.attachment;
+    _attachmentName = e?.attachmentName;
     _nameController = TextEditingController(text: e?.name ?? '');
     _unitController = TextEditingController(text: e?.unit ?? '');
     _quantityController = TextEditingController(text: e == null ? '' : decimalText(e.quantity));
@@ -65,6 +73,33 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
     super.dispose();
   }
 
+  Future<void> _pickAttachment() async {
+    FilePickerResult? picked;
+    try {
+      picked = await LockGuard.run(
+        () => FilePicker.platform.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: const ['pdf', 'jpg', 'jpeg', 'png'],
+          withData: true,
+        ),
+      );
+    } catch (_) {
+      return;
+    }
+    final file = picked?.files.single;
+    final bytes = file?.bytes;
+    if (file == null || bytes == null) return;
+    setState(() {
+      _attachment = base64Encode(bytes);
+      _attachmentName = file.name;
+    });
+  }
+
+  void _removeAttachment() => setState(() {
+    _attachment = null;
+    _attachmentName = null;
+  });
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final controller = ref.read(stockControllerProvider.notifier);
@@ -87,6 +122,8 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
         mmn: _mmnController.text.trim(),
         prevConsumption: prev,
         pendingOrder: pending,
+        attachment: _attachment,
+        attachmentName: _attachmentName,
       );
       messenger.showSnackBar(SnackBar(content: Text(s('stockItemAdded'))));
     } else {
@@ -102,6 +139,9 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
           prevConsumption: prev,
           clearPrevConsumption: prev == null,
           pendingOrder: pending,
+          attachment: _attachment,
+          attachmentName: _attachmentName,
+          clearAttachment: _attachment == null,
         ),
       );
       messenger.showSnackBar(SnackBar(content: Text(s('stockItemUpdated'))));
@@ -214,6 +254,24 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
             maxLines: 2,
             decoration: InputDecoration(labelText: s('stockNotesLabel')),
           ),
+          const SizedBox(height: 12),
+          Text(s('stockAttachmentLabel'), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+          const SizedBox(height: 6),
+          if (_attachmentName == null)
+            OutlinedButton.icon(
+              onPressed: _pickAttachment,
+              icon: const Icon(Icons.attach_file_outlined),
+              label: Text(s('stockAttachmentAdd')),
+            )
+          else
+            InputChip(
+              avatar: Icon(
+                _attachmentName!.toLowerCase().endsWith('.pdf') ? Icons.picture_as_pdf_outlined : Icons.image_outlined,
+                size: 18,
+              ),
+              label: Text(_attachmentName!, overflow: TextOverflow.ellipsis),
+              onDeleted: _removeAttachment,
+            ),
           const SizedBox(height: 20),
           SizedBox(
             height: 50,
