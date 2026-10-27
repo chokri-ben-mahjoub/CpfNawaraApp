@@ -277,6 +277,7 @@ final _strings = <String, Map<String, String>>{
   'colService': {'fr': 'Service', 'en': 'Department'},
   'colOperator': {'fr': 'Opérateur', 'en': 'Operator'},
   'colComment': {'fr': 'Commentaire', 'en': 'Comment'},
+  'plantColOutOfRangeComments': {'fr': 'Motifs hors seuil', 'en': 'Out-of-range reasons'},
   'colStatus': {'fr': 'Statut', 'en': 'Status'},
   'colExpectedSince': {'fr': 'En retard depuis', 'en': 'Overdue since'},
   'colOutOfRange': {'fr': 'Hors seuil', 'en': 'Out of range'},
@@ -295,6 +296,7 @@ final _strings = <String, Map<String, String>>{
   'entryServiceLabel': {'fr': 'Service', 'en': 'Department'},
   'entryInvalidService': {'fr': 'Veuillez choisir un service.', 'en': 'Please choose a department.'},
   'entryCommentLabel': {'fr': 'Commentaire (optionnel)', 'en': 'Comment (optional)'},
+  'plantCommentPrefix': {'fr': 'Commentaire', 'en': 'Comment'},
   'plantOutOfRangeCommentLabel': {
     'fr': 'Pourquoi cette valeur est hors seuil',
     'en': 'Why this value is out of range',

@@ -293,19 +293,27 @@ Future<Uint8List> buildPlantDailyReport({
                   (paramKeys == null || paramKeys.contains(param.key)) &&
                   controller.isOut(point.id, param, a.values[param.key]) == true &&
                   (a.paramComments[param.key] ?? '').isNotEmpty)
-                '${t(param.labelKey)}: ${_safe(a.paramComments[param.key]!)}',
+                (t(param.labelKey), a.paramComments[param.key]!),
           ];
           if (notes.isNotEmpty) {
             sections.add(
               pw.Padding(
-                padding: const pw.EdgeInsets.only(top: 3),
+                padding: const pw.EdgeInsets.only(top: 4),
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    for (final note in notes)
-                      pw.Text(
-                        note,
-                        style: pw.TextStyle(fontSize: 8 * k, fontStyle: pw.FontStyle.italic, color: _out),
+                    for (final (label, comment) in notes)
+                      pw.RichText(
+                        text: pw.TextSpan(
+                          style: pw.TextStyle(fontSize: 8.5 * k, color: _out),
+                          children: [
+                            pw.TextSpan(
+                              text: '$label (${t('plantValueOut')}) : ',
+                              style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                            ),
+                            pw.TextSpan(text: _safe(comment)),
+                          ],
+                        ),
                       ),
                   ],
                 ),
@@ -313,21 +321,33 @@ Future<Uint8List> buildPlantDailyReport({
             );
           }
         }
-        final meta = [
-          t(a.source),
-          if (a.operatorName.isNotEmpty) a.operatorName,
-          if (a.comment != null && a.comment!.isNotEmpty) a.comment!,
-        ].map(_safe).join(' - ');
-        if (options.details)
+        final meta = [t(a.source), if (a.operatorName.isNotEmpty) a.operatorName].map(_safe).join(' - ');
+        if (options.details) {
           sections.add(
             pw.Padding(
-              padding: const pw.EdgeInsets.only(top: 3),
-              child: pw.Text(
-                meta,
-                style: const pw.TextStyle(color: _grey, fontSize: 8.5),
-              ),
+              padding: const pw.EdgeInsets.only(top: 4),
+              child: pw.Text(meta, style: const pw.TextStyle(color: _grey, fontSize: 8.5)),
             ),
           );
+          if (a.comment != null && a.comment!.isNotEmpty)
+            sections.add(
+              pw.Padding(
+                padding: const pw.EdgeInsets.only(top: 2),
+                child: pw.RichText(
+                  text: pw.TextSpan(
+                    style: const pw.TextStyle(fontSize: 8.5, color: _navy),
+                    children: [
+                      pw.TextSpan(
+                        text: '${t('plantCommentPrefix')} : ',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      ),
+                      pw.TextSpan(text: _safe(a.comment!)),
+                    ],
+                  ),
+                ),
+              ),
+            );
+        }
         // Photo jointe : toujours sous le tableau.
         final photo = _decodePhoto(a.photo);
         if (options.photo && photo != null) {
@@ -517,6 +537,7 @@ List<ExportTable> plantReportTables({
           s('plantColSource'),
           s('colOperator'),
           s('colComment'),
+          s('plantColOutOfRangeComments'),
         ],
         rows: [
           for (final (point, a) in entries)
@@ -530,6 +551,13 @@ List<ExportTable> plantReportTables({
               s(a.source),
               a.operatorName,
               a.comment ?? '',
+              [
+                for (final p in point.params)
+                  if (a.values[p.key] != null &&
+                      controller.isOut(point.id, p, a.values[p.key]) == true &&
+                      (a.paramComments[p.key] ?? '').isNotEmpty)
+                    '${s(p.labelKey)}: ${a.paramComments[p.key]}',
+              ].join(' ; '),
             ],
         ],
       ),
