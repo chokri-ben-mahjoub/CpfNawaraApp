@@ -30,6 +30,7 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
   late final TextEditingController _quantityController;
   late final TextEditingController _thresholdController;
   late final TextEditingController _categoryController;
+  late final TextEditingController _zoneController;
   late final TextEditingController _notesController;
   late final TextEditingController _referenceController;
   late final TextEditingController _mmnController;
@@ -52,6 +53,7 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
     _quantityController = TextEditingController(text: e == null ? '' : decimalText(e.quantity));
     _thresholdController = TextEditingController(text: decimalText(e?.threshold));
     _categoryController = TextEditingController(text: e?.category ?? '');
+    _zoneController = TextEditingController(text: e?.zone ?? '');
     _notesController = TextEditingController(text: e?.notes ?? '');
     _referenceController = TextEditingController(text: e?.reference ?? '');
     _mmnController = TextEditingController(text: e?.mmn ?? '');
@@ -69,6 +71,7 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
     _quantityController.dispose();
     _thresholdController.dispose();
     _categoryController.dispose();
+    _zoneController.dispose();
     _notesController.dispose();
     _referenceController.dispose();
     _mmnController.dispose();
@@ -123,6 +126,7 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
         quantity: parseDecimal(_quantityController.text) ?? 0,
         threshold: threshold,
         category: _categoryController.text.trim(),
+        zone: _zoneController.text.trim(),
         notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
         reference: _referenceController.text.trim(),
         mmn: _mmnController.text.trim(),
@@ -140,6 +144,7 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
           unit: _unitController.text.trim(),
           threshold: threshold,
           category: _categoryController.text.trim(),
+          zone: _zoneController.text.trim(),
           notes: _notesController.text.trim(),
           reference: _referenceController.text.trim(),
           mmn: _mmnController.text.trim(),
@@ -263,6 +268,20 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
             children: [
               for (final category in stockCategorySuggestions)
                 ActionChip(label: Text(category), onPressed: () => setState(() => _categoryController.text = category)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _zoneController,
+            decoration: InputDecoration(labelText: s('stockZoneLabel'), hintText: s('stockZoneHint')),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              for (final zone in stockZoneSuggestions)
+                ActionChip(label: Text(zone), onPressed: () => setState(() => _zoneController.text = zone)),
             ],
           ),
           const SizedBox(height: 12),

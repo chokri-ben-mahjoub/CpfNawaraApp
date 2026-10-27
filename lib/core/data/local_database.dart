@@ -21,7 +21,7 @@ class LocalDatabase {
   static final LocalDatabase instance = LocalDatabase._();
 
   /// Version du schéma (voir `onUpgrade`), enregistrée dans les sauvegardes.
-  static const schemaVersion = 27;
+  static const schemaVersion = 28;
 
   /// Tables sauvegardées / restaurées / synchronisées.
   static const dataTables = [
@@ -335,6 +335,11 @@ class LocalDatabase {
             // connu), au lieu du calcul automatique depuis les sorties.
             await db.execute('alter table stock_items add column consumption_override real');
           }
+          if (oldVersion < 28) {
+            // Zone/affectation (Chimique, ARO, Wells, CPF, Laboratoire...) :
+            // le suivi annuel s'affiche en un tableau par zone.
+            await db.execute("alter table stock_items add column zone text not null default ''");
+          }
         },
       ),
     );
@@ -523,6 +528,7 @@ class LocalDatabase {
         attachment text,
         attachment_name text,
         consumption_override real,
+        zone text not null default '',
         updated_at integer not null default 0,
         dirty integer not null default 0
       )

@@ -5,6 +5,11 @@ const stockCategorySuggestions = ['Chimie', 'Pièces', 'EPI', 'Consommables', 'C
 /// Unités suggérées (idem, texte libre).
 const stockUnitSuggestions = ['u', 'kg', 'L', 'm', 'sac', 'bidon'];
 
+/// Zones/affectations suggérées pour le suivi annuel (texte libre, pas de
+/// liste fermée) : le tableau de suivi annuel est éclaté en un tableau par
+/// zone plutôt qu'un seul tableau global — voir `stockTableSections`.
+const stockZoneSuggestions = ['Chimique', 'ARO', 'Wells', 'CPF', 'Laboratoire'];
+
 /// Article suivi en stock (produit chimique, pièce détachée, consommable...)
 /// utilisé sur les puits ou l'usine. La quantité est dénormalisée sur
 /// l'article (plutôt que recalculée depuis l'historique des mouvements) pour
@@ -22,6 +27,11 @@ class StockItem {
 
   /// Vide = non classé (affiché dans un groupe "Autre" dans la liste).
   final String category;
+
+  /// Zone/affectation (Chimique, ARO, Wells, CPF, Laboratoire...) : vide =
+  /// non classée, regroupée à part dans le suivi annuel.
+  final String zone;
+
   /// Observations (ex: "PO 4510135789 en attente de livraison").
   final String notes;
 
@@ -53,6 +63,7 @@ class StockItem {
     required this.quantity,
     required this.threshold,
     this.category = '',
+    this.zone = '',
     this.notes = '',
     this.reference = '',
     this.mmn = '',
@@ -72,6 +83,7 @@ class StockItem {
     double? quantity,
     double? threshold,
     String? category,
+    String? zone,
     String? notes,
     String? reference,
     String? mmn,
@@ -90,6 +102,7 @@ class StockItem {
     quantity: quantity ?? this.quantity,
     threshold: threshold ?? this.threshold,
     category: category ?? this.category,
+    zone: zone ?? this.zone,
     notes: notes ?? this.notes,
     reference: reference ?? this.reference,
     mmn: mmn ?? this.mmn,

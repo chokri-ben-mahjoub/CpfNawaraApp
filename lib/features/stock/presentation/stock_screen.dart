@@ -46,6 +46,33 @@ List<StockTableRow> stockTableRows(StockState stock, int year) {
   ];
 }
 
+/// Le suivi annuel d'une zone (Chimique, ARO, Wells, CPF, Laboratoire...) :
+/// ses lignes, triées par catégorie puis par nom, et le total à commander
+/// (pour le signaler d'un coup d'œil sans dérouler tout le tableau).
+class StockTableSection {
+  final String zone;
+  final List<StockTableRow> rows;
+  const StockTableSection(this.zone, this.rows);
+
+  int get toOrderCount => rows.where((r) => r.toOrder > 0).length;
+}
+
+/// Le suivi annuel éclaté en un tableau par zone plutôt qu'un seul tableau
+/// global : une zone sans article n'apparaît pas, et l'ordre suit
+/// [stockZoneSuggestions] (zones libres ensuite par ordre alphabétique, non
+/// affectées en dernier).
+List<StockTableSection> stockTableSections(StockState stock, int year) {
+  final rows = stockTableRows(stock, year);
+  final byZone = <String, List<StockTableRow>>{};
+  for (final r in rows) {
+    byZone.putIfAbsent(r.item.zone.trim(), () => []).add(r);
+  }
+  final known = [for (final z in stockZoneSuggestions) if (byZone.containsKey(z)) z];
+  final extra = byZone.keys.where((z) => z.isNotEmpty && !stockZoneSuggestions.contains(z)).toList()..sort();
+  final order = [...known, ...extra, if (byZone.containsKey('')) ''];
+  return [for (final z in order) StockTableSection(z, byZone[z]!)];
+}
+
 /// En-têtes du tableau de suivi annuel pour l'année [year].
 List<String> stockTableHeaders(String Function(String) s, int year) => [
   s('stockColDescription'),
@@ -60,37 +87,40 @@ List<String> stockTableHeaders(String Function(String) s, int year) => [
   s('stockNotesLabel'),
 ];
 
-/// Exporte le tableau de suivi annuel du stock (PDF / Excel / CSV).
+/// Exporte le suivi annuel du stock (PDF / Excel / CSV), un tableau par zone
+/// (Chimique, ARO, Wells, CPF, Laboratoire...), comme à l'écran.
 Future<void> exportStock(WidgetRef ref, BuildContext context) async {
   final locale = ref.read(localeProvider);
   String s(String key) => tr(locale, key);
   final year = DateTime.now().year;
-  final rows = stockTableRows(ref.read(stockControllerProvider), year);
+  final sections = stockTableSections(ref.read(stockControllerProvider), year);
+  final headers = stockTableHeaders(s, year);
 
   await runExport(
     context: context,
     locale: locale,
     baseName: 'stock_$year',
     tables: [
-      ExportTable(
-        name: s('stockTableTitle'),
-        headers: stockTableHeaders(s, year),
-        rows: [
-          for (final r in rows)
-            [
-              r.item.name,
-              r.item.reference,
-              r.item.mmn,
-              r.item.prevConsumption ?? s('stockNewProduct'),
-              r.consumption,
-              r.item.quantity,
-              r.item.pendingOrder,
-              r.toOrder,
-              stockForecastText(r.forecast, s),
-              r.item.notes,
-            ],
-        ],
-      ),
+      for (final section in sections)
+        ExportTable(
+          name: section.zone.isEmpty ? s('stockZoneUnclassified') : section.zone,
+          headers: headers,
+          rows: [
+            for (final r in section.rows)
+              [
+                r.item.name,
+                r.item.reference,
+                r.item.mmn,
+                r.item.prevConsumption ?? s('stockNewProduct'),
+                r.consumption,
+                r.item.quantity,
+                r.item.pendingOrder,
+                r.toOrder,
+                stockForecastText(r.forecast, s),
+                r.item.notes,
+              ],
+          ],
+        ),
     ],
   );
 }
