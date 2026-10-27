@@ -350,6 +350,7 @@ class PlantController extends StateNotifier<PlantState> {
           startTime: a.startTime,
           endTime: a.endTime,
           photo: a.photo,
+          paramComments: a.paramComments,
         ),
       );
     }
