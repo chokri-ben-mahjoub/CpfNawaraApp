@@ -257,9 +257,17 @@ Future<Uint8List> buildPlantDailyReport({
                   [
                     t(param.labelKey),
                     param.unit,
-                    param.isNumeric
-                        ? formatNumber((a.values[param.key] as num).toDouble())
-                        : t('${a.values[param.key]}'),
+                    () {
+                      final valueText = param.isNumeric
+                          ? formatNumber((a.values[param.key] as num).toDouble())
+                          : t('${a.values[param.key]}');
+                      final out = controller.isOut(point.id, param, a.values[param.key]);
+                      if (out != true || !pdfCfg.highlightOutOfRange) return valueText;
+                      return pw.Text(
+                        valueText,
+                        style: pw.TextStyle(fontSize: 8.5 * k, fontWeight: pw.FontWeight.bold, color: _out),
+                      );
+                    }(),
                     if (options.limitColumn)
                       _thresholdLabel(
                         controller.threshold(point.id, param.key),
@@ -278,6 +286,33 @@ Future<Uint8List> buildPlantDailyReport({
             ],
           ),
         );
+        if (pdfCfg.showOutOfRangeComments) {
+          final notes = [
+            for (final param in point.params)
+              if (a.values[param.key] != null &&
+                  (paramKeys == null || paramKeys.contains(param.key)) &&
+                  controller.isOut(point.id, param, a.values[param.key]) == true &&
+                  (a.paramComments[param.key] ?? '').isNotEmpty)
+                '${t(param.labelKey)}: ${_safe(a.paramComments[param.key]!)}',
+          ];
+          if (notes.isNotEmpty) {
+            sections.add(
+              pw.Padding(
+                padding: const pw.EdgeInsets.only(top: 3),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    for (final note in notes)
+                      pw.Text(
+                        note,
+                        style: pw.TextStyle(fontSize: 8 * k, fontStyle: pw.FontStyle.italic, color: _out),
+                      ),
+                  ],
+                ),
+              ),
+            );
+          }
+        }
         final meta = [
           t(a.source),
           if (a.operatorName.isNotEmpty) a.operatorName,

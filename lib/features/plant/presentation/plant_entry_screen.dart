@@ -36,6 +36,10 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
   final _fields = <String, TextEditingController>{};
   final _choices = <String, String?>{};
   final _comment = TextEditingController();
+
+  /// Commentaire par paramètre, saisi pour justifier une valeur hors seuil
+  /// (créé à la demande, un seul par paramètre numérique).
+  final _paramComments = <String, TextEditingController>{};
   late DateTime _date;
   TimeOfDay? _samplingTime;
   late final TextEditingController _sourceController;
@@ -107,6 +111,10 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
       _choices[key] = existing.values[key] as String?;
     }
     _comment.text = existing.comment ?? '';
+    for (final entry in existing.paramComments.entries) {
+      if (entry.value.isEmpty) continue;
+      (_paramComments[entry.key] ??= TextEditingController()).text = entry.value;
+    }
     // Les anciennes analyses stockent une clé de traduction (plantSourceLab
     // etc.) ; les nouvelles un texte libre tel quel — `tr` renvoie la clé
     // inchangée si elle n'est pas dans le dictionnaire, donc les deux cas
@@ -142,6 +150,9 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
       c.dispose();
     }
     _comment.dispose();
+    for (final c in _paramComments.values) {
+      c.dispose();
+    }
     _sourceController.dispose();
     super.dispose();
   }
@@ -183,6 +194,10 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
           id: _editingId,
           startTime: _formatTime(_samplingTime),
           photo: _photo,
+          paramComments: {
+            for (final e in _paramComments.entries)
+              if (e.value.text.trim().isNotEmpty) e.key: e.value.text.trim(),
+          },
         );
     if (!mounted) return;
     final messenger = ScaffoldMessenger.of(context);
@@ -241,7 +256,7 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
       final value = _parse(_fields[param.key]!.text);
       final out = controller.isOut(point.id, param, value);
       final t = controller.threshold(point.id, param.key);
-      return TextFormField(
+      final field = TextFormField(
         controller: _fields[param.key],
         keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
         decoration: InputDecoration(
@@ -255,6 +270,28 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
           errorStyle: TextStyle(color: scheme.error, fontWeight: FontWeight.w700),
         ),
         validator: (v) => (v ?? '').trim().isEmpty || _parse(v!) != null ? null : s('entryInvalidValue'),
+      );
+      if (out != true) return field;
+      // Valeur hors seuil : champ pour expliquer pourquoi (imprimé en gras
+      // rouge avec ce commentaire dans le PDF, si activé dans les réglages).
+      final commentField = _paramComments.putIfAbsent(param.key, () => TextEditingController());
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          field,
+          const SizedBox(height: 6),
+          TextFormField(
+            controller: commentField,
+            minLines: 1,
+            maxLines: 2,
+            style: const TextStyle(fontSize: 12.5),
+            decoration: InputDecoration(
+              labelText: s('plantOutOfRangeCommentLabel'),
+              isDense: true,
+              prefixIcon: Icon(Icons.warning_amber_rounded, color: scheme.error, size: 18),
+            ),
+          ),
+        ],
       );
     }
 

@@ -295,6 +295,10 @@ final _strings = <String, Map<String, String>>{
   'entryServiceLabel': {'fr': 'Service', 'en': 'Department'},
   'entryInvalidService': {'fr': 'Veuillez choisir un service.', 'en': 'Please choose a department.'},
   'entryCommentLabel': {'fr': 'Commentaire (optionnel)', 'en': 'Comment (optional)'},
+  'plantOutOfRangeCommentLabel': {
+    'fr': 'Pourquoi cette valeur est hors seuil',
+    'en': 'Why this value is out of range',
+  },
   'entrySave': {'fr': 'Enregistrer', 'en': 'Save'},
   'recordDelete': {'fr': 'Supprimer cette analyse', 'en': 'Delete this analysis'},
   'recordDeleteConfirmTitle': {'fr': 'Supprimer cette analyse ?', 'en': 'Delete this analysis?'},
@@ -1156,6 +1160,14 @@ final _strings = <String, Map<String, String>>{
   'reportOpt_photo': {'fr': 'Photo de l\'analyse', 'en': 'Analysis photo'},
   'reportOpt_limitColumn': {'fr': 'Colonne Seuil', 'en': 'Limit column'},
   'reportOpt_statusColumn': {'fr': 'Colonne Statut', 'en': 'Status column'},
+  'reportOpt_highlightOutOfRange': {
+    'fr': 'Valeur hors seuil en gras rouge',
+    'en': 'Bold red out-of-range value',
+  },
+  'reportOpt_outOfRangeComments': {
+    'fr': 'Commentaire des valeurs hors seuil',
+    'en': 'Out-of-range value comments',
+  },
   'reportOpt_details': {'fr': 'Source, opérateur, commentaire', 'en': 'Source, operator, comment'},
   'reportOpt_samplingTime': {'fr': 'Heure de prélèvement', 'en': 'Sampling time'},
   'reportOpt_allAnalyses': {'fr': 'Toutes les analyses du jour (sinon la dernière)', 'en': 'All analyses of the day (else the latest)'},

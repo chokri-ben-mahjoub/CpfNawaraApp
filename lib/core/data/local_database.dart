@@ -21,7 +21,7 @@ class LocalDatabase {
   static final LocalDatabase instance = LocalDatabase._();
 
   /// Version du schéma (voir `onUpgrade`), enregistrée dans les sauvegardes.
-  static const schemaVersion = 24;
+  static const schemaVersion = 25;
 
   /// Tables sauvegardées / restaurées / synchronisées.
   static const dataTables = [
@@ -319,6 +319,11 @@ class LocalDatabase {
             await db.execute('alter table analysis_records add column start_time text');
             await db.execute('alter table analysis_records add column end_time text');
           }
+          if (oldVersion < 25) {
+            // Commentaire par paramètre hors seuil (justification de la
+            // valeur), en plus du commentaire général de l'analyse.
+            await db.execute('alter table plant_analyses add column param_comments_json text');
+          }
         },
       ),
     );
@@ -390,6 +395,7 @@ class LocalDatabase {
         start_time text,
         end_time text,
         photo text,
+        param_comments_json text,
         updated_at integer not null default 0,
         dirty integer not null default 0
       )

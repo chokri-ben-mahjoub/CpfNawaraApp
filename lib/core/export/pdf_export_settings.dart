@@ -77,6 +77,13 @@ class PdfExportSettings {
   final bool allAnalyses; // sinon : seulement la plus récente du jour
   final bool showSignature; // bloc « Date / Nom : fonction » en bas
 
+  /// Valeur hors seuil en gras rouge dans le tableau (sinon seule la colonne
+  /// « État » le signale, comme avant).
+  final bool highlightOutOfRange;
+
+  /// Commentaire saisi pour une valeur hors seuil, imprimé sous le tableau.
+  final bool showOutOfRangeComments;
+
   // Apparence.
   final int palette; // index dans [pdfPalettes]
   final int tableStyle; // 0 en-tête plein, 1 filets, 2 lignes alternées
@@ -108,6 +115,8 @@ class PdfExportSettings {
     this.showSamplingTime = true,
     this.allAnalyses = true,
     this.showSignature = true,
+    this.highlightOutOfRange = true,
+    this.showOutOfRangeComments = true,
     this.palette = 0,
     this.tableStyle = 0,
     this.margins = 1,
@@ -161,6 +170,8 @@ class PdfExportSettings {
     bool? showSamplingTime,
     bool? allAnalyses,
     bool? showSignature,
+    bool? highlightOutOfRange,
+    bool? showOutOfRangeComments,
     int? palette,
     int? tableStyle,
     int? margins,
@@ -190,6 +201,8 @@ class PdfExportSettings {
     showSamplingTime: showSamplingTime ?? this.showSamplingTime,
     allAnalyses: allAnalyses ?? this.allAnalyses,
     showSignature: showSignature ?? this.showSignature,
+    highlightOutOfRange: highlightOutOfRange ?? this.highlightOutOfRange,
+    showOutOfRangeComments: showOutOfRangeComments ?? this.showOutOfRangeComments,
     palette: palette ?? this.palette,
     tableStyle: tableStyle ?? this.tableStyle,
     margins: margins ?? this.margins,
@@ -228,6 +241,8 @@ class PdfExportSettings {
         showSamplingTime: p.getBool('${k}showSamplingTime') ?? d.showSamplingTime,
         allAnalyses: p.getBool('${k}allAnalyses') ?? d.allAnalyses,
         showSignature: p.getBool('${k}showSignature') ?? d.showSignature,
+        highlightOutOfRange: p.getBool('${k}highlightOutOfRange') ?? d.highlightOutOfRange,
+        showOutOfRangeComments: p.getBool('${k}showOutOfRangeComments') ?? d.showOutOfRangeComments,
         palette: p.getInt('${k}palette') ?? d.palette,
         tableStyle: p.getInt('${k}tableStyle') ?? d.tableStyle,
         margins: p.getInt('${k}margins') ?? d.margins,
@@ -265,6 +280,8 @@ class PdfExportSettings {
       await p.setBool('${k}showSamplingTime', showSamplingTime);
       await p.setBool('${k}allAnalyses', allAnalyses);
       await p.setBool('${k}showSignature', showSignature);
+      await p.setBool('${k}highlightOutOfRange', highlightOutOfRange);
+      await p.setBool('${k}showOutOfRangeComments', showOutOfRangeComments);
       await p.setInt('${k}palette', palette);
       await p.setInt('${k}tableStyle', tableStyle);
       await p.setInt('${k}margins', margins);

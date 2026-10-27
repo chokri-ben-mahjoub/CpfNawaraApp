@@ -268,6 +268,16 @@ class _PdfExportSettingsScreenState
               (v) => _update(_cfg.copyWith(showStatus: v)),
             ),
             _switch(
+              s('reportOpt_highlightOutOfRange'),
+              _cfg.highlightOutOfRange,
+              (v) => _update(_cfg.copyWith(highlightOutOfRange: v)),
+            ),
+            _switch(
+              s('reportOpt_outOfRangeComments'),
+              _cfg.showOutOfRangeComments,
+              (v) => _update(_cfg.copyWith(showOutOfRangeComments: v)),
+            ),
+            _switch(
               s('reportOpt_details'),
               _cfg.showDetails,
               (v) => _update(_cfg.copyWith(showDetails: v)),

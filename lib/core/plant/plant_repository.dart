@@ -76,6 +76,10 @@ class PlantAnalysis {
   /// en base64 — voir `schema_image.dart` pour la compression à la saisie.
   final String? photo;
 
+  /// Commentaire par paramètre (clé -> texte), pour justifier une valeur
+  /// hors seuil ; indépendant du commentaire général [comment].
+  final Map<String, String> paramComments;
+
   const PlantAnalysis({
     required this.id,
     required this.pointId,
@@ -88,6 +92,7 @@ class PlantAnalysis {
     this.startTime,
     this.endTime,
     this.photo,
+    this.paramComments = const {},
   });
 
   double? number(String key) => (values[key] as num?)?.toDouble();
@@ -499,6 +504,7 @@ class PlantController extends StateNotifier<PlantState> {
     String? startTime,
     String? endTime,
     String? photo,
+    Map<String, String>? paramComments,
   }) async {
     final db = await LocalDatabase.instance.database;
     final date = _day(day);
@@ -523,6 +529,7 @@ class PlantController extends StateNotifier<PlantState> {
         'start_time': startTime,
         'end_time': endTime,
         'photo': photo,
+        'param_comments_json': (paramComments == null || paramComments.isEmpty) ? null : jsonEncode(paramComments),
       }),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -911,6 +918,16 @@ PlantSchema _schemaFromRow(Map<String, Object?> row) {
   );
 }
 
+Map<String, String> _decodeComments(String? json) {
+  if (json == null || json.isEmpty) return const {};
+  try {
+    final decoded = jsonDecode(json);
+    return decoded is Map ? {for (final e in decoded.entries) '${e.key}': '${e.value}'} : const {};
+  } catch (_) {
+    return const {};
+  }
+}
+
 List<String>? _decodeKeys(String? json) {
   if (json == null || json.isEmpty) return null;
   try {
@@ -937,6 +954,7 @@ PlantAnalysis? _analysisFromRow(Map<String, Object?> row) {
       startTime: row['start_time'] as String?,
       endTime: row['end_time'] as String?,
       photo: row['photo'] as String?,
+      paramComments: _decodeComments(row['param_comments_json'] as String?),
     );
   } catch (_) {
     // Ligne illisible (ex: synchronisée par une version plus récente) :

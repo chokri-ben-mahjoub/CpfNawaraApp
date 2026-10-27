@@ -23,7 +23,7 @@ class PdfLook {
   /// Tableau de texte au style choisi.
   pw.Widget table({
     required List<String> headers,
-    required List<List<String>> data,
+    required List<List<Object>> data,
     required double fontSize,
     pw.EdgeInsets cellPadding = const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 5),
     pw.Alignment cellAlignment = pw.Alignment.centerLeft,
