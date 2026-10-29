@@ -87,23 +87,15 @@ class _PlantHeatmapViewState extends ConsumerState<PlantHeatmapView> {
       ],
     );
 
+    final circuits = state.circuits;
+    final selectedCircuit = circuits.isEmpty ? null : selectedPlantCircuit(circuits, ref.watch(plantListCircuitProvider));
+
     var rowIndex = 0;
     final sections = <Widget>[];
-    for (final circuit in state.circuits) {
+    for (final circuit in circuits) {
+      if (circuit.id != selectedCircuit?.id) continue;
       final points = controller.pointsOf(circuit).where((p) => p.active).toList();
       if (points.isEmpty) continue;
-      sections.add(
-        Padding(
-          padding: const EdgeInsets.only(top: 14, bottom: 6),
-          child: Row(
-            children: [
-              Icon(circuit.icon, size: 18, color: circuit.color),
-              const SizedBox(width: 8),
-              Text(s(circuit.labelKey), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5)),
-            ],
-          ),
-        ),
-      );
       for (final point in points) {
         final statuses = [for (final d in days) controller.status(point, d)];
         final analysed = statuses.where((st) => st != PlantStatus.missing).length;
@@ -210,6 +202,10 @@ class _PlantHeatmapViewState extends ConsumerState<PlantHeatmapView> {
                 legendDot(noneColor, s('heatmapMissing')),
               ],
             ),
+            if (circuits.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              PlantCircuitChips(circuits: circuits),
+            ],
             const SizedBox(height: 10),
             if (sections.isEmpty)
               Padding(

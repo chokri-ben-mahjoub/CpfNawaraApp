@@ -783,10 +783,53 @@ class _DiagramSection extends ConsumerWidget {
   }
 }
 
-/// Onglets des circuits (vue « Liste ») : une rangée de puces défilante
-/// horizontalement, un seul circuit affiché à la fois en dessous — pour ne
-/// pas dérouler toute la page quand l'administrateur a configuré beaucoup de
-/// circuits (puits d'essai, boues, laboratoire, bassins d'évaporation...).
+/// Circuit sélectionné par [PlantCircuitChips] ([plantListCircuitProvider]),
+/// ou le premier circuit tant que rien n'est choisi.
+PlantCircuit selectedPlantCircuit(List<PlantCircuit> circuits, String? selectedId) =>
+    circuits.firstWhere((c) => c.id == selectedId, orElse: () => circuits.first);
+
+/// Onglets des circuits : une rangée de puces défilante horizontalement, un
+/// seul circuit affiché à la fois en dessous — pour ne pas dérouler toute la
+/// page quand l'administrateur a configuré beaucoup de circuits (puits
+/// d'essai, boues, laboratoire, bassins d'évaporation...). Partagée par les
+/// vues Liste, Courbes et Carte thermique ([plantListCircuitProvider]
+/// commun : le circuit choisi reste le même en changeant de vue).
+class PlantCircuitChips extends ConsumerWidget {
+  final List<PlantCircuit> circuits;
+  const PlantCircuitChips({super.key, required this.circuits});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (circuits.isEmpty) return const SizedBox.shrink();
+    final locale = ref.watch(localeProvider);
+    String s(String key) => tr(locale, key);
+    final selected = selectedPlantCircuit(circuits, ref.watch(plantListCircuitProvider));
+    return SizedBox(
+      height: 38,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: circuits.length,
+        separatorBuilder: (context, i) => const SizedBox(width: 8),
+        itemBuilder: (context, i) {
+          final c = circuits[i];
+          final isSelected = c.id == selected.id;
+          return ChoiceChip(
+            avatar: Icon(c.icon, size: 16, color: isSelected ? Colors.white : c.color),
+            label: Text(s(c.labelKey)),
+            selected: isSelected,
+            selectedColor: c.color,
+            labelStyle: TextStyle(
+              color: isSelected ? Colors.white : null,
+              fontWeight: FontWeight.w700,
+            ),
+            onSelected: (_) => ref.read(plantListCircuitProvider.notifier).state = c.id,
+          );
+        },
+      ),
+    );
+  }
+}
+
 class _CircuitTabs extends ConsumerWidget {
   final List<PlantCircuit> circuits;
   final DateTime day;
@@ -795,39 +838,11 @@ class _CircuitTabs extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (circuits.isEmpty) return const SizedBox.shrink();
-    final locale = ref.watch(localeProvider);
-    String s(String key) => tr(locale, key);
-    final selectedId = ref.watch(plantListCircuitProvider);
-    final selected = circuits.firstWhere(
-      (c) => c.id == selectedId,
-      orElse: () => circuits.first,
-    );
+    final selected = selectedPlantCircuit(circuits, ref.watch(plantListCircuitProvider));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SizedBox(
-          height: 38,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: circuits.length,
-            separatorBuilder: (context, i) => const SizedBox(width: 8),
-            itemBuilder: (context, i) {
-              final c = circuits[i];
-              final isSelected = c.id == selected.id;
-              return ChoiceChip(
-                avatar: Icon(c.icon, size: 16, color: isSelected ? Colors.white : c.color),
-                label: Text(s(c.labelKey)),
-                selected: isSelected,
-                selectedColor: c.color,
-                labelStyle: TextStyle(
-                  color: isSelected ? Colors.white : null,
-                  fontWeight: FontWeight.w700,
-                ),
-                onSelected: (_) => ref.read(plantListCircuitProvider.notifier).state = c.id,
-              );
-            },
-          ),
-        ),
+        PlantCircuitChips(circuits: circuits),
         const SizedBox(height: 14),
         _CircuitSection(circuit: selected, day: day),
       ],

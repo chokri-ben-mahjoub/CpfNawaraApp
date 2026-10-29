@@ -10,6 +10,7 @@ import '../../../../core/plant/plant_catalog.dart';
 import '../../../../core/plant/plant_repository.dart';
 import '../../../../core/widgets/filter_pills.dart';
 import '../../../../core/widgets/series_chart.dart';
+import '../plant_screen.dart';
 
 /// Couleurs des courbes d'un groupe (la première = couleur du circuit).
 const _curveColors = [
@@ -103,7 +104,15 @@ class _PlantTrendsViewState extends ConsumerState<PlantTrendsView> {
         const SizedBox(height: 12),
         _BiggestChanges(range: range),
         const SizedBox(height: 12),
-        for (final circuit in plant.circuits) _CircuitTrends(circuit: circuit, range: range),
+        if (plant.circuits.isNotEmpty) ...[
+          PlantCircuitChips(circuits: plant.circuits),
+          const SizedBox(height: 12),
+          _CircuitTrends(
+            key: ValueKey(ref.watch(plantListCircuitProvider)),
+            circuit: selectedPlantCircuit(plant.circuits, ref.watch(plantListCircuitProvider)),
+            range: range,
+          ),
+        ],
       ],
     );
   }
@@ -205,7 +214,7 @@ class _BiggestChanges extends ConsumerWidget {
 class _CircuitTrends extends ConsumerStatefulWidget {
   final PlantCircuit circuit;
   final DateTimeRange range;
-  const _CircuitTrends({required this.circuit, required this.range});
+  const _CircuitTrends({super.key, required this.circuit, required this.range});
 
   @override
   ConsumerState<_CircuitTrends> createState() => _CircuitTrendsState();
