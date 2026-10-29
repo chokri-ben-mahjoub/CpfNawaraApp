@@ -34,6 +34,12 @@ enum PlantView { diagram, list, trends, heatmap }
 
 final plantViewProvider = StateProvider<PlantView>((ref) => PlantView.diagram);
 
+/// Circuit choisi dans la vue « Liste » (onglets, un circuit affiché à la
+/// fois) : évite de dérouler tous les circuits les uns sous les autres
+/// quand il y en a beaucoup (configurables par l'administrateur).
+/// `null` : pas encore choisi, le premier circuit s'affiche.
+final plantListCircuitProvider = StateProvider<String?>((ref) => null);
+
 String plantDayLabel(DateTime day, Locale locale, String Function(String) s) {
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
@@ -292,8 +298,7 @@ class PlantScreen extends ConsumerWidget {
         else if (view == PlantView.heatmap)
           const PlantHeatmapView()
         else
-          for (final circuit in state.circuits)
-            _CircuitSection(circuit: circuit, day: day),
+          _CircuitTabs(circuits: state.circuits, day: day),
       ],
     );
   }
@@ -773,6 +778,58 @@ class _DiagramSection extends ConsumerWidget {
             ),
           ),
         ],
+      ],
+    );
+  }
+}
+
+/// Onglets des circuits (vue « Liste ») : une rangée de puces défilante
+/// horizontalement, un seul circuit affiché à la fois en dessous — pour ne
+/// pas dérouler toute la page quand l'administrateur a configuré beaucoup de
+/// circuits (puits d'essai, boues, laboratoire, bassins d'évaporation...).
+class _CircuitTabs extends ConsumerWidget {
+  final List<PlantCircuit> circuits;
+  final DateTime day;
+  const _CircuitTabs({required this.circuits, required this.day});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (circuits.isEmpty) return const SizedBox.shrink();
+    final locale = ref.watch(localeProvider);
+    String s(String key) => tr(locale, key);
+    final selectedId = ref.watch(plantListCircuitProvider);
+    final selected = circuits.firstWhere(
+      (c) => c.id == selectedId,
+      orElse: () => circuits.first,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          height: 38,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: circuits.length,
+            separatorBuilder: (context, i) => const SizedBox(width: 8),
+            itemBuilder: (context, i) {
+              final c = circuits[i];
+              final isSelected = c.id == selected.id;
+              return ChoiceChip(
+                avatar: Icon(c.icon, size: 16, color: isSelected ? Colors.white : c.color),
+                label: Text(s(c.labelKey)),
+                selected: isSelected,
+                selectedColor: c.color,
+                labelStyle: TextStyle(
+                  color: isSelected ? Colors.white : null,
+                  fontWeight: FontWeight.w700,
+                ),
+                onSelected: (_) => ref.read(plantListCircuitProvider.notifier).state = c.id,
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 14),
+        _CircuitSection(circuit: selected, day: day),
       ],
     );
   }
