@@ -286,23 +286,18 @@ class _CircuitTrendsState extends ConsumerState<_CircuitTrends> {
                 )
               else ...[
                 const SizedBox(height: 8),
-                SizedBox(
-                  height: 38,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    children: [
-                      for (final param in params.values)
-                        Padding(
-                          padding: const EdgeInsets.only(right: 6),
-                          child: ChoiceChip(
-                            showCheckmark: false,
-                            selected: param.key == selected.key,
-                            label: Text(s(param.labelKey)),
-                            onSelected: (_) => setState(() => _param = param.key),
-                          ),
-                        ),
-                    ],
-                  ),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final param in params.values)
+                      ChoiceChip(
+                        showCheckmark: false,
+                        selected: param.key == selected.key,
+                        label: Text(s(param.labelKey)),
+                        onSelected: (_) => setState(() => _param = param.key),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 10),
                 if (withData.isEmpty)

@@ -804,28 +804,23 @@ class PlantCircuitChips extends ConsumerWidget {
     final locale = ref.watch(localeProvider);
     String s(String key) => tr(locale, key);
     final selected = selectedPlantCircuit(circuits, ref.watch(plantListCircuitProvider));
-    return SizedBox(
-      height: 38,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: circuits.length,
-        separatorBuilder: (context, i) => const SizedBox(width: 8),
-        itemBuilder: (context, i) {
-          final c = circuits[i];
-          final isSelected = c.id == selected.id;
-          return ChoiceChip(
-            avatar: Icon(c.icon, size: 16, color: isSelected ? Colors.white : c.color),
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final c in circuits)
+          ChoiceChip(
+            avatar: Icon(c.icon, size: 16, color: c.id == selected.id ? Colors.white : c.color),
             label: Text(s(c.labelKey)),
-            selected: isSelected,
+            selected: c.id == selected.id,
             selectedColor: c.color,
             labelStyle: TextStyle(
-              color: isSelected ? Colors.white : null,
+              color: c.id == selected.id ? Colors.white : null,
               fontWeight: FontWeight.w700,
             ),
             onSelected: (_) => ref.read(plantListCircuitProvider.notifier).state = c.id,
-          );
-        },
-      ),
+          ),
+      ],
     );
   }
 }
