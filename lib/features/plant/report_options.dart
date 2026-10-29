@@ -14,6 +14,8 @@ class ReportOptions {
   final bool allAnalyses; // sinon : seulement la plus récente du jour
   final bool signatureBottom;
   final bool logo;
+  final bool title;
+  final bool reportNumber;
 
   const ReportOptions({
     this.curves = false,
@@ -25,6 +27,8 @@ class ReportOptions {
     this.allAnalyses = true,
     this.signatureBottom = true,
     this.logo = true,
+    this.title = true,
+    this.reportNumber = true,
   });
 
   static const keys = [
@@ -37,6 +41,8 @@ class ReportOptions {
     'allAnalyses',
     'signatureBottom',
     'logo',
+    'title',
+    'reportNumber',
   ];
 
   bool operator [](String key) => switch (key) {
@@ -48,7 +54,9 @@ class ReportOptions {
     'samplingTime' => samplingTime,
     'allAnalyses' => allAnalyses,
     'signatureBottom' => signatureBottom,
-    _ => logo,
+    'logo' => logo,
+    'title' => title,
+    _ => reportNumber,
   };
 
   factory ReportOptions.fromMap(Map<String, bool> m) => ReportOptions(
@@ -61,6 +69,8 @@ class ReportOptions {
     allAnalyses: m['allAnalyses'] ?? true,
     signatureBottom: m['signatureBottom'] ?? true,
     logo: m['logo'] ?? true,
+    title: m['title'] ?? true,
+    reportNumber: m['reportNumber'] ?? true,
   );
 
   /// Contenu défini par les réglages d'une famille de PDF.
@@ -74,6 +84,8 @@ class ReportOptions {
     allAnalyses: c.allAnalyses,
     signatureBottom: c.showSignature,
     logo: c.showLogo,
+    title: c.showTitle,
+    reportNumber: c.showReportNumber,
   );
 
   /// Réglages [c] mis à jour avec ce contenu (choix fait à l'export).
@@ -87,5 +99,7 @@ class ReportOptions {
     allAnalyses: allAnalyses,
     showSignature: signatureBottom,
     showLogo: logo,
+    showTitle: title,
+    showReportNumber: reportNumber,
   );
 }

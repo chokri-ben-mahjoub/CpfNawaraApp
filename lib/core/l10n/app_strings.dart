@@ -1191,6 +1191,8 @@ final _strings = <String, Map<String, String>>{
   'reportOpt_headerDateTime': {'fr': 'Date et heure dans l\'en-tête', 'en': 'Date and time in the header'},
   'reportOpt_signatureBottom': {'fr': 'Date + nom / fonction en bas du rapport', 'en': 'Date + name / role at the bottom of the report'},
   'reportOpt_logo': {'fr': 'Logo', 'en': 'Logo'},
+  'reportOpt_title': {'fr': 'Titre du rapport', 'en': 'Report title'},
+  'reportOpt_reportNumber': {'fr': 'Numéro du rapport (N°)', 'en': 'Report number (N°)'},
   'pdfSetTitle': {'fr': 'Exports PDF', 'en': 'PDF exports'},
   'pdfSetSave': {'fr': 'Enregistrer', 'en': 'Save'},
   'pdfSetSaved': {'fr': 'Réglages enregistrés', 'en': 'Settings saved'},
