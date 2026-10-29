@@ -278,22 +278,24 @@ class _Page extends StatelessWidget {
     final analyses = cfg.allAnalyses ? 2 : 1;
     final showCharts = cfg.charts != PdfChartsPosition.hidden;
     return [
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1E88E5),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Text(
-          s('plantProfileWater').toUpperCase(),
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w800,
-            fontSize: 11 * k,
+      if (cfg.showCircuitBadge) ...[
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E88E5),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Text(
+            s('plantProfileWater').toUpperCase(),
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+              fontSize: 11 * k,
+            ),
           ),
         ),
-      ),
-      const SizedBox(height: 8),
+        const SizedBox(height: 8),
+      ],
       Row(
         children: [
           Flexible(

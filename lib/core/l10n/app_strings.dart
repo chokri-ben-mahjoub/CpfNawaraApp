@@ -1174,6 +1174,7 @@ final _strings = <String, Map<String, String>>{
   'reportOptTitle': {'fr': 'Contenu du rapport', 'en': 'Report content'},
   'reportOpt_curves': {'fr': 'Courbes sous les tableaux', 'en': 'Trend curves under the tables'},
   'reportOpt_photo': {'fr': 'Photo de l\'analyse', 'en': 'Analysis photo'},
+  'reportOpt_circuitBadge': {'fr': 'Pastille du circuit', 'en': 'Circuit badge'},
   'reportOpt_limitColumn': {'fr': 'Colonne Seuil', 'en': 'Limit column'},
   'reportOpt_statusColumn': {'fr': 'Colonne Statut', 'en': 'Status column'},
   'reportOpt_highlightOutOfRange': {
@@ -1191,6 +1192,8 @@ final _strings = <String, Map<String, String>>{
   'reportOpt_signatureBottom': {'fr': 'Date + nom / fonction en bas du rapport', 'en': 'Date + name / role at the bottom of the report'},
   'reportOpt_logo': {'fr': 'Logo', 'en': 'Logo'},
   'pdfSetTitle': {'fr': 'Exports PDF', 'en': 'PDF exports'},
+  'pdfSetSave': {'fr': 'Enregistrer', 'en': 'Save'},
+  'pdfSetSaved': {'fr': 'Réglages enregistrés', 'en': 'Settings saved'},
   'pdfSetIntro': {'fr': 'Réglages communs à tous les exports PDF : ce qui s\'affiche et où.', 'en': 'Settings shared by all PDF exports: what is shown and where.'},
   'pdfSetCharts': {'fr': 'Courbes', 'en': 'Trend curves'},
   'pdfSetChartsPos': {'fr': 'Emplacement des courbes', 'en': 'Curves position'},

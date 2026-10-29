@@ -103,23 +103,25 @@ Future<Uint8List> buildPlantDailyReport({
         );
     if (hasVisiblePoint) {
       sections.add(pw.SizedBox(height: 14));
-      sections.add(
-        pw.Container(
-          padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-          decoration: pw.BoxDecoration(
-            color: PdfColor.fromInt(circuit.color.toARGB32()),
-            borderRadius: pw.BorderRadius.circular(4),
-          ),
-          child: pw.Text(
-            t(circuit.labelKey).toUpperCase(),
-            style: pw.TextStyle(
-              color: PdfColors.white,
-              fontWeight: pw.FontWeight.bold,
-              fontSize: 11,
+      if (pdfCfg.showCircuitBadge) {
+        sections.add(
+          pw.Container(
+            padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+            decoration: pw.BoxDecoration(
+              color: PdfColor.fromInt(circuit.color.toARGB32()),
+              borderRadius: pw.BorderRadius.circular(4),
+            ),
+            child: pw.Text(
+              t(circuit.labelKey).toUpperCase(),
+              style: pw.TextStyle(
+                color: PdfColors.white,
+                fontWeight: pw.FontWeight.bold,
+                fontSize: 11,
+              ),
             ),
           ),
-        ),
-      );
+        );
+      }
     }
     for (final point in points) {
       final selected = analysisIds == null ? null : selectedFor(point);

@@ -70,6 +70,21 @@ class _PdfExportSettingsScreenState
     c.save();
   }
 
+  /// Chaque réglage est déjà enregistré en direct ([_update]) ; ce bouton ne
+  /// fait qu'enregistrer une dernière fois (au cas où un champ de texte en
+  /// cours de saisie n'aurait pas encore déclenché son `onChanged`) et le
+  /// confirme à l'utilisateur, pour qu'il sache que c'est bien pris en
+  /// compte avant de quitter l'écran.
+  Future<void> _saveNow() async {
+    FocusScope.of(context).unfocus();
+    await _cfg.save();
+    if (!mounted) return;
+    final locale = ref.read(localeProvider);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(tr(locale, 'pdfSetSaved'))),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final locale = ref.watch(localeProvider);
@@ -252,6 +267,11 @@ class _PdfExportSettingsScreenState
             (PdfChartsPosition.hidden, s('pdfSetHidden')),
           ], (v) => _update(_cfg.copyWith(charts: v))),
           if (_kind.isPlant) ...[
+            _switch(
+              s('reportOpt_circuitBadge'),
+              _cfg.showCircuitBadge,
+              (v) => _update(_cfg.copyWith(showCircuitBadge: v)),
+            ),
             _switch(
               s('reportOpt_photo'),
               _cfg.showPhoto,
@@ -441,6 +461,22 @@ class _PdfExportSettingsScreenState
                   ],
                 );
               },
+            ),
+      bottomNavigationBar: !_loaded
+          ? null
+          : SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+                child: SizedBox(
+                  height: 48,
+                  child: FilledButton.icon(
+                    onPressed: _saveNow,
+                    icon: const Icon(Icons.check),
+                    style: FilledButton.styleFrom(backgroundColor: accentColor, foregroundColor: Colors.white),
+                    label: Text(s('pdfSetSave'), style: const TextStyle(fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              ),
             ),
     );
   }
