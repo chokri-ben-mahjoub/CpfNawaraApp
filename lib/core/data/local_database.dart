@@ -319,23 +319,34 @@ class LocalDatabase {
             await db.execute('alter table analysis_records add column start_time text');
             await db.execute('alter table analysis_records add column end_time text');
           }
-          if (oldVersion < 25) {
+          if (oldVersion >= 7 && oldVersion < 25) {
             // Commentaire par paramètre hors seuil (justification de la
-            // valeur), en plus du commentaire général de l'analyse.
+            // valeur), en plus du commentaire général de l'analyse. Comme
+            // pour `photo` ci-dessus : sans la borne basse, une mise à jour
+            // depuis une version antérieure à la création de `plant_analyses`
+            // (oldVersion < 7, qui la crée déjà avec cette colonne via
+            // `_createPlantTables`) tenterait de l'ajouter une seconde fois.
             await db.execute('alter table plant_analyses add column param_comments_json text');
           }
-          if (oldVersion < 26) {
+          // Les 3 blocs suivants portent tous sur `stock_items` : bornés par
+          // `>= 13` (comme `photo` et `param_comments_json` ci-dessus), car
+          // `_createStockTables` (appelée pour `oldVersion < 13`) crée déjà
+          // cette table avec toutes ses colonnes actuelles, y compris
+          // celles-ci — sans la borne basse, une mise à jour depuis une
+          // version antérieure à v13 tenterait de les ajouter une seconde
+          // fois.
+          if (oldVersion >= 13 && oldVersion < 26) {
             // Pièce jointe d'un article de stock (certificat, fiche de
             // données de sécurité...), PDF ou image.
             await db.execute('alter table stock_items add column attachment text');
             await db.execute('alter table stock_items add column attachment_name text');
           }
-          if (oldVersion < 27) {
+          if (oldVersion >= 13 && oldVersion < 27) {
             // Consommation de l'année en cours saisie à la main (relevé
             // connu), au lieu du calcul automatique depuis les sorties.
             await db.execute('alter table stock_items add column consumption_override real');
           }
-          if (oldVersion < 28) {
+          if (oldVersion >= 13 && oldVersion < 28) {
             // Zone/affectation (Chimique, ARO, Wells, CPF, Laboratoire...) :
             // le suivi annuel s'affiche en un tableau par zone.
             await db.execute("alter table stock_items add column zone text not null default ''");

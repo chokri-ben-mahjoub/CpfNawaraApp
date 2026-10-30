@@ -164,7 +164,22 @@ void main() {
     // v22 : heure de début / fin du test de puits (facultatives).
     final analysisRecordsColumns = await db.rawQuery('pragma table_info(analysis_records)');
     expect(analysisRecordsColumns.map((r) => r['name']), containsAll(['start_time', 'end_time']));
-    expect(LocalDatabase.schemaVersion, 24);
+    // v23 : tournées des opérateurs de puits (table créée, vide).
+    expect(await db.query('well_rounds'), isEmpty);
+    // v24 : photo jointe à une tournée.
+    final wellRoundsColumns = await db.rawQuery('pragma table_info(well_rounds)');
+    expect(wellRoundsColumns.map((r) => r['name']), contains('photo'));
+    // v25 : commentaire par paramètre hors seuil (Usine).
+    final plantAnalysesColumns2 = await db.rawQuery('pragma table_info(plant_analyses)');
+    expect(plantAnalysesColumns2.map((r) => r['name']), contains('param_comments_json'));
+    // v26 : pièce jointe d'un article de stock.
+    final stockItemsColumns2 = await db.rawQuery('pragma table_info(stock_items)');
+    expect(stockItemsColumns2.map((r) => r['name']), containsAll(['attachment', 'attachment_name']));
+    // v27 : consommation de l'année en cours saisie à la main.
+    expect(stockItemsColumns2.map((r) => r['name']), contains('consumption_override'));
+    // v28 : zone/affectation d'un article de stock.
+    expect(stockItemsColumns2.map((r) => r['name']), contains('zone'));
+    expect(LocalDatabase.schemaVersion, 28);
 
     // Première connexion : tout ce qui a été saisi/modifié part au serveur.
     final engine = SyncEngine(

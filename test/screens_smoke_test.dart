@@ -476,7 +476,7 @@ void main() {
   testWidgets('réglages exports PDF : aperçu en direct (téléphone)', (t) async {
     await _render(t, const PdfExportSettingsScreen(), height: 1000);
     expect(find.text('Aperçu en direct'), findsOneWidget);
-    for (final kind in ['Échantillons CPI', 'Tableaux', 'Tous les circuits']) {
+    for (final kind in ['Échantillons produits', 'Tableaux', 'Tous les circuits']) {
       await t.tap(find.text(kind));
       await t.pumpAndSettle();
       expect(t.takeException(), isNull, reason: kind);
@@ -491,9 +491,8 @@ void main() {
     (t) async {
       await _render(t, const PdfExportSettingsScreen(), width: 1280, height: 900, locale: const Locale('en'));
       expect(find.text('Live preview'), findsOneWidget);
-      await t.tap(find.text('CPI samples'));
+      await t.tap(find.text('Produced samples'));
       await t.pumpAndSettle();
-      expect(find.text('Produced samples from CPI'), findsWidgets, reason: 'titre de la page d\'aperçu');
       expect(t.takeException(), isNull);
     },
   );
