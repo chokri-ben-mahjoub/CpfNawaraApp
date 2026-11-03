@@ -30,7 +30,10 @@ class PdfLook {
     Map<int, pw.Alignment>? cellAlignments,
     Map<int, pw.TableColumnWidth>? columnWidths,
   }) {
-    final filled = cfg.tableStyle != 1;
+    // 0 en-tête plein, 1 filets (lignes horizontales, sans quadrillage), 2
+    // lignes alternées, 3 officiel (quadrillage complet, en-tête sans fond,
+    // comme un rapport de laboratoire imprimé).
+    final filled = cfg.tableStyle == 0 || cfg.tableStyle == 2;
     return pw.TableHelper.fromTextArray(
       headers: headers,
       data: data,
@@ -41,7 +44,9 @@ class PdfLook {
       ),
       headerDecoration: filled
           ? pw.BoxDecoration(color: header)
-          : pw.BoxDecoration(border: pw.Border(bottom: pw.BorderSide(color: accent, width: 1.4))),
+          : (cfg.tableStyle == 3
+                ? null
+                : pw.BoxDecoration(border: pw.Border(bottom: pw.BorderSide(color: accent, width: 1.4)))),
       headerPadding: cellPadding,
       cellStyle: pw.TextStyle(fontSize: fontSize),
       cellPadding: cellPadding,

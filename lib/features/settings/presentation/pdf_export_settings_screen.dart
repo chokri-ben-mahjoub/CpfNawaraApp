@@ -70,6 +70,23 @@ class _PdfExportSettingsScreenState
     c.save();
   }
 
+  /// Applique un modèle aux trois familles de PDF d'un coup (même style
+  /// partout — tableaux, tous les circuits, échantillons produits), pas
+  /// seulement à celle affichée à l'écran.
+  Future<void> _applyPresetEverywhere(PdfPreset preset) async {
+    for (final kind in PdfReportKind.values) {
+      final base = kind == _kind ? _cfg : await PdfExportSettings.load(kind);
+      final applied = preset.applyTo(base);
+      await applied.save();
+      if (kind == _kind && mounted) setState(() => _cfg = applied);
+    }
+    if (!mounted) return;
+    final locale = ref.read(localeProvider);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(tr(locale, 'pdfPresetAppliedEverywhere'))),
+    );
+  }
+
   /// Chaque réglage est déjà enregistré en direct ([_update]) ; ce bouton ne
   /// fait qu'enregistrer une dernière fois (au cas où un champ de texte en
   /// cours de saisie n'aurait pas encore déclenché son `onChanged`) et le
@@ -365,6 +382,7 @@ class _PdfExportSettingsScreenState
             (0, s('pdfTableFilled')),
             (1, s('pdfTableLines')),
             (2, s('pdfTableZebra')),
+            (3, s('pdfTableOfficial')),
           ], (v) => _update(_cfg.copyWith(tableStyle: v))),
           _chips<int>(s('pdfSetMargins'), _cfg.margins, [
             (0, s('pdfMarginTight')),
@@ -543,6 +561,7 @@ class _PdfExportSettingsScreenState
       PdfPreset.minimal: Icons.crop_square,
       PdfPreset.compact: Icons.density_small,
       PdfPreset.detailed: Icons.dashboard_outlined,
+      PdfPreset.official: Icons.verified_outlined,
     };
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -578,7 +597,7 @@ class _PdfExportSettingsScreenState
                     ),
                     child: InkWell(
                       customBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                      onTap: () => _update(preset.applyTo(_cfg)),
+                      onTap: () => _applyPresetEverywhere(preset),
                       child: Container(
                         width: 170,
                         padding: const EdgeInsets.all(12),

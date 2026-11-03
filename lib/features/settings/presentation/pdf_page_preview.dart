@@ -552,7 +552,7 @@ class _MockTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final filled = style != 1;
+    final filled = style == 0 || style == 2;
     Widget cell(String text, int col, {bool head = false, String? status, int? rowIndex}) {
       final isStatus = !head && col == okColumn;
       final rowValueOut = rowIndex == null || rowOut == null || rowIndex >= rowOut!.length ? null : rowOut![rowIndex];
@@ -591,7 +591,7 @@ class _MockTable extends StatelessWidget {
           Container(
             decoration: filled
                 ? BoxDecoration(color: header)
-                : BoxDecoration(border: Border(bottom: BorderSide(color: accent, width: 1.4))),
+                : (style == 3 ? null : BoxDecoration(border: Border(bottom: BorderSide(color: accent, width: 1.4)))),
             child: Row(children: [for (var i = 0; i < headers.length; i++) cell(headers[i], i, head: true)]),
           ),
           for (var r = 0; r < rows.length; r++)

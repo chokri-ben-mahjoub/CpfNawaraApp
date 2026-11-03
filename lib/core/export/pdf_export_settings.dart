@@ -43,7 +43,7 @@ const pdfPalettes = <({int accent, int header, String nameKey})>[
 ];
 
 /// Modèles prêts à l'emploi : un geste applique plusieurs réglages d'un coup.
-enum PdfPreset { classic, minimal, compact, detailed }
+enum PdfPreset { classic, minimal, compact, detailed, official }
 
 /// Réglages d'une famille de PDF : ce qui s'affiche et où. Mémorisés sur
 /// l'appareil.
@@ -382,6 +382,30 @@ extension PdfPresetX on PdfPreset {
         allAnalyses: true,
         showSignature: true,
         charts: PdfChartsPosition.after,
+      ),
+      PdfPreset.official => base.copyWith(
+        palette: 1,
+        tableStyle: 3,
+        margins: 1,
+        textSize: 1,
+        showLogo: true,
+        showAppName: true,
+        showTitle: true,
+        showReportNumber: true,
+        showOperator: true,
+        showPageNumbers: true,
+        datePlacement: PdfDatePlacement.header,
+        showDetails: true,
+        showPhoto: true,
+        showLimit: true,
+        showStatus: true,
+        highlightOutOfRange: true,
+        showOutOfRangeComments: true,
+        showCircuitBadge: true,
+        showSamplingTime: true,
+        allAnalyses: true,
+        showSignature: true,
+        watermark: '',
       ),
     };
   }
