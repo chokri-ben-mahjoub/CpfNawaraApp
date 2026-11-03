@@ -264,10 +264,10 @@ Future<Uint8List> buildPlantDailyReport({
                           ? formatNumber((a.values[param.key] as num).toDouble())
                           : t('${a.values[param.key]}');
                       final out = controller.isOut(point.id, param, a.values[param.key]);
-                      if (out != true || !pdfCfg.highlightOutOfRange) return valueText;
+                      if (out == null || !pdfCfg.highlightOutOfRange) return valueText;
                       return pw.Text(
                         valueText,
-                        style: pw.TextStyle(fontSize: 8.5 * k, fontWeight: pw.FontWeight.bold, color: _out),
+                        style: pw.TextStyle(fontSize: 8.5 * k, fontWeight: pw.FontWeight.bold, color: out ? _out : _ok),
                       );
                     }(),
                     if (options.limitColumn)

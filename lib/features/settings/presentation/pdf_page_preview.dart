@@ -376,6 +376,9 @@ class _Page extends StatelessWidget {
             ],
           ],
           okColumn: cfg.showStatus ? (cfg.showLimit ? 4 : 3) : -1,
+          valueColumn: 2,
+          rowOut: const [true, false, null],
+          highlightOutOfRange: cfg.highlightOutOfRange,
         ),
         if (cfg.showDetails)
           Padding(
@@ -526,6 +529,14 @@ class _MockTable extends StatelessWidget {
 
   /// 0 en-tête plein, 1 filets, 2 lignes alternées.
   final int style;
+
+  /// Colonne « Valeur » et, pour chaque ligne, vrai = hors seuil, faux = dans
+  /// les seuils, nul = pas de seuil — coloriée en vert/rouge comme le vrai
+  /// PDF quand [highlightOutOfRange] est actif.
+  final int valueColumn;
+  final List<bool?>? rowOut;
+  final bool highlightOutOfRange;
+
   const _MockTable({
     required this.k,
     required this.headers,
@@ -534,17 +545,24 @@ class _MockTable extends StatelessWidget {
     required this.header,
     required this.style,
     this.okColumn = -1,
+    this.valueColumn = -1,
+    this.rowOut,
+    this.highlightOutOfRange = true,
   });
 
   @override
   Widget build(BuildContext context) {
     final filled = style != 1;
-    Widget cell(String text, int col, {bool head = false, String? status}) {
+    Widget cell(String text, int col, {bool head = false, String? status, int? rowIndex}) {
       final isStatus = !head && col == okColumn;
+      final rowValueOut = rowIndex == null || rowOut == null || rowIndex >= rowOut!.length ? null : rowOut![rowIndex];
+      final isValue = !head && col == valueColumn && highlightOutOfRange && rowValueOut != null;
       final color = head
           ? (filled ? Colors.white : header)
           : isStatus
           ? (text == status ? _out : _ok)
+          : isValue
+          ? (rowValueOut! ? _out : _ok)
           : Colors.black;
       return Expanded(
         flex: col == 0 ? 3 : 2,
@@ -555,7 +573,11 @@ class _MockTable extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             textAlign: col == 0 ? TextAlign.left : TextAlign.center,
-            style: TextStyle(fontSize: 8.5 * k, fontWeight: head || isStatus ? FontWeight.w800 : FontWeight.w400, color: color),
+            style: TextStyle(
+              fontSize: 8.5 * k,
+              fontWeight: head || isStatus || isValue ? FontWeight.w800 : FontWeight.w400,
+              color: color,
+            ),
           ),
         ),
       );
@@ -578,7 +600,9 @@ class _MockTable extends StatelessWidget {
                 color: style == 2 && r.isEven ? accent.withValues(alpha: 0.08) : null,
                 border: const Border(top: BorderSide(color: Color(0xFFBDBDBD), width: 0.5)),
               ),
-              child: Row(children: [for (var i = 0; i < rows[r].length; i++) cell(rows[r][i], i, status: outText)]),
+              child: Row(
+                children: [for (var i = 0; i < rows[r].length; i++) cell(rows[r][i], i, status: outText, rowIndex: r)],
+              ),
             ),
         ],
       ),

@@ -1178,8 +1178,8 @@ final _strings = <String, Map<String, String>>{
   'reportOpt_limitColumn': {'fr': 'Colonne Seuil', 'en': 'Limit column'},
   'reportOpt_statusColumn': {'fr': 'Colonne Statut', 'en': 'Status column'},
   'reportOpt_highlightOutOfRange': {
-    'fr': 'Valeur hors seuil en gras rouge',
-    'en': 'Bold red out-of-range value',
+    'fr': 'Valeur en couleur selon le seuil (vert conforme, rouge hors seuil)',
+    'en': 'Color value by threshold (green within spec, red out of range)',
   },
   'reportOpt_outOfRangeComments': {
     'fr': 'Commentaire des valeurs hors seuil',
