@@ -45,7 +45,13 @@ Future<Uint8List> buildPlantDailyReport({
 }) async {
   // Polices standard du PDF : pas de tiret long ni de ≤ / ≥.
   String t(String key) => _safe(s(key));
-  final pdfCfg = await PdfExportSettings.load(allCircuits ? PdfReportKind.allCircuits : PdfReportKind.samples);
+  // Circuit précis (style propre à ce circuit, s'il a été personnalisé) :
+  // seulement quand le rapport ne porte que sur un seul circuit.
+  final onlyCircuitId = !allCircuits && circuits.length == 1 ? circuits.first.id : null;
+  final pdfCfg = await PdfExportSettings.load(
+    allCircuits ? PdfReportKind.allCircuits : PdfReportKind.samples,
+    onlyCircuitId,
+  );
   final k = pdfCfg.textScale;
   final look = PdfLook(pdfCfg);
   final accentC = look.accent;

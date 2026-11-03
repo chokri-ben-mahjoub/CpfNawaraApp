@@ -49,6 +49,12 @@ enum PdfPreset { classic, minimal, compact, detailed, official }
 /// l'appareil.
 class PdfExportSettings {
   final PdfReportKind kind;
+
+  /// Circuit précis (famille « échantillons produits » seulement) : permet à
+  /// chaque circuit d'avoir son propre style, sans réglage par circuit obligé
+  /// — un circuit jamais personnalisé reprend simplement les réglages
+  /// génériques de la famille (voir [load]).
+  final String? circuitId;
   final PdfChartsPosition charts;
   final PdfDatePlacement datePlacement;
   final int dateFormat; // index dans [dateFormats]
@@ -96,6 +102,7 @@ class PdfExportSettings {
 
   const PdfExportSettings({
     this.kind = PdfReportKind.tables,
+    this.circuitId,
     this.charts = PdfChartsPosition.after,
     this.datePlacement = PdfDatePlacement.header,
     this.dateFormat = 0,
@@ -134,6 +141,10 @@ class PdfExportSettings {
       PdfExportSettings(kind: kind, charts: kind.isPlant ? PdfChartsPosition.hidden : PdfChartsPosition.after);
 
   static const dateFormats = ['dd/MM/yyyy', 'dd-MM-yyyy', 'yyyy-MM-dd'];
+
+  /// Clé de stockage : celle de la famille, ou celle du circuit précis si
+  /// [circuitId] est renseigné.
+  String get storageKey => circuitId == null ? kind.prefix : '${kind.prefix}c_${circuitId}_';
 
   /// Couleur d'accent (titres, filet, nom de l'app) et couleur d'en-tête de
   /// tableau, au format ARGB.
@@ -184,6 +195,7 @@ class PdfExportSettings {
     String? watermark,
   }) => PdfExportSettings(
     kind: kind,
+    circuitId: circuitId,
     charts: charts ?? this.charts,
     datePlacement: datePlacement ?? this.datePlacement,
     dateFormat: dateFormat ?? this.dateFormat,
@@ -218,13 +230,24 @@ class PdfExportSettings {
 
   static T _enum<T>(List<T> values, int? i, T fallback) => i != null && i >= 0 && i < values.length ? values[i] : fallback;
 
-  static Future<PdfExportSettings> load([PdfReportKind kind = PdfReportKind.tables]) async {
-    final d = PdfExportSettings.defaults(kind);
+  /// Réglages d'une famille, ou d'un circuit précis de celle-ci
+  /// ([circuitId], famille « échantillons produits » seulement) : un circuit
+  /// jamais personnalisé reprend simplement les réglages génériques de la
+  /// famille (chargés d'abord, servant de valeurs par défaut).
+  static Future<PdfExportSettings> load(
+    [PdfReportKind kind = PdfReportKind.tables, String? circuitId]
+  ) async {
+    final generic = await _loadFrom(kind.prefix, kind, PdfExportSettings.defaults(kind));
+    if (circuitId == null) return generic;
+    return _loadFrom('${kind.prefix}c_${circuitId}_', kind, generic, circuitId: circuitId);
+  }
+
+  static Future<PdfExportSettings> _loadFrom(String k, PdfReportKind kind, PdfExportSettings d, {String? circuitId}) async {
     try {
       final p = await SharedPreferences.getInstance();
-      final k = kind.prefix;
       return PdfExportSettings(
         kind: kind,
+        circuitId: circuitId,
         charts: _enum(PdfChartsPosition.values, p.getInt('${k}charts'), d.charts),
         datePlacement: _enum(PdfDatePlacement.values, p.getInt('${k}datePlacement'), d.datePlacement),
         dateFormat: p.getInt('${k}dateFormat') ?? d.dateFormat,
@@ -236,10 +259,10 @@ class PdfExportSettings {
         showPageNumbers: p.getBool('${k}showPageNumbers') ?? d.showPageNumbers,
         orientation: _enum(PdfOrientation.values, p.getInt('${k}orientation'), d.orientation),
         textSize: p.getInt('${k}textSize') ?? d.textSize,
-        headerText: p.getString('${k}headerText') ?? '',
-        footerText: p.getString('${k}footerText') ?? '',
-        reportTitle: p.getString('${k}reportTitle') ?? '',
-        signatureRole: p.getString('${k}signatureRole') ?? '',
+        headerText: p.getString('${k}headerText') ?? d.headerText,
+        footerText: p.getString('${k}footerText') ?? d.footerText,
+        reportTitle: p.getString('${k}reportTitle') ?? d.reportTitle,
+        signatureRole: p.getString('${k}signatureRole') ?? d.signatureRole,
         showReportNumber: p.getBool('${k}showReportNumber') ?? d.showReportNumber,
         showPhoto: p.getBool('${k}showPhoto') ?? d.showPhoto,
         showLimit: p.getBool('${k}showLimit') ?? d.showLimit,
@@ -254,7 +277,7 @@ class PdfExportSettings {
         palette: p.getInt('${k}palette') ?? d.palette,
         tableStyle: p.getInt('${k}tableStyle') ?? d.tableStyle,
         margins: p.getInt('${k}margins') ?? d.margins,
-        watermark: p.getString('${k}watermark') ?? '',
+        watermark: p.getString('${k}watermark') ?? d.watermark,
       );
     } catch (_) {
       return d;
@@ -264,7 +287,7 @@ class PdfExportSettings {
   Future<void> save() async {
     try {
       final p = await SharedPreferences.getInstance();
-      final k = kind.prefix;
+      final k = storageKey;
       await p.setInt('${k}charts', charts.index);
       await p.setInt('${k}datePlacement', datePlacement.index);
       await p.setInt('${k}dateFormat', dateFormat);

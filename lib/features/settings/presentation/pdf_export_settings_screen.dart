@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/auth/auth_providers.dart';
 import '../../../core/export/pdf_export_settings.dart';
 import '../../../core/l10n/app_strings.dart';
+import '../../../core/plant/plant_repository.dart';
 import '../../../core/theme/app_theme.dart';
 import 'pdf_page_preview.dart';
 
@@ -23,6 +24,10 @@ class PdfExportSettingsScreen extends ConsumerStatefulWidget {
 class _PdfExportSettingsScreenState
     extends ConsumerState<PdfExportSettingsScreen> {
   PdfReportKind _kind = PdfReportKind.allCircuits;
+
+  /// Circuit précis en cours d'édition (famille « échantillons produits »
+  /// seulement) ; `null` = réglages génériques de la famille.
+  String? _circuitId;
   PdfExportSettings _cfg = PdfExportSettings.defaults(
     PdfReportKind.allCircuits,
   );
@@ -50,11 +55,12 @@ class _PdfExportSettingsScreenState
     super.dispose();
   }
 
-  Future<void> _load(PdfReportKind kind) async {
-    final c = await PdfExportSettings.load(kind);
+  Future<void> _load(PdfReportKind kind, {String? circuitId}) async {
+    final c = await PdfExportSettings.load(kind, circuitId);
     if (!mounted) return;
     setState(() {
       _kind = kind;
+      _circuitId = kind == PdfReportKind.samples ? circuitId : null;
       _cfg = c;
       _header.text = c.headerText;
       _footer.text = c.footerText;
@@ -72,13 +78,16 @@ class _PdfExportSettingsScreenState
 
   /// Applique un modèle aux trois familles de PDF d'un coup (même style
   /// partout — tableaux, tous les circuits, échantillons produits), pas
-  /// seulement à celle affichée à l'écran.
+  /// seulement à celle affichée à l'écran. Toujours les réglages génériques
+  /// de chaque famille, jamais le style d'un circuit précis en cours
+  /// d'édition (sinon « partout » écraserait un seul circuit au lieu de
+  /// tous).
   Future<void> _applyPresetEverywhere(PdfPreset preset) async {
     for (final kind in PdfReportKind.values) {
-      final base = kind == _kind ? _cfg : await PdfExportSettings.load(kind);
+      final base = (kind == _kind && _circuitId == null) ? _cfg : await PdfExportSettings.load(kind);
       final applied = preset.applyTo(base);
       await applied.save();
-      if (kind == _kind && mounted) setState(() => _cfg = applied);
+      if (kind == _kind && _circuitId == null && mounted) setState(() => _cfg = applied);
     }
     if (!mounted) return;
     final locale = ref.read(localeProvider);
@@ -131,6 +140,34 @@ class _PdfExportSettingsScreenState
       ],
     );
 
+    // Style propre à un circuit (famille « échantillons produits »
+    // seulement) : « Par défaut » reprend les réglages génériques ci-dessus,
+    // chaque circuit personnalisé prend le dessus pour ses propres exports.
+    final circuits = ref.watch(plantControllerProvider).circuits;
+    final circuitPicker = _kind != PdfReportKind.samples || circuits.isEmpty
+        ? null
+        : Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              ChoiceChip(
+                avatar: const Icon(Icons.tune, size: 18),
+                label: Text(s('pdfCircuitDefault')),
+                selected: _circuitId == null,
+                showCheckmark: false,
+                onSelected: (_) => _load(_kind),
+              ),
+              for (final circuit in circuits)
+                ChoiceChip(
+                  avatar: Icon(circuit.icon, size: 18, color: circuit.color),
+                  label: Text(s(circuit.labelKey)),
+                  selected: _circuitId == circuit.id,
+                  showCheckmark: false,
+                  onSelected: (_) => _load(_kind, circuitId: circuit.id),
+                ),
+            ],
+          );
+
     final preview = Container(
       color: scheme.surfaceContainerHighest.withValues(alpha: 0.6),
       padding: const EdgeInsets.all(14),
@@ -152,7 +189,9 @@ class _PdfExportSettingsScreenState
               ),
               Flexible(
                 child: Text(
-                  s(_kind.labelKey),
+                  _circuitId == null
+                      ? s(_kind.labelKey)
+                      : '${s(_kind.labelKey)} · ${s(circuits.firstWhere((c) => c.id == _circuitId, orElse: () => circuits.first).labelKey)}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
@@ -187,6 +226,22 @@ class _PdfExportSettingsScreenState
           s(hintKey),
           style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
         ),
+        if (circuitPicker != null) ...[
+          const SizedBox(height: 12),
+          Text(
+            s('pdfCircuitPickerLabel'),
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+          ),
+          const SizedBox(height: 8),
+          circuitPicker,
+          if (_circuitId != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              s('pdfCircuitOverrideHint'),
+              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
+            ),
+          ],
+        ],
         const SizedBox(height: 12),
         _presets(context, s),
         const SizedBox(height: 14),

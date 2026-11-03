@@ -1233,6 +1233,12 @@ final _strings = <String, Map<String, String>>{
   'pdfSetEmptyDefault': {'fr': "Vide = texte par défaut", 'en': "Empty = default text"},
   'pdfKindAll': {'fr': "Tous les circuits", 'en': "All circuits"},
   'pdfKindSamples': {'fr': "Échantillons produits", 'en': "Produced samples"},
+  'pdfCircuitPickerLabel': {'fr': "Style par circuit", 'en': "Per-circuit style"},
+  'pdfCircuitDefault': {'fr': "Par défaut", 'en': "Default"},
+  'pdfCircuitOverrideHint': {
+    'fr': "Ces réglages ne s'appliquent qu'à ce circuit — les autres gardent le style « Par défaut ».",
+    'en': "These settings apply only to this circuit — the others keep the \"Default\" style.",
+  },
   'pdfKindTables': {'fr': "Tableaux", 'en': "Tables"},
   'pdfKindAllHint': {'fr': "Rapport journalier de l'usine : tous les circuits.", 'en': "Daily plant report: all circuits."},
   'pdfKindSamplesHint': {'fr': "« Échantillons produits » : un seul circuit, ou les analyses choisies d'un point.", 'en': "\"Produced samples\": a single circuit, or the chosen analyses of a point."},

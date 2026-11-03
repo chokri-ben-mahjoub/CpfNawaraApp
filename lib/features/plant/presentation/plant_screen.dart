@@ -397,6 +397,7 @@ class PlantScreen extends ConsumerWidget {
       context,
       s,
       kind: allCircuitsReport ? PdfReportKind.allCircuits : PdfReportKind.samples,
+      circuitId: !allCircuitsReport && circuits.length == 1 ? circuits.first.id : null,
     );
     if (options == null || !context.mounted) return;
     final config = ref.read(sharedConfigProvider.notifier);
@@ -577,7 +578,7 @@ Future<void> exportPlantAnalysesSelection(
     );
     return;
   }
-  final options = await askPlantReportOptions(context, s);
+  final options = await askPlantReportOptions(context, s, circuitId: point.circuit.id);
   if (options == null || !context.mounted) return;
   final reportNumber = await ref
       .read(sharedConfigProvider.notifier)
@@ -630,8 +631,9 @@ Future<ReportOptions?> askPlantReportOptions(
   BuildContext context,
   String Function(String) s, {
   PdfReportKind kind = PdfReportKind.samples,
+  String? circuitId,
 }) async {
-  final settings = await PdfExportSettings.load(kind);
+  final settings = await PdfExportSettings.load(kind, circuitId);
   final initial = ReportOptions.of(settings);
   if (!context.mounted) return null;
   final values = {for (final k in ReportOptions.keys) k: initial[k]};
