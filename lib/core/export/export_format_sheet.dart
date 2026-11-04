@@ -6,7 +6,7 @@ import '../platform/app_platform.dart';
 import '../theme/app_theme.dart';
 import 'download_saver.dart';
 
-enum ExportFormat { excel, csv, pdf, word }
+enum ExportFormat { excel, csv, pdf }
 
 /// Télécharger = enregistrer directement sur le téléphone (dossier
 /// Téléchargements) ; Partager = volet de partage natif (WhatsApp, mail...).
@@ -23,12 +23,7 @@ const _lastFormatKey = 'export_last_format';
 /// Demande le format (Excel ou CSV) et l'action (télécharger ou partager).
 /// Le dernier format choisi est pré-sélectionné. Retourne `null` si
 /// l'utilisateur ferme la feuille sans choisir.
-const _formatKeys = {
-  ExportFormat.excel: 'excel',
-  ExportFormat.csv: 'csv',
-  ExportFormat.pdf: 'pdf',
-  ExportFormat.word: 'word',
-};
+const _formatKeys = {ExportFormat.excel: 'excel', ExportFormat.csv: 'csv', ExportFormat.pdf: 'pdf'};
 
 Future<ExportChoice?> chooseExport(BuildContext context, Locale locale) async {
   final prefs = await SharedPreferences.getInstance();
@@ -100,11 +95,7 @@ class _ExportSheetState extends State<_ExportSheet> {
                     onTap: () => setState(() => _format = ExportFormat.csv),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
+                const SizedBox(width: 10),
                 Expanded(
                   child: _FormatCard(
                     icon: Icons.picture_as_pdf_outlined,
@@ -112,16 +103,6 @@ class _ExportSheetState extends State<_ExportSheet> {
                     hint: s('exportFormatPdfHint'),
                     selected: _format == ExportFormat.pdf,
                     onTap: () => setState(() => _format = ExportFormat.pdf),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _FormatCard(
-                    icon: Icons.article_outlined,
-                    title: s('exportFormatWord'),
-                    hint: s('exportFormatWordHint'),
-                    selected: _format == ExportFormat.word,
-                    onTap: () => setState(() => _format = ExportFormat.word),
                   ),
                 ),
               ],

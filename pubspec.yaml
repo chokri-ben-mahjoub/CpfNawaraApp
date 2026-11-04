@@ -2,7 +2,7 @@ name: puitstrack
 description: "CPF Laboratory NAWARA - suivi personnel des analyses de puits"
 publish_to: 'none'
 
-version: 0.26.0+67
+version: 0.25.0+66
 
 environment:
   sdk: ^3.13.3
@@ -45,9 +45,6 @@ dependencies:
   # Export Excel + partage du fichier gÃ©nÃ©rÃ©
   excel: ^4.0.6
   share_plus: ^10.1.3
-  # Export Word (.docx) : dÃ©jÃ  prÃ©sent en transitif via `excel`, dÃ©claration
-  # explicite pour s'assurer qu'il reste disponible.
-  archive: ^3.6.1
 
   # Restauration d'une sauvegarde (choix du fichier .json)
   file_picker: ^10.3.3
