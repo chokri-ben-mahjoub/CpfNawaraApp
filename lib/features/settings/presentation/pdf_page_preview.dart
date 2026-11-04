@@ -158,7 +158,7 @@ class _Page extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        if (cfg.showLogo) ...[
+                        if (!cfg.logoRight && cfg.showLogo) ...[
                           logo != null
                               ? Image.memory(
                                   logo,
@@ -204,6 +204,16 @@ class _Page extends StatelessWidget {
                                   : FontWeight.w700,
                             ),
                           ),
+                        ],
+                        if (cfg.logoRight && cfg.showLogo) ...[
+                          const SizedBox(width: 8),
+                          logo != null
+                              ? Image.memory(
+                                  logo,
+                                  height: 30,
+                                  errorBuilder: (_, _, _) => const _LogoMock(),
+                                )
+                              : const _LogoMock(),
                         ],
                       ],
                     ),

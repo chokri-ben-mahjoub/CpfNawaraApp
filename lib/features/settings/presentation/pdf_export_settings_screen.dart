@@ -306,6 +306,11 @@ class _PdfExportSettingsScreenState
             (v) => _update(_cfg.copyWith(showLogo: v)),
           ),
           _switch(
+            s('pdfSetLogoRight'),
+            _cfg.logoRight,
+            (v) => _update(_cfg.copyWith(logoRight: v)),
+          ),
+          _switch(
             s('pdfSetAppName'),
             _cfg.showAppName,
             (v) => _update(_cfg.copyWith(showAppName: v)),
@@ -315,12 +320,18 @@ class _PdfExportSettingsScreenState
             _cfg.showTitle,
             (v) => _update(_cfg.copyWith(showTitle: v)),
           ),
-          if (_kind.isPlant)
+          if (_kind.isPlant) ...[
             _switch(
               s('pdfSetReportNumber'),
               _cfg.showReportNumber,
               (v) => _update(_cfg.copyWith(showReportNumber: v)),
             ),
+            _switch(
+              s('pdfSetCoverPage'),
+              _cfg.coverPage,
+              (v) => _update(_cfg.copyWith(coverPage: v)),
+            ),
+          ],
           _switch(
             s('pdfSetOperator'),
             _cfg.showOperator,

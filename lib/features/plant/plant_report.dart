@@ -394,20 +394,34 @@ Future<Uint8List> buildPlantDailyReport({
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.Row(
-            children: [
-              if (logoImage != null) ...[
-                pw.Image(logoImage, height: 30),
-                pw.SizedBox(width: 8),
-              ],
-              if (pdfCfg.showAppName)
-                pw.Text(
-                  currentAppName,
-                  style: pw.TextStyle(color: accentC, fontWeight: pw.FontWeight.bold, fontSize: 12 * k),
-                ),
-              pw.Spacer(),
-              if (pdfCfg.datePlacement == PdfDatePlacement.header)
-                pw.Text(headerStamp, style: pw.TextStyle(color: _grey, fontSize: 9 * k)),
-            ],
+            children: pdfCfg.logoRight
+                ? [
+                    if (pdfCfg.showAppName)
+                      pw.Text(
+                        currentAppName,
+                        style: pw.TextStyle(color: accentC, fontWeight: pw.FontWeight.bold, fontSize: 12 * k),
+                      ),
+                    pw.Spacer(),
+                    if (pdfCfg.datePlacement == PdfDatePlacement.header) ...[
+                      pw.Text(headerStamp, style: pw.TextStyle(color: _grey, fontSize: 9 * k)),
+                      pw.SizedBox(width: 10),
+                    ],
+                    if (logoImage != null) pw.Image(logoImage, height: 30),
+                  ]
+                : [
+                    if (logoImage != null) ...[
+                      pw.Image(logoImage, height: 30),
+                      pw.SizedBox(width: 8),
+                    ],
+                    if (pdfCfg.showAppName)
+                      pw.Text(
+                        currentAppName,
+                        style: pw.TextStyle(color: accentC, fontWeight: pw.FontWeight.bold, fontSize: 12 * k),
+                      ),
+                    pw.Spacer(),
+                    if (pdfCfg.datePlacement == PdfDatePlacement.header)
+                      pw.Text(headerStamp, style: pw.TextStyle(color: _grey, fontSize: 9 * k)),
+                  ],
           ),
           if (pdfCfg.headerText.trim().isNotEmpty)
             pw.Padding(
@@ -426,20 +440,53 @@ Future<Uint8List> buildPlantDailyReport({
         ],
       ),
       build: (context) => [
-        if (pdfCfg.showTitle)
-          pw.Text(reportTitle, style: pw.TextStyle(fontSize: 18 * k, fontWeight: pw.FontWeight.bold, color: _navy)),
-        if (pdfCfg.showReportNumber) ...[
-          pw.SizedBox(height: 2),
-          pw.Text(
-            '${t('plantReportNumberLabel')} $reportNumber',
-            style: pw.TextStyle(fontSize: 12 * k, fontWeight: pw.FontWeight.bold, color: accentC),
+        if (pdfCfg.coverPage) ...[
+          pw.SizedBox(height: 220),
+          pw.Center(
+            child: pw.Column(
+              children: [
+                if (pdfCfg.showAppName)
+                  pw.Text(
+                    currentAppName,
+                    textAlign: pw.TextAlign.center,
+                    style: pw.TextStyle(fontSize: 14 * k, fontWeight: pw.FontWeight.bold, color: accentC),
+                  ),
+                if (pdfCfg.showTitle) ...[
+                  pw.SizedBox(height: 8),
+                  pw.Text(
+                    reportTitle,
+                    textAlign: pw.TextAlign.center,
+                    style: pw.TextStyle(fontSize: 22 * k, fontWeight: pw.FontWeight.bold, color: _navy),
+                  ),
+                ],
+                if (pdfCfg.showReportNumber) ...[
+                  pw.SizedBox(height: 8),
+                  pw.Text(
+                    '${t('plantReportNumberLabel')} $reportNumber',
+                    textAlign: pw.TextAlign.center,
+                    style: pw.TextStyle(fontSize: 14 * k, fontWeight: pw.FontWeight.bold, color: accentC),
+                  ),
+                ],
+              ],
+            ),
           ),
+          pw.NewPage(),
+        ] else ...[
+          if (pdfCfg.showTitle)
+            pw.Text(reportTitle, style: pw.TextStyle(fontSize: 18 * k, fontWeight: pw.FontWeight.bold, color: _navy)),
+          if (pdfCfg.showReportNumber) ...[
+            pw.SizedBox(height: 2),
+            pw.Text(
+              '${t('plantReportNumberLabel')} $reportNumber',
+              style: pw.TextStyle(fontSize: 12 * k, fontWeight: pw.FontWeight.bold, color: accentC),
+            ),
+          ],
+          if (pdfCfg.datePlacement == PdfDatePlacement.top) ...[
+            pw.SizedBox(height: 4),
+            pw.Text('${t('plantReportGenerated')} $headerStamp', style: pw.TextStyle(fontSize: 10 * k, color: _grey)),
+          ],
+          pw.SizedBox(height: 16),
         ],
-        if (pdfCfg.datePlacement == PdfDatePlacement.top) ...[
-          pw.SizedBox(height: 4),
-          pw.Text('${t('plantReportGenerated')} $headerStamp', style: pw.TextStyle(fontSize: 10 * k, color: _grey)),
-        ],
-        pw.SizedBox(height: 16),
         ...sections,
         if (options.signatureBottom) ...[
           pw.SizedBox(height: 24),

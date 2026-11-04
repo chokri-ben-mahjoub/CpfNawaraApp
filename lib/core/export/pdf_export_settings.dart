@@ -94,6 +94,14 @@ class PdfExportSettings {
   /// chaque groupe de points.
   final bool showCircuitBadge;
 
+  /// Logo à droite de l'en-tête (au lieu de gauche), comme un papier à
+  /// en-tête d'entreprise.
+  final bool logoRight;
+
+  /// Page de garde séparée (logo, titre et numéro centrés en grand, rien
+  /// d'autre) avant le contenu du rapport — usine seulement.
+  final bool coverPage;
+
   // Apparence.
   final int palette; // index dans [pdfPalettes]
   final int tableStyle; // 0 en-tête plein, 1 filets, 2 lignes alternées
@@ -129,6 +137,8 @@ class PdfExportSettings {
     this.highlightOutOfRange = true,
     this.showOutOfRangeComments = true,
     this.showCircuitBadge = true,
+    this.logoRight = false,
+    this.coverPage = false,
     this.palette = 0,
     this.tableStyle = 0,
     this.margins = 1,
@@ -189,6 +199,8 @@ class PdfExportSettings {
     bool? highlightOutOfRange,
     bool? showOutOfRangeComments,
     bool? showCircuitBadge,
+    bool? logoRight,
+    bool? coverPage,
     int? palette,
     int? tableStyle,
     int? margins,
@@ -222,6 +234,8 @@ class PdfExportSettings {
     highlightOutOfRange: highlightOutOfRange ?? this.highlightOutOfRange,
     showOutOfRangeComments: showOutOfRangeComments ?? this.showOutOfRangeComments,
     showCircuitBadge: showCircuitBadge ?? this.showCircuitBadge,
+    logoRight: logoRight ?? this.logoRight,
+    coverPage: coverPage ?? this.coverPage,
     palette: palette ?? this.palette,
     tableStyle: tableStyle ?? this.tableStyle,
     margins: margins ?? this.margins,
@@ -274,6 +288,8 @@ class PdfExportSettings {
         highlightOutOfRange: p.getBool('${k}highlightOutOfRange') ?? d.highlightOutOfRange,
         showOutOfRangeComments: p.getBool('${k}showOutOfRangeComments') ?? d.showOutOfRangeComments,
         showCircuitBadge: p.getBool('${k}showCircuitBadge') ?? d.showCircuitBadge,
+        logoRight: p.getBool('${k}logoRight') ?? d.logoRight,
+        coverPage: p.getBool('${k}coverPage') ?? d.coverPage,
         palette: p.getInt('${k}palette') ?? d.palette,
         tableStyle: p.getInt('${k}tableStyle') ?? d.tableStyle,
         margins: p.getInt('${k}margins') ?? d.margins,
@@ -314,6 +330,8 @@ class PdfExportSettings {
       await p.setBool('${k}highlightOutOfRange', highlightOutOfRange);
       await p.setBool('${k}showOutOfRangeComments', showOutOfRangeComments);
       await p.setBool('${k}showCircuitBadge', showCircuitBadge);
+      await p.setBool('${k}logoRight', logoRight);
+      await p.setBool('${k}coverPage', coverPage);
       await p.setInt('${k}palette', palette);
       await p.setInt('${k}tableStyle', tableStyle);
       await p.setInt('${k}margins', margins);
@@ -428,6 +446,8 @@ extension PdfPresetX on PdfPreset {
         showSamplingTime: true,
         allAnalyses: true,
         showSignature: true,
+        logoRight: true,
+        coverPage: plant,
         watermark: '',
       ),
     };
