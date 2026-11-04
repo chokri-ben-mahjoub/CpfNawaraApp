@@ -102,6 +102,10 @@ class PdfExportSettings {
   /// d'autre) avant le contenu du rapport — usine seulement.
   final bool coverPage;
 
+  /// Relevé des bouteilles de gaz du laboratoire (Administration › Bouteilles
+  /// de gaz) ajouté en fin de rapport — usine seulement.
+  final bool showGasBottles;
+
   // Apparence.
   final int palette; // index dans [pdfPalettes]
   final int tableStyle; // 0 en-tête plein, 1 filets, 2 lignes alternées
@@ -139,6 +143,7 @@ class PdfExportSettings {
     this.showCircuitBadge = true,
     this.logoRight = false,
     this.coverPage = false,
+    this.showGasBottles = false,
     this.palette = 0,
     this.tableStyle = 0,
     this.margins = 1,
@@ -201,6 +206,7 @@ class PdfExportSettings {
     bool? showCircuitBadge,
     bool? logoRight,
     bool? coverPage,
+    bool? showGasBottles,
     int? palette,
     int? tableStyle,
     int? margins,
@@ -236,6 +242,7 @@ class PdfExportSettings {
     showCircuitBadge: showCircuitBadge ?? this.showCircuitBadge,
     logoRight: logoRight ?? this.logoRight,
     coverPage: coverPage ?? this.coverPage,
+    showGasBottles: showGasBottles ?? this.showGasBottles,
     palette: palette ?? this.palette,
     tableStyle: tableStyle ?? this.tableStyle,
     margins: margins ?? this.margins,
@@ -290,6 +297,7 @@ class PdfExportSettings {
         showCircuitBadge: p.getBool('${k}showCircuitBadge') ?? d.showCircuitBadge,
         logoRight: p.getBool('${k}logoRight') ?? d.logoRight,
         coverPage: p.getBool('${k}coverPage') ?? d.coverPage,
+        showGasBottles: p.getBool('${k}showGasBottles') ?? d.showGasBottles,
         palette: p.getInt('${k}palette') ?? d.palette,
         tableStyle: p.getInt('${k}tableStyle') ?? d.tableStyle,
         margins: p.getInt('${k}margins') ?? d.margins,
@@ -332,6 +340,7 @@ class PdfExportSettings {
       await p.setBool('${k}showCircuitBadge', showCircuitBadge);
       await p.setBool('${k}logoRight', logoRight);
       await p.setBool('${k}coverPage', coverPage);
+      await p.setBool('${k}showGasBottles', showGasBottles);
       await p.setInt('${k}palette', palette);
       await p.setInt('${k}tableStyle', tableStyle);
       await p.setInt('${k}margins', margins);
@@ -448,6 +457,7 @@ extension PdfPresetX on PdfPreset {
         showSignature: true,
         logoRight: true,
         coverPage: plant,
+        showGasBottles: plant,
         watermark: '',
       ),
     };

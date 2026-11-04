@@ -206,6 +206,9 @@ class _PdfExportSettingsScreenState
                 cfg: _cfg,
                 s: s,
                 operatorName: operatorName,
+                circuit: _circuitId == null
+                    ? null
+                    : circuits.firstWhere((c) => c.id == _circuitId, orElse: () => circuits.first),
               ),
             ),
           ),
@@ -354,6 +357,11 @@ class _PdfExportSettingsScreenState
               s('reportOpt_circuitBadge'),
               _cfg.showCircuitBadge,
               (v) => _update(_cfg.copyWith(showCircuitBadge: v)),
+            ),
+            _switch(
+              s('pdfSetGasBottles'),
+              _cfg.showGasBottles,
+              (v) => _update(_cfg.copyWith(showGasBottles: v)),
             ),
             _switch(
               s('reportOpt_photo'),

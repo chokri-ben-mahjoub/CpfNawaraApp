@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../core/branding/app_logo.dart';
 import '../../../core/export/pdf_export_settings.dart';
 import '../../../core/l10n/app_strings.dart' show currentAppName;
+import '../../../core/plant/plant_catalog.dart' show PlantCircuit;
 
 const _navy = Color(0xFF0B1E2D);
 const _grey = Color(0xFF757575);
@@ -17,11 +18,17 @@ class PdfPagePreview extends StatelessWidget {
   final PdfExportSettings cfg;
   final String Function(String) s;
   final String operatorName;
+
+  /// Circuit en cours d'édition ([cfg.circuitId]) : le badge de l'aperçu
+  /// reprend son nom et sa couleur au lieu d'un exemple générique, pour
+  /// qu'il reflète vraiment le circuit choisi dans « Style par circuit ».
+  final PlantCircuit? circuit;
   const PdfPagePreview({
     super.key,
     required this.cfg,
     required this.s,
     required this.operatorName,
+    this.circuit,
   });
 
   bool get _landscape => switch (cfg.orientation) {
@@ -67,6 +74,7 @@ class PdfPagePreview extends StatelessWidget {
                   s: s,
                   operatorName: operatorName,
                   width: w,
+                  circuit: circuit,
                 ),
               ),
             ),
@@ -82,11 +90,13 @@ class _Page extends StatelessWidget {
   final String Function(String) s;
   final String operatorName;
   final double width;
+  final PlantCircuit? circuit;
   const _Page({
     required this.cfg,
     required this.s,
     required this.operatorName,
     required this.width,
+    this.circuit,
   });
 
   double get k => cfg.textScale;
@@ -292,11 +302,11 @@ class _Page extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
           decoration: BoxDecoration(
-            color: const Color(0xFF1E88E5),
+            color: circuit?.color ?? const Color(0xFF1E88E5),
             borderRadius: BorderRadius.circular(4),
           ),
           child: Text(
-            s('plantProfileWater').toUpperCase(),
+            (circuit != null ? s(circuit!.labelKey) : s('plantProfileWater')).toUpperCase(),
             style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w800,

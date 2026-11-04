@@ -21,7 +21,7 @@ class LocalDatabase {
   static final LocalDatabase instance = LocalDatabase._();
 
   /// Version du schéma (voir `onUpgrade`), enregistrée dans les sauvegardes.
-  static const schemaVersion = 28;
+  static const schemaVersion = 29;
 
   /// Tables sauvegardées / restaurées / synchronisées.
   static const dataTables = [
@@ -47,6 +47,8 @@ class LocalDatabase {
     'stock_movements',
     // Tournées des opérateurs de puits (relevés par puits et du site), v23.
     'well_rounds',
+    // Bouteilles de gaz pressurisées du laboratoire, v29.
+    'gas_bottles',
   ];
 
   /// Tables qui ont reçu les colonnes de synchronisation par migration (v6) ;
@@ -165,6 +167,7 @@ class LocalDatabase {
           await _createPlantParamTables(db);
           await _createStockTables(db);
           await _createRoundsTable(db);
+          await _createGasBottlesTable(db);
           await _seed(db);
         },
         onUpgrade: (db, oldVersion, newVersion) async {
@@ -350,6 +353,11 @@ class LocalDatabase {
             // Zone/affectation (Chimique, ARO, Wells, CPF, Laboratoire...) :
             // le suivi annuel s'affiche en un tableau par zone.
             await db.execute("alter table stock_items add column zone text not null default ''");
+          }
+          if (oldVersion < 29) {
+            // Bouteilles de gaz pressurisées du laboratoire, pour le relevé
+            // ajouté en fin de rapport usine.
+            await _createGasBottlesTable(db);
           }
         },
       ),
@@ -579,6 +587,24 @@ class LocalDatabase {
     ''');
   }
 
+  /// Bouteilles de gaz pressurisées du laboratoire (relevé quotidien manuel :
+  /// pression et statut mis à jour directement, pas d'historique de
+  /// mouvements comme le Stock).
+  static Future<void> _createGasBottlesTable(DatabaseExecutor db) async {
+    await db.execute('''
+      create table if not exists gas_bottles (
+        id text primary key,
+        name text not null,
+        status text not null default '',
+        pressure real not null default 0,
+        location text not null default '',
+        sort_order integer not null default 0,
+        updated_at integer not null default 0,
+        dirty integer not null default 0
+      )
+    ''');
+  }
+
   static Future<void> _seedPlantSchemas(DatabaseExecutor db) async {
     await db.insert('plant_schemas', {
       'id': 'pfd',
@@ -649,6 +675,9 @@ class LocalDatabase {
     }
     if (fromVersion < 23) {
       await _createRoundsTable(db);
+    }
+    if (fromVersion < 29) {
+      await _createGasBottlesTable(db);
     }
     if (fromVersion < 20) {
       for (final type in _wellTestTypes) {

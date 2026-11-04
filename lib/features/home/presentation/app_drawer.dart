@@ -28,6 +28,7 @@ List<(IconData, String, String)> homeShortcuts(UserRole role) => [
       (Icons.qr_code_scanner, 'qrTitle', '/qr'),
       (Icons.compare_arrows_rounded, 'compareTitle', '/compare'),
       if (role.canEnterData) (Icons.inventory_2_outlined, 'stockTitle', '/stock'),
+      if (role.canEnterData) (Icons.propane_tank_outlined, 'gasBottlesTitle', '/gas-bottles'),
       if (role.canConfigure) (Icons.history_rounded, 'adminAudit', '/admin/audit'),
       if (role.canConfigure) (Icons.admin_panel_settings_outlined, 'adminTitle', '/admin'),
       (Icons.settings_outlined, 'settingsTitle', '/settings'),

@@ -456,6 +456,41 @@ final _strings = <String, Map<String, String>>{
 
   // Stock (articles, mouvements, alerte de seuil bas)
   'stockTitle': {'fr': 'Stock', 'en': 'Stock'},
+  'gasBottlesTitle': {'fr': 'Bouteilles de gaz', 'en': 'Gas bottles'},
+  'gasBottlesAdd': {'fr': 'Ajouter', 'en': 'Add'},
+  'gasBottlesEmpty': {
+    'fr': "Aucune bouteille de gaz enregistrée.",
+    'en': "No gas bottles recorded yet.",
+  },
+  'gasBottlesHint': {
+    'fr': "Relevé des bouteilles de gaz pressurisées du laboratoire : pression, statut et emplacement. Repris en fin de rapport usine si activé dans Réglages › Exports PDF.",
+    'en': "Laboratory pressurized gas bottles survey: pressure, status and location. Added at the end of the plant report if enabled in Settings › PDF exports.",
+  },
+  'gasBottlesColCylinder': {'fr': 'Bouteille de gaz', 'en': 'Gas cylinder'},
+  'gasBottlesColPressure': {'fr': 'Pression', 'en': 'Pressure'},
+  'gasBottlesColLocation': {'fr': 'Emplacement', 'en': 'Location'},
+  'gasBottlesAdded': {'fr': 'Bouteille ajoutée', 'en': 'Bottle added'},
+  'gasBottlesUpdated': {'fr': 'Bouteille modifiée', 'en': 'Bottle updated'},
+  'gasBottlesDeleteConfirmTitle': {'fr': 'Supprimer cette bouteille ?', 'en': 'Delete this bottle?'},
+  'gasBottlesDeleteConfirmBody': {
+    'fr': "Cette bouteille ne sera plus comptée dans le relevé du rapport usine.",
+    'en': "This bottle will no longer be counted in the plant report survey.",
+  },
+  'gasBottlesDelete': {'fr': 'Supprimer', 'en': 'Delete'},
+  'gasBottlesNew': {'fr': 'Nouvelle bouteille', 'en': 'New bottle'},
+  'gasBottlesEdit': {'fr': 'Modifier la bouteille', 'en': 'Edit bottle'},
+  'gasBottlesNameHint': {'fr': 'Ex: Helium bottle', 'en': 'e.g. Helium bottle'},
+  'gasBottlesInvalidName': {'fr': 'Nom requis', 'en': 'Name required'},
+  'gasBottlesStatus': {'fr': 'Statut', 'en': 'Status'},
+  'gasBottlesInvalidPressure': {'fr': 'Pression invalide', 'en': 'Invalid pressure'},
+  'gasBottlesSave': {'fr': 'Enregistrer', 'en': 'Save'},
+  'plantGasBottlesSurveyTitle': {
+    'fr': 'Relevé des bouteilles de gaz pressurisées du laboratoire',
+    'en': 'Laboratory Pressurized Gas Bottles Survey',
+  },
+  'plantGasBottlesColCylinder': {'fr': 'Bouteille de gaz', 'en': 'Gas Cylinder'},
+  'plantGasBottlesColPressure': {'fr': 'Pression', 'en': 'Pressure'},
+  'plantGasBottlesColLocation': {'fr': 'Emplacement', 'en': 'Location'},
   'stockAddItem': {'fr': 'Ajouter un article', 'en': 'Add an item'},
   'stockEmpty': {
     'fr': 'Aucun article pour le moment. Ajoutez les produits, pièces ou consommables utilisés sur vos puits.',
@@ -1251,6 +1286,10 @@ final _strings = <String, Map<String, String>>{
   'pdfSecContent': {'fr': "Contenu", 'en': "Content"},
   'pdfSetReportNumber': {'fr': "Numéro du rapport", 'en': "Report number"},
   'pdfSetCoverPage': {'fr': "Page de garde séparée", 'en': "Separate cover page"},
+  'pdfSetGasBottles': {
+    'fr': "Relevé des bouteilles de gaz en fin de rapport",
+    'en': "Gas bottles survey at the end of the report",
+  },
   'pdfPresets': {'fr': "Modèles prêts à l'emploi", 'en': "Ready-made templates"},
   'pdfPreset_classic': {'fr': "Classique", 'en': "Classic"},
   'pdfPreset_minimal': {'fr': "Épuré", 'en': "Minimal"},

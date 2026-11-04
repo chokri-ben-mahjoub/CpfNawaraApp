@@ -15,6 +15,7 @@ import '../../core/plant/plant_repository.dart';
 import '../../core/export/pdf_export_settings.dart';
 import '../../core/export/export_table.dart';
 import '../../core/export/pdf_style.dart';
+import '../../core/lab/gas_bottle_repository.dart';
 import 'report_options.dart';
 
 const _navy = PdfColor.fromInt(0xFF0B1E2D);
@@ -55,6 +56,7 @@ Future<Uint8List> buildPlantDailyReport({
   final k = pdfCfg.textScale;
   final look = PdfLook(pdfCfg);
   final accentC = look.accent;
+  final gasBottles = pdfCfg.showGasBottles ? await loadGasBottles() : const <GasBottle>[];
   final reportTitle = pdfCfg.reportTitle.trim().isEmpty ? t(allCircuits ? 'plantReportTitle' : 'plantSampleReportTitle') : _safe(pdfCfg.reportTitle.trim());
   final roleText = pdfCfg.signatureRole.trim().isEmpty ? t('plantReportRole') : _safe(pdfCfg.signatureRole.trim());
   final doc = pw.Document(title: reportTitle, author: currentAppName);
@@ -488,6 +490,23 @@ Future<Uint8List> buildPlantDailyReport({
           pw.SizedBox(height: 16),
         ],
         ...sections,
+        if (gasBottles.isNotEmpty) ...[
+          pw.SizedBox(height: 20),
+          pw.Text(
+            t('plantGasBottlesSurveyTitle'),
+            style: pw.TextStyle(fontSize: 12 * k, fontWeight: pw.FontWeight.bold, color: _navy),
+          ),
+          pw.SizedBox(height: 6),
+          look.table(
+            headers: [t('plantGasBottlesColCylinder'), t('plantGasBottlesColPressure'), t('plantGasBottlesColLocation')],
+            fontSize: 8.5 * k,
+            cellAlignments: {1: pw.Alignment.center, 2: pw.Alignment.center},
+            data: [
+              for (final b in gasBottles)
+                [_safe(b.label), '${_bottlePressureText(b.pressure)} bars', _safe(b.location)],
+            ],
+          ),
+        ],
         if (options.signatureBottom) ...[
           pw.SizedBox(height: 24),
           signatureBlock(),
@@ -513,6 +532,10 @@ String _thresholdLabel(PlantThreshold? t) {
 }
 
 /// Remplace les caractères absents des polices standard du PDF.
+/// Pression d'une bouteille de gaz : entier si rond, sinon une décimale
+/// (contrairement à `formatNumber`, pensé pour des valeurs d'analyse).
+String _bottlePressureText(double v) => v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(1);
+
 String _safe(String text) => text
     .replaceAll('—', '-')
     .replaceAll('–', '-')
