@@ -106,6 +106,16 @@ class PdfExportSettings {
   /// de gaz) ajouté en fin de rapport — usine seulement.
   final bool showGasBottles;
 
+  /// Colonne « Méthode » (ASTM...) dans le tableau des résultats, quand elle
+  /// est connue pour le paramètre (voir `plant_methods.dart`) — usine
+  /// seulement.
+  final bool showMethods;
+
+  /// Page « Scope of Work » (liste des échantillons du jour, voir
+  /// Administration › Échantillons) ajoutée après la page de garde — usine
+  /// seulement.
+  final bool showScopeOfWork;
+
   // Apparence.
   final int palette; // index dans [pdfPalettes]
   final int tableStyle; // 0 en-tête plein, 1 filets, 2 lignes alternées
@@ -144,6 +154,8 @@ class PdfExportSettings {
     this.logoRight = false,
     this.coverPage = false,
     this.showGasBottles = false,
+    this.showMethods = false,
+    this.showScopeOfWork = false,
     this.palette = 0,
     this.tableStyle = 0,
     this.margins = 1,
@@ -207,6 +219,8 @@ class PdfExportSettings {
     bool? logoRight,
     bool? coverPage,
     bool? showGasBottles,
+    bool? showMethods,
+    bool? showScopeOfWork,
     int? palette,
     int? tableStyle,
     int? margins,
@@ -243,6 +257,8 @@ class PdfExportSettings {
     logoRight: logoRight ?? this.logoRight,
     coverPage: coverPage ?? this.coverPage,
     showGasBottles: showGasBottles ?? this.showGasBottles,
+    showMethods: showMethods ?? this.showMethods,
+    showScopeOfWork: showScopeOfWork ?? this.showScopeOfWork,
     palette: palette ?? this.palette,
     tableStyle: tableStyle ?? this.tableStyle,
     margins: margins ?? this.margins,
@@ -298,6 +314,8 @@ class PdfExportSettings {
         logoRight: p.getBool('${k}logoRight') ?? d.logoRight,
         coverPage: p.getBool('${k}coverPage') ?? d.coverPage,
         showGasBottles: p.getBool('${k}showGasBottles') ?? d.showGasBottles,
+        showMethods: p.getBool('${k}showMethods') ?? d.showMethods,
+        showScopeOfWork: p.getBool('${k}showScopeOfWork') ?? d.showScopeOfWork,
         palette: p.getInt('${k}palette') ?? d.palette,
         tableStyle: p.getInt('${k}tableStyle') ?? d.tableStyle,
         margins: p.getInt('${k}margins') ?? d.margins,
@@ -341,6 +359,8 @@ class PdfExportSettings {
       await p.setBool('${k}logoRight', logoRight);
       await p.setBool('${k}coverPage', coverPage);
       await p.setBool('${k}showGasBottles', showGasBottles);
+      await p.setBool('${k}showMethods', showMethods);
+      await p.setBool('${k}showScopeOfWork', showScopeOfWork);
       await p.setInt('${k}palette', palette);
       await p.setInt('${k}tableStyle', tableStyle);
       await p.setInt('${k}margins', margins);
@@ -458,6 +478,8 @@ extension PdfPresetX on PdfPreset {
         logoRight: true,
         coverPage: plant,
         showGasBottles: plant,
+        showMethods: plant,
+        showScopeOfWork: plant,
         watermark: '',
       ),
     };

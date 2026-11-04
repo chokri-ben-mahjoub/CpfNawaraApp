@@ -364,6 +364,16 @@ class _PdfExportSettingsScreenState
               (v) => _update(_cfg.copyWith(showGasBottles: v)),
             ),
             _switch(
+              s('pdfSetMethods'),
+              _cfg.showMethods,
+              (v) => _update(_cfg.copyWith(showMethods: v)),
+            ),
+            _switch(
+              s('pdfSetScopeOfWork'),
+              _cfg.showScopeOfWork,
+              (v) => _update(_cfg.copyWith(showScopeOfWork: v)),
+            ),
+            _switch(
               s('reportOpt_photo'),
               _cfg.showPhoto,
               (v) => _update(_cfg.copyWith(showPhoto: v)),

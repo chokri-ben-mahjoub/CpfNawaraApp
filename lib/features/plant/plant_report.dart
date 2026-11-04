@@ -10,12 +10,14 @@ import '../../core/branding/app_logo.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/export/pdf_chart.dart';
 import '../../core/plant/plant_catalog.dart';
+import '../../core/plant/plant_methods.dart';
 import '../../core/plant/plant_point_charts.dart';
 import '../../core/plant/plant_repository.dart';
 import '../../core/export/pdf_export_settings.dart';
 import '../../core/export/export_table.dart';
 import '../../core/export/pdf_style.dart';
 import '../../core/lab/gas_bottle_repository.dart';
+import '../../core/lab/sample_manifest_repository.dart';
 import 'report_options.dart';
 
 const _navy = PdfColor.fromInt(0xFF0B1E2D);
@@ -57,6 +59,7 @@ Future<Uint8List> buildPlantDailyReport({
   final look = PdfLook(pdfCfg);
   final accentC = look.accent;
   final gasBottles = pdfCfg.showGasBottles ? await loadGasBottles() : const <GasBottle>[];
+  final sampleManifest = pdfCfg.showScopeOfWork ? await loadSampleManifest(day) : const <SampleManifestEntry>[];
   final reportTitle = pdfCfg.reportTitle.trim().isEmpty ? t(allCircuits ? 'plantReportTitle' : 'plantSampleReportTitle') : _safe(pdfCfg.reportTitle.trim());
   final roleText = pdfCfg.signatureRole.trim().isEmpty ? t('plantReportRole') : _safe(pdfCfg.signatureRole.trim());
   final doc = pw.Document(title: reportTitle, author: currentAppName);
@@ -248,24 +251,30 @@ Future<Uint8List> buildPlantDailyReport({
           look.table(
             headers: [
               t('plantColParam'),
+              if (pdfCfg.showMethods) t('plantColMethod'),
               t('colUnit'),
               t('colValue'),
               if (options.limitColumn) t('plantColThreshold'),
               if (options.statusColumn) t('colStatus'),
             ],
             fontSize: 8.5 * k,
-            cellAlignments: {
-              1: pw.Alignment.center,
-              2: pw.Alignment.centerRight,
-              3: pw.Alignment.center,
-              4: pw.Alignment.center,
-            },
+            cellAlignments: () {
+              var i = 1;
+              final m = <int, pw.Alignment>{};
+              if (pdfCfg.showMethods) m[i++] = pw.Alignment.center;
+              m[i++] = pw.Alignment.center; // unité
+              m[i++] = pw.Alignment.centerRight; // valeur
+              m[i++] = pw.Alignment.center; // seuil
+              m[i] = pw.Alignment.center; // statut
+              return m;
+            }(),
             data: [
               for (final param in point.params)
                 if (a.values[param.key] != null &&
                     (paramKeys == null || paramKeys.contains(param.key)))
                   [
                     t(param.labelKey),
+                    if (pdfCfg.showMethods) (astmMethodFor(param.key) ?? '-'),
                     param.unit,
                     () {
                       final valueText = param.isNumeric
@@ -488,6 +497,29 @@ Future<Uint8List> buildPlantDailyReport({
             pw.Text('${t('plantReportGenerated')} $headerStamp', style: pw.TextStyle(fontSize: 10 * k, color: _grey)),
           ],
           pw.SizedBox(height: 16),
+        ],
+        if (sampleManifest.isNotEmpty) ...[
+          pw.Text(
+            t('plantScopeOfWorkTitle'),
+            style: pw.TextStyle(fontSize: 13 * k, fontWeight: pw.FontWeight.bold, color: _navy),
+          ),
+          pw.SizedBox(height: 8),
+          look.table(
+            headers: [
+              t('plantScopeColTestItem'),
+              t('plantScopeColConditioning'),
+              t('plantScopeColQuantity'),
+              t('plantScopeColLabel'),
+              t('plantScopeColCpfCode'),
+            ],
+            fontSize: 8.5 * k,
+            cellAlignments: {2: pw.Alignment.center},
+            data: [
+              for (final e in sampleManifest)
+                [_safe(e.testItem), _safe(e.conditioning), '${e.quantity}', _safe(e.label), _safe(e.cpfCode)],
+            ],
+          ),
+          pw.NewPage(),
         ],
         ...sections,
         if (gasBottles.isNotEmpty) ...[

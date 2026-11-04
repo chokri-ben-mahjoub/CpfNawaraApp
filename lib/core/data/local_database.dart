@@ -21,7 +21,7 @@ class LocalDatabase {
   static final LocalDatabase instance = LocalDatabase._();
 
   /// Version du schéma (voir `onUpgrade`), enregistrée dans les sauvegardes.
-  static const schemaVersion = 29;
+  static const schemaVersion = 30;
 
   /// Tables sauvegardées / restaurées / synchronisées.
   static const dataTables = [
@@ -49,6 +49,8 @@ class LocalDatabase {
     'well_rounds',
     // Bouteilles de gaz pressurisées du laboratoire, v29.
     'gas_bottles',
+    // Échantillons envoyés au labo, par jour (page "Scope of Work"), v30.
+    'sample_manifest',
   ];
 
   /// Tables qui ont reçu les colonnes de synchronisation par migration (v6) ;
@@ -168,6 +170,7 @@ class LocalDatabase {
           await _createStockTables(db);
           await _createRoundsTable(db);
           await _createGasBottlesTable(db);
+          await _createSampleManifestTable(db);
           await _seed(db);
         },
         onUpgrade: (db, oldVersion, newVersion) async {
@@ -358,6 +361,11 @@ class LocalDatabase {
             // Bouteilles de gaz pressurisées du laboratoire, pour le relevé
             // ajouté en fin de rapport usine.
             await _createGasBottlesTable(db);
+          }
+          if (oldVersion < 30) {
+            // Échantillons envoyés au labo, par jour, pour la page "Scope of
+            // Work" du rapport usine.
+            await _createSampleManifestTable(db);
           }
         },
       ),
@@ -587,6 +595,26 @@ class LocalDatabase {
     ''');
   }
 
+  /// Échantillons envoyés au labo pour un jour donné (page "Scope of Work"
+  /// du rapport usine) : un jour peut avoir plusieurs lignes, chacune un
+  /// échantillon (type, conditionnement, label, code OMV CPF).
+  static Future<void> _createSampleManifestTable(DatabaseExecutor db) async {
+    await db.execute('''
+      create table if not exists sample_manifest (
+        id text primary key,
+        date text not null,
+        test_item text not null default '',
+        conditioning text not null default '',
+        quantity integer not null default 1,
+        label text not null default '',
+        cpf_code text not null default '',
+        sort_order integer not null default 0,
+        updated_at integer not null default 0,
+        dirty integer not null default 0
+      )
+    ''');
+  }
+
   /// Bouteilles de gaz pressurisées du laboratoire (relevé quotidien manuel :
   /// pression et statut mis à jour directement, pas d'historique de
   /// mouvements comme le Stock).
@@ -678,6 +706,9 @@ class LocalDatabase {
     }
     if (fromVersion < 29) {
       await _createGasBottlesTable(db);
+    }
+    if (fromVersion < 30) {
+      await _createSampleManifestTable(db);
     }
     if (fromVersion < 20) {
       for (final type in _wellTestTypes) {
