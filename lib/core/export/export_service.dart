@@ -12,10 +12,12 @@ import 'export_table.dart';
 import 'pdf_chart.dart';
 import 'pdf_table_exporter.dart';
 import 'share_files.dart';
+import 'word_exporter.dart';
 
 const _xlsxMime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const _csvMime = 'text/csv';
 const _pdfMime = 'application/pdf';
+const _docxMime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
 class _GeneratedFile {
   final String name;
@@ -104,6 +106,9 @@ Future<void> exportWithChoice({
       case ExportFormat.pdf:
         final bytes = await PdfTableExporter.encode(nonEmpty, title: baseName, charts: charts);
         files.add(_GeneratedFile('${safeBase}_$suffix.pdf', _pdfMime, bytes));
+      case ExportFormat.word:
+        final bytes = WordExporter.encode(nonEmpty, title: baseName);
+        files.add(_GeneratedFile('${safeBase}_$suffix.docx', _docxMime, bytes));
     }
 
     if (choice.action == ExportAction.download && DownloadSaver.isSupported) {

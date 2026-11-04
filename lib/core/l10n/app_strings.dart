@@ -632,6 +632,8 @@ final _strings = <String, Map<String, String>>{
   'stockExportTooltip': {'fr': 'Exporter le stock', 'en': 'Export stock'},
   'exportFormatPdf': {'fr': 'PDF', 'en': 'PDF'},
   'exportFormatPdfHint': {'fr': 'Document prêt à imprimer', 'en': 'Ready-to-print document'},
+  'exportFormatWord': {'fr': 'Word (.docx)', 'en': 'Word (.docx)'},
+  'exportFormatWordHint': {'fr': 'Document modifiable', 'en': 'Editable document'},
 
   // Statistiques
   'statsTitle': {'fr': 'Statistiques', 'en': 'Statistics'},
