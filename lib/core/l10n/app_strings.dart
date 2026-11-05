@@ -1228,8 +1228,14 @@ final _strings = <String, Map<String, String>>{
   'plantReportChoose': {'fr': 'Rapport journalier PDF', 'en': 'Daily PDF report'},
   'plantReportAllCircuits': {'fr': 'Tous les circuits', 'en': 'All circuits'},
   'plantReportAllShort': {'fr': 'complet', 'en': 'full'},
-  'plantReportTitle': {'fr': 'Rapport journalier — Usine CPF', 'en': 'Daily report — CPF plant'},
-  'plantSampleReportTitle': {'fr': "Échantillons produits", 'en': 'Produced samples'},
+  'plantReportTitle': {
+    'fr': 'OMV (TUNESIEN) PRODUCTION GMBH\nNAWARA LABORATORY\nDAILY ANALYSIS',
+    'en': 'OMV (TUNESIEN) PRODUCTION GMBH\nNAWARA LABORATORY\nDAILY ANALYSIS',
+  },
+  'plantSampleReportTitle': {
+    'fr': 'OMV (TUNESIEN) PRODUCTION GMBH\nNAWARA LABORATORY\nDAILY ANALYSIS',
+    'en': 'OMV (TUNESIEN) PRODUCTION GMBH\nNAWARA LABORATORY\nDAILY ANALYSIS',
+  },
   'plantReportNumberLabel': {'fr': 'N°', 'en': 'N°'},
   'plantReportNumberTitle': {'fr': 'Numéro du rapport', 'en': 'Report number'},
   'plantReportNumberHint': {
