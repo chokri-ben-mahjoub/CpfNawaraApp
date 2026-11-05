@@ -366,10 +366,10 @@ class _Page extends StatelessWidget {
           style: cfg.tableStyle,
           k: k,
           headers: [
-            s('plantColParam'),
+            s('plantColTest'),
             s('colUnit'),
-            s('colValue'),
-            if (cfg.showLimit) s('plantColThreshold'),
+            s('plantColResults'),
+            if (cfg.showLimit) s('plantColSpec'),
             if (cfg.showStatus) s('colStatus'),
           ],
           rows: [

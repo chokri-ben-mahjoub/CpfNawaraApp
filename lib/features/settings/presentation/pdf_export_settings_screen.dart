@@ -258,7 +258,8 @@ class _PdfExportSettingsScreenState
                     ? 'plantReportTitle'
                     : 'plantSampleReportTitle',
               ),
-              helper: s('pdfSetEmptyDefault'),
+              helper: s('pdfSetReportTitleHelper'),
+              maxLines: 4,
               onChanged: (v) => _update(_cfg.copyWith(reportTitle: v)),
             ),
             _field(
@@ -736,11 +737,14 @@ class _PdfExportSettingsScreenState
     String label, {
     String? hint,
     String? helper,
+    int maxLines = 1,
     required void Function(String) onChanged,
   }) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 6),
     child: TextField(
       controller: controller,
+      maxLines: maxLines,
+      keyboardType: maxLines > 1 ? TextInputType.multiline : TextInputType.text,
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,

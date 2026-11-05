@@ -250,11 +250,11 @@ Future<Uint8List> buildPlantDailyReport({
         sections.add(
           look.table(
             headers: [
-              t('plantColParam'),
+              t('plantColTest'),
               if (pdfCfg.showMethods) t('plantColMethod'),
               t('colUnit'),
-              t('colValue'),
-              if (options.limitColumn) t('plantColThreshold'),
+              t('plantColResults'),
+              if (options.limitColumn) t('plantColSpec'),
               if (options.statusColumn) t('colStatus'),
             ],
             fontSize: 8.5 * k,
@@ -484,12 +484,21 @@ Future<Uint8List> buildPlantDailyReport({
           pw.NewPage(),
         ] else ...[
           if (pdfCfg.showTitle)
-            pw.Text(reportTitle, style: pw.TextStyle(fontSize: 18 * k, fontWeight: pw.FontWeight.bold, color: _navy)),
+            pw.Center(
+              child: pw.Text(
+                reportTitle,
+                textAlign: pw.TextAlign.center,
+                style: pw.TextStyle(fontSize: 18 * k, fontWeight: pw.FontWeight.bold, color: _navy),
+              ),
+            ),
           if (pdfCfg.showReportNumber) ...[
             pw.SizedBox(height: 2),
-            pw.Text(
-              '${t('plantReportNumberLabel')} $reportNumber',
-              style: pw.TextStyle(fontSize: 12 * k, fontWeight: pw.FontWeight.bold, color: accentC),
+            pw.Center(
+              child: pw.Text(
+                '${t('plantReportNumberLabel')} $reportNumber',
+                textAlign: pw.TextAlign.center,
+                style: pw.TextStyle(fontSize: 12 * k, fontWeight: pw.FontWeight.bold, color: accentC),
+              ),
             ),
           ],
           if (pdfCfg.datePlacement == PdfDatePlacement.top) ...[
