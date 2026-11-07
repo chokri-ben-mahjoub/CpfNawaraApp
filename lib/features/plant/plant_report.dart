@@ -24,50 +24,6 @@ const _navy = PdfColor.fromInt(0xFF0B1E2D);
 const _ok = PdfColor.fromInt(0xFF2E7D32);
 const _out = PdfColor.fromInt(0xFFC62828);
 const _grey = PdfColor.fromInt(0xFF757575);
-const _lineGrey = PdfColor.fromInt(0xFFBDBDBD);
-
-/// Heure de prélèvement en colonne fusionnée à gauche du tableau (comme un
-/// rapport de laboratoire papier) : une boîte bordée, centrée verticalement
-/// sur toute la hauteur du tableau, au lieu d'une ligne de texte au-dessus.
-pw.Widget _tableWithTimeColumn({
-  required String time,
-  required String timeHeader,
-  required pw.Widget table,
-  required double fontSize,
-}) {
-  final cell = pw.BoxDecoration(border: pw.Border.all(color: _lineGrey, width: 0.5));
-  return pw.Row(
-    crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-    children: [
-      pw.SizedBox(
-        width: 54,
-        child: pw.Column(
-          children: [
-            pw.Container(
-              height: fontSize * 2.6,
-              alignment: pw.Alignment.center,
-              padding: const pw.EdgeInsets.symmetric(horizontal: 3),
-              decoration: cell,
-              child: pw.Text(
-                timeHeader,
-                textAlign: pw.TextAlign.center,
-                style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: fontSize),
-              ),
-            ),
-            pw.Expanded(
-              child: pw.Container(
-                alignment: pw.Alignment.center,
-                decoration: cell,
-                child: pw.Text(time, textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: fontSize)),
-              ),
-            ),
-          ],
-        ),
-      ),
-      pw.Expanded(child: table),
-    ],
-  );
-}
 
 /// Rapport journalier PDF de l'usine pour un ou plusieurs circuits : par
 /// point, les valeurs du jour avec unité, seuil et état (conforme / hors
@@ -296,8 +252,11 @@ Future<Uint8List> buildPlantDailyReport({
         }
         sections.add(pw.SizedBox(height: 3));
         final tableFontSize = 8.5 * k;
-        final dataTable = look.table(
+        var rowIndex = 0;
+        sections.add(
+          look.table(
             headers: [
+              if (useTimeColumn) t('plantSamplingTime'),
               t('plantColTest'),
               if (pdfCfg.showMethods) t('plantColMethod'),
               t('colUnit'),
@@ -307,8 +266,10 @@ Future<Uint8List> buildPlantDailyReport({
             ],
             fontSize: tableFontSize,
             cellAlignments: () {
-              var i = 1;
+              var i = useTimeColumn ? 1 : 0;
               final m = <int, pw.Alignment>{};
+              if (useTimeColumn) m[0] = pw.Alignment.center;
+              i++; // libellé du test
               if (pdfCfg.showMethods) m[i++] = pw.Alignment.center;
               m[i++] = pw.Alignment.center; // unité
               m[i++] = pw.Alignment.centerRight; // valeur
@@ -321,6 +282,11 @@ Future<Uint8List> buildPlantDailyReport({
                 if (a.values[param.key] != null &&
                     (paramKeys == null || paramKeys.contains(param.key)))
                   [
+                    // Heure de prélèvement affichée sur la première ligne
+                    // seulement : la table PDF ne fusionne pas les cellules,
+                    // mais une cellule vide en dessous donne le même effet
+                    // visuel qu'une colonne fusionnée.
+                    if (useTimeColumn) (rowIndex++ == 0 ? a.samplingTime : ''),
                     t(param.labelKey),
                     if (pdfCfg.showMethods) (astmMethodFor(param.key) ?? '-'),
                     param.unit,
@@ -351,16 +317,7 @@ Future<Uint8List> buildPlantDailyReport({
                       },
                   ],
             ],
-          );
-        sections.add(
-          useTimeColumn
-              ? _tableWithTimeColumn(
-                  time: a.samplingTime,
-                  timeHeader: t('plantSamplingTime'),
-                  table: dataTable,
-                  fontSize: tableFontSize,
-                )
-              : dataTable,
+          ),
         );
         if (pdfCfg.showOutOfRangeComments) {
           final notes = [
