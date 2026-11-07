@@ -167,13 +167,17 @@ class _SideRail extends ConsumerWidget {
       onDestinationSelected: onSelect,
       labelType: extended ? NavigationRailLabelType.none : NavigationRailLabelType.all,
       trailingAtBottom: true,
+      // Seuls les Réglages restent en raccourci direct : le reste (QR, Usine,
+      // Stock, bouteilles de gaz, échantillons, Administration...) grandit
+      // avec les modules et irait sans ça jusqu'à déborder un petit écran —
+      // regroupé dans un menu "Plus" de hauteur fixe.
       trailing: Padding(
         padding: const EdgeInsets.only(bottom: 16),
         child: Column(
           crossAxisAlignment: extended ? CrossAxisAlignment.start : CrossAxisAlignment.center,
           children: [
             for (final (icon, key, route) in homeShortcuts(role))
-              if (route != '/entry')
+              if (route == '/settings')
                 extended
                     ? SizedBox(
                         width: 200,
@@ -193,6 +197,12 @@ class _SideRail extends ConsumerWidget {
                         onPressed: () => context.push(route),
                         icon: Icon(icon, color: scheme.onSurfaceVariant),
                       ),
+            _MoreShortcutsButton(
+              extended: extended,
+              shortcuts: [for (final sc in homeShortcuts(role)) if (sc.$3 != '/entry' && sc.$3 != '/settings') sc],
+              label: s('drawerTools'),
+              labelOf: s,
+            ),
           ],
         ),
       ),
@@ -248,6 +258,69 @@ class _SideRail extends ConsumerWidget {
         for (final (icon, selectedIcon, key) in homeDestinations)
           NavigationRailDestination(icon: Icon(icon), selectedIcon: Icon(selectedIcon), label: Text(s(key))),
       ],
+    );
+  }
+}
+
+/// Raccourci unique vers le menu latéral du rail : regroupe les raccourcis
+/// restants (QR, Usine, Stock, Administration...) dans un menu, pour que le
+/// rail garde une hauteur fixe quel que soit le nombre de modules activés.
+class _MoreShortcutsButton extends StatelessWidget {
+  final bool extended;
+  final List<(IconData, String, String)> shortcuts;
+  final String label;
+  final String Function(String) labelOf;
+
+  const _MoreShortcutsButton({
+    required this.extended,
+    required this.shortcuts,
+    required this.label,
+    required this.labelOf,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (shortcuts.isEmpty) return const SizedBox.shrink();
+    final scheme = Theme.of(context).colorScheme;
+    List<PopupMenuEntry<String>> items(BuildContext context) => [
+      for (final (icon, key, route) in shortcuts)
+        PopupMenuItem(
+          value: route,
+          child: Row(
+            children: [
+              Icon(icon, size: 20, color: scheme.onSurfaceVariant),
+              const SizedBox(width: 12),
+              Text(labelOf(key)),
+            ],
+          ),
+        ),
+    ];
+    void onSelected(String route) => context.push(route);
+
+    if (!extended) {
+      return PopupMenuButton<String>(
+        tooltip: label,
+        onSelected: onSelected,
+        itemBuilder: items,
+        icon: Icon(Icons.more_horiz, color: scheme.onSurfaceVariant),
+      );
+    }
+    return SizedBox(
+      width: 200,
+      child: PopupMenuButton<String>(
+        onSelected: onSelected,
+        itemBuilder: items,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Icon(Icons.more_horiz, color: scheme.onSurfaceVariant),
+              const SizedBox(width: 12),
+              Text(label, style: TextStyle(color: scheme.onSurfaceVariant)),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

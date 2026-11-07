@@ -179,7 +179,11 @@ void main() {
     expect(stockItemsColumns2.map((r) => r['name']), contains('consumption_override'));
     // v28 : zone/affectation d'un article de stock.
     expect(stockItemsColumns2.map((r) => r['name']), contains('zone'));
-    expect(LocalDatabase.schemaVersion, 28);
+    // v29 : bouteilles de gaz pressurisées du laboratoire (table créée, vide).
+    expect(await db.query('gas_bottles'), isEmpty);
+    // v30 : échantillons envoyés au labo, par jour (table créée, vide).
+    expect(await db.query('sample_manifest'), isEmpty);
+    expect(LocalDatabase.schemaVersion, 30);
 
     // Première connexion : tout ce qui a été saisi/modifié part au serveur.
     final engine = SyncEngine(

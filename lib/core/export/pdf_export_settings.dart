@@ -43,7 +43,7 @@ const pdfPalettes = <({int accent, int header, String nameKey})>[
 ];
 
 /// Modèles prêts à l'emploi : un geste applique plusieurs réglages d'un coup.
-enum PdfPreset { classic, minimal, compact, detailed, official }
+enum PdfPreset { classic, minimal, compact, detailed, official, omv }
 
 /// Réglages d'une famille de PDF : ce qui s'affiche et où. Mémorisés sur
 /// l'appareil.
@@ -80,6 +80,11 @@ class PdfExportSettings {
   final bool showStatus;
   final bool showDetails;
   final bool showSamplingTime;
+
+  /// Heure de prélèvement en colonne fusionnée du tableau (comme un rapport
+  /// de laboratoire papier) plutôt qu'en ligne de texte au-dessus — usine
+  /// seulement, sans effet si [showSamplingTime] est faux.
+  final bool samplingTimeColumn;
   final bool allAnalyses; // sinon : seulement la plus récente du jour
   final bool showSignature; // bloc « Date / Nom : fonction » en bas
 
@@ -146,6 +151,7 @@ class PdfExportSettings {
     this.showStatus = true,
     this.showDetails = true,
     this.showSamplingTime = true,
+    this.samplingTimeColumn = false,
     this.allAnalyses = true,
     this.showSignature = true,
     this.highlightOutOfRange = true,
@@ -211,6 +217,7 @@ class PdfExportSettings {
     bool? showStatus,
     bool? showDetails,
     bool? showSamplingTime,
+    bool? samplingTimeColumn,
     bool? allAnalyses,
     bool? showSignature,
     bool? highlightOutOfRange,
@@ -249,6 +256,7 @@ class PdfExportSettings {
     showStatus: showStatus ?? this.showStatus,
     showDetails: showDetails ?? this.showDetails,
     showSamplingTime: showSamplingTime ?? this.showSamplingTime,
+    samplingTimeColumn: samplingTimeColumn ?? this.samplingTimeColumn,
     allAnalyses: allAnalyses ?? this.allAnalyses,
     showSignature: showSignature ?? this.showSignature,
     highlightOutOfRange: highlightOutOfRange ?? this.highlightOutOfRange,
@@ -306,6 +314,7 @@ class PdfExportSettings {
         showStatus: p.getBool('${k}showStatus') ?? d.showStatus,
         showDetails: p.getBool('${k}showDetails') ?? d.showDetails,
         showSamplingTime: p.getBool('${k}showSamplingTime') ?? d.showSamplingTime,
+        samplingTimeColumn: p.getBool('${k}samplingTimeColumn') ?? d.samplingTimeColumn,
         allAnalyses: p.getBool('${k}allAnalyses') ?? d.allAnalyses,
         showSignature: p.getBool('${k}showSignature') ?? d.showSignature,
         highlightOutOfRange: p.getBool('${k}highlightOutOfRange') ?? d.highlightOutOfRange,
@@ -351,6 +360,7 @@ class PdfExportSettings {
       await p.setBool('${k}showStatus', showStatus);
       await p.setBool('${k}showDetails', showDetails);
       await p.setBool('${k}showSamplingTime', showSamplingTime);
+      await p.setBool('${k}samplingTimeColumn', samplingTimeColumn);
       await p.setBool('${k}allAnalyses', allAnalyses);
       await p.setBool('${k}showSignature', showSignature);
       await p.setBool('${k}highlightOutOfRange', highlightOutOfRange);
@@ -473,6 +483,40 @@ extension PdfPresetX on PdfPreset {
         showOutOfRangeComments: true,
         showCircuitBadge: true,
         showSamplingTime: true,
+        allAnalyses: true,
+        showSignature: true,
+        logoRight: true,
+        coverPage: plant,
+        showGasBottles: plant,
+        showMethods: plant,
+        showScopeOfWork: plant,
+        watermark: '',
+      ),
+      // Reproduit la mise en page du rapport journalier OMV NAC Laboratory
+      // (page de garde, numéro de rapport, Scope of Work, colonne Méthodes,
+      // bouteilles de gaz, signature) — comme "Officiel", avec en plus
+      // l'heure de prélèvement en colonne fusionnée du tableau.
+      PdfPreset.omv => base.copyWith(
+        palette: 1,
+        tableStyle: 3,
+        margins: 1,
+        textSize: 1,
+        showLogo: true,
+        showAppName: true,
+        showTitle: true,
+        showReportNumber: true,
+        showOperator: true,
+        showPageNumbers: true,
+        datePlacement: PdfDatePlacement.header,
+        showDetails: true,
+        showPhoto: true,
+        showLimit: true,
+        showStatus: false,
+        highlightOutOfRange: true,
+        showOutOfRangeComments: true,
+        showCircuitBadge: true,
+        showSamplingTime: true,
+        samplingTimeColumn: true,
         allAnalyses: true,
         showSignature: true,
         logoRight: true,

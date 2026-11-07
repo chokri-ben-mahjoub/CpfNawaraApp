@@ -409,6 +409,12 @@ class _PdfExportSettingsScreenState
               _cfg.showSamplingTime,
               (v) => _update(_cfg.copyWith(showSamplingTime: v)),
             ),
+            if (_cfg.showSamplingTime)
+              _switch(
+                s('pdfSetSamplingTimeColumn'),
+                _cfg.samplingTimeColumn,
+                (v) => _update(_cfg.copyWith(samplingTimeColumn: v)),
+              ),
             _switch(
               s('reportOpt_allAnalyses'),
               _cfg.allAnalyses,

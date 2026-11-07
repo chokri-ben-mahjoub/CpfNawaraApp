@@ -606,6 +606,10 @@ void main() {
     await t.tap(find.byIcon(Icons.menu));
     await t.pumpAndSettle();
     expect(find.text('Outils'), findsOneWidget);
+    // Le tiroir a grandi avec les modules (Stock, Usine, Tournées...) : il
+    // faut défiler pour atteindre "Administration", en bas de la liste.
+    final drawerList = find.descendant(of: find.byType(NavigationDrawer), matching: find.byType(ListView));
+    await t.dragUntilVisible(find.text('Administration'), drawerList, const Offset(0, -200));
     expect(find.text('Administration'), findsWidgets);
     await t.tap(find.text('Usine').last);
     await t.pumpAndSettle();

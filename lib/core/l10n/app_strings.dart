@@ -1332,6 +1332,10 @@ final _strings = <String, Map<String, String>>{
   'pdfSetReportNumber': {'fr': "Numéro du rapport", 'en': "Report number"},
   'pdfSetCoverPage': {'fr': "Page de garde séparée", 'en': "Separate cover page"},
   'pdfSetMethods': {'fr': 'Méthode ASTM (si connue)', 'en': 'ASTM method (if known)'},
+  'pdfSetSamplingTimeColumn': {
+    'fr': "Heure de prélèvement en colonne fusionnée du tableau",
+    'en': "Sampling time as a merged column of the table",
+  },
   'pdfSetScopeOfWork': {'fr': 'Page "Scope of Work" (échantillons du jour)', 'en': '"Scope of Work" page (daily samples)'},
   'pdfSetGasBottles': {
     'fr': "Relevé des bouteilles de gaz en fin de rapport",
@@ -1350,6 +1354,11 @@ final _strings = <String, Map<String, String>>{
   'pdfPresetHint_official': {
     'fr': "Tableaux à quadrillage complet, en-tête sobre : style rapport de laboratoire officiel.",
     'en': "Fully gridded tables, plain header: official laboratory report style.",
+  },
+  'pdfPreset_omv': {'fr': "OMV", 'en': "OMV"},
+  'pdfPresetHint_omv': {
+    'fr': "Mise en page du rapport journalier NAC Laboratory : page de garde, Scope of Work, méthodes ASTM, heure de prélèvement en colonne.",
+    'en': "NAC Laboratory daily report layout: cover page, Scope of Work, ASTM methods, sampling time as a column.",
   },
   'pdfPresetAppliedEverywhere': {
     'fr': "Modèle appliqué partout (tableaux, tous les circuits, échantillons produits)",
