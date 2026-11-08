@@ -1672,8 +1672,17 @@ final _strings = <String, Map<String, String>>{
   'syncLast': {'fr': 'Dernière synchronisation', 'en': 'Last sync'},
   'syncNever': {'fr': 'jamais', 'en': 'never'},
   'syncAutoHint': {
-    'fr': 'Automatique : après chaque saisie, toutes les minutes quand l\'app est ouverte, et à son ouverture.',
-    'en': 'Automatic: after each entry, every minute while the app is open, and when it opens.',
+    'fr':
+        'Automatique : après chaque saisie, à l\'ouverture de l\'app, puis en '
+        'tâche de fond tant qu\'elle est ouverte — toutes les minutes au '
+        'début, de moins en moins souvent si rien de nouveau n\'arrive '
+        '(jusqu\'à 5 minutes), et de nouveau toutes les minutes dès qu\'une '
+        'saisie est faite.',
+    'en':
+        'Automatic: after each entry, when the app opens, then in the '
+        'background while it stays open — every minute at first, less '
+        'often if nothing new arrives (up to 5 minutes), and back to every '
+        'minute as soon as an entry is made.',
   },
   'syncNow': {'fr': 'Synchroniser maintenant', 'en': 'Sync now'},
   'syncSignOut': {'fr': 'Se déconnecter', 'en': 'Sign out'},

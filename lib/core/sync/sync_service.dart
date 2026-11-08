@@ -35,7 +35,15 @@ const _pushDelay = Duration(seconds: 2);
 
 /// Synchronisation périodique tant que l'app est ouverte (reçoit les saisies
 /// faites sur les autres appareils ; une seule lecture quand rien n'a changé).
+/// Intervalle de départ, et après toute activité (saisie locale ou
+/// changement reçu) — resynchroniser vite tant que ça bouge.
 const _period = Duration(seconds: 60);
+
+/// Sans rien de nouveau depuis plusieurs passages, l'intervalle s'allonge
+/// jusqu'à cette limite (×1.6 à chaque passage silencieux) : un appareil
+/// resté ouvert sans activité ne lit plus `meta/sync` toutes les minutes
+/// pour rien, ce qui réduit nettement les lectures Firestore à l'usage.
+const _maxPeriod = Duration(minutes: 5);
 
 /// Relecture de la fiche du membre (rôle, actif) au plus tous les…
 const _memberRefresh = Duration(minutes: 5);
@@ -159,6 +167,12 @@ class SyncController extends StateNotifier<SyncState> {
   StreamSubscription<void>? _changes;
   Timer? _debounce;
   Timer? _periodic;
+  Duration _periodicInterval = _period;
+  /// Vrai si le dernier [syncNow] a reçu du nouveau, ou n'a pas pu aboutir
+  /// normalement — dans les deux cas, le prochain passage périodique doit
+  /// revenir vite plutôt que respecter le palier atteint (voir
+  /// [_periodicTick]).
+  bool _lastSyncWorthRetryingSoon = false;
   bool _running = false;
   bool _again = false;
   DateTime? _memberCheckedAt;
@@ -485,9 +499,35 @@ class SyncController extends StateNotifier<SyncState> {
   void _startAutoSync() {
     _changes ??= LocalDatabase.instance.changes.listen((_) {
       _debounce?.cancel();
+      // Une saisie locale : on va probablement en faire d'autres bientôt,
+      // revenir au rythme rapide tout de suite plutôt que d'attendre la fin
+      // du palier atteint pendant une période calme.
+      if (_periodicInterval != _period) {
+        _periodicInterval = _period;
+        _periodic?.cancel();
+        _periodic = Timer(_periodicInterval, _periodicTick);
+      }
       _debounce = Timer(_pushDelay, syncNow);
     });
-    _periodic ??= Timer.periodic(_period, (_) => syncNow());
+    _periodic ??= Timer(_periodicInterval, _periodicTick);
+  }
+
+  /// Un passage du minuteur périodique : resynchronise, puis se replanifie
+  /// avec un intervalle qui s'allonge tant que rien n'est revenu de
+  /// Firestore (voir [_maxPeriod]), et revient au rythme de base dès qu'un
+  /// passage ramène quelque chose ou échoue (pour retenter vite après une
+  /// panne réseau).
+  Future<void> _periodicTick() async {
+    if (_periodic == null) return; // arrêté entre-temps (déconnexion...).
+    await syncNow();
+    final pulledSomething = _lastSyncWorthRetryingSoon;
+    if (pulledSomething) {
+      _periodicInterval = _period;
+    } else {
+      final grown = Duration(milliseconds: (_periodicInterval.inMilliseconds * 1.6).round());
+      _periodicInterval = grown > _maxPeriod ? _maxPeriod : grown;
+    }
+    if (_periodic != null) _periodic = Timer(_periodicInterval, _periodicTick);
   }
 
   void _stopAutoSync() {
@@ -496,6 +536,7 @@ class SyncController extends StateNotifier<SyncState> {
     _debounce?.cancel();
     _periodic?.cancel();
     _periodic = null;
+    _periodicInterval = _period;
   }
 
   Future<void> _reloadData() async {
@@ -516,6 +557,7 @@ class SyncController extends StateNotifier<SyncState> {
       return;
     }
     _running = true;
+    _lastSyncWorthRetryingSoon = false;
     state = state.copyWith(phase: SyncPhase.syncing);
     try {
       do {
@@ -534,6 +576,7 @@ class SyncController extends StateNotifier<SyncState> {
               _ => 'syncErrorNoMember',
             },
           );
+          _lastSyncWorthRetryingSoon = true;
           return;
         }
         await _engine.prepareFirstSync(company.path, session.uid, writable: member.role.writableTables);
@@ -543,7 +586,10 @@ class SyncController extends StateNotifier<SyncState> {
           writable: member.role.writableTables,
           actor: _team.actorOf(session, member.name),
         );
-        if (report.pulled > 0) await _reloadData();
+        if (report.pulled > 0) {
+          _lastSyncWorthRetryingSoon = true;
+          await _reloadData();
+        }
       } while (_again && _session != null);
       final now = DateTime.now();
       (await SharedPreferences.getInstance()).setString(_lastSyncKey, now.toIso8601String());
@@ -551,12 +597,15 @@ class SyncController extends StateNotifier<SyncState> {
         state = state.copyWith(phase: SyncPhase.idle, lastSyncAt: now, errorKey: () => null);
       }
     } on SyncNetworkException {
+      _lastSyncWorthRetryingSoon = true;
       if (mounted) state = state.copyWith(phase: SyncPhase.offline, errorKey: () => 'syncOffline');
     } on SyncAuthException {
       // Jeton de rafraîchissement refusé (mot de passe changé, compte
       // désactivé ou supprimé...) : il faut se reconnecter.
+      _lastSyncWorthRetryingSoon = true;
       if (mounted) state = state.copyWith(phase: SyncPhase.error, errorKey: () => 'syncErrorSession');
     } on SyncServerException catch (e) {
+      _lastSyncWorthRetryingSoon = true;
       if (mounted) {
         state = state.copyWith(
           phase: SyncPhase.error,
@@ -568,6 +617,7 @@ class SyncController extends StateNotifier<SyncState> {
         );
       }
     } catch (_) {
+      _lastSyncWorthRetryingSoon = true;
       if (mounted) state = state.copyWith(phase: SyncPhase.error, errorKey: () => 'syncErrorServer');
     } finally {
       _running = false;
