@@ -1371,6 +1371,22 @@ final _strings = <String, Map<String, String>>{
   'pdfStylePageFooter': {'fr': "Pied de page", 'en': "Page footer"},
   'pdfStyleSecondary': {'fr': "Textes secondaires (notes grises)", 'en': "Secondary texts (grey notes)"},
   'pdfStyleSection': {'fr': "Style avancé (polices, tailles, couleurs)", 'en': "Advanced style (fonts, sizes, colors)"},
+  'pdfLayoutSection': {'fr': "Mise en page libre (page de garde)", 'en': "Free layout (cover page)"},
+  'pdfLayoutHint': {
+    'fr':
+        "Glissez une pastille pour la déplacer, sa poignée (coin bas-droit) pour "
+        "l'agrandir ou la réduire. Tant qu'une pastille n'a pas bougé, l'élément "
+        "garde son emplacement habituel dans le PDF.",
+    'en':
+        "Drag a marker to move it, its handle (bottom-right corner) to resize "
+        "it. Until a marker has moved, the element keeps its usual place in "
+        "the PDF.",
+  },
+  'pdfLayoutLogo': {'fr': 'Logo', 'en': 'Logo'},
+  'pdfLayoutTitle': {'fr': 'Bloc titre', 'en': 'Title block'},
+  'pdfLayoutWatermark': {'fr': 'Filigrane', 'en': 'Watermark'},
+  'pdfLayoutDefault': {'fr': 'Position par défaut', 'en': 'Default position'},
+  'pdfLayoutResetOne': {'fr': 'Remettre la position par défaut', 'en': 'Reset to the default position'},
   'pdfStyleReportTitle': {'fr': "Titre du rapport", 'en': "Report title"},
   'pdfStyleTableTitle': {'fr': "Titres de tableaux", 'en': "Table titles"},
   'pdfStyleColHeader': {'fr': "En-têtes de colonnes", 'en': "Column headers"},
@@ -1385,6 +1401,8 @@ final _strings = <String, Map<String, String>>{
   'pdfStyleCenter': {'fr': "Centre", 'en': "Center"},
   'pdfStyleRight': {'fr': "Droite", 'en': "Right"},
   'pdfStyleColor': {'fr': "Couleur", 'en': "Color"},
+  'pdfColorPickerTitle': {'fr': 'Choisir une couleur', 'en': 'Choose a color'},
+  'pdfColorBrightness': {'fr': 'Luminosité', 'en': 'Brightness'},
   'pdfStyleFrame': {'fr': "Cadre des tableaux", 'en': "Table frame"},
   'pdfStyleHeaderBg': {'fr': "Fond de l'en-tête", 'en': "Header background"},
   'pdfStyleBorderColor': {'fr': "Couleur des bordures", 'en': "Border color"},

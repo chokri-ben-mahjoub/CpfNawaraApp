@@ -130,24 +130,26 @@ class PdfLook {
     );
   }
 
-  /// Fond de page : filigrane en diagonale, ou rien.
+  /// Fond de page : filigrane en diagonale (position/taille/angle historiques,
+  /// ou ceux choisis à la souris si le filigrane a été déplacé), ou rien.
   pw.Widget Function(pw.Context)? get background {
     final text = cfg.watermark.trim();
     if (text.isEmpty) return null;
+    final layout = cfg.style.watermarkLayout;
+    final fontSize = 64 * (layout?.scale ?? 1.0);
+    final angle = (layout?.angleDeg ?? -35.5) * 3.14159265 / 180;
+    final textWidget = pw.Opacity(
+      opacity: 0.12,
+      child: pw.Text(text.toUpperCase(), style: pw.TextStyle(fontSize: fontSize, fontWeight: pw.FontWeight.bold, color: _grey)),
+    );
     return (context) => pw.FullPage(
       ignoreMargins: true,
-      child: pw.Center(
-        child: pw.Transform.rotate(
-          angle: -0.62,
-          child: pw.Opacity(
-            opacity: 0.12,
-            child: pw.Text(
-              text.toUpperCase(),
-              style: pw.TextStyle(fontSize: 64, fontWeight: pw.FontWeight.bold, color: _grey),
+      child: layout == null
+          ? pw.Center(child: pw.Transform.rotate(angle: angle, child: textWidget))
+          : pw.Align(
+              alignment: pw.Alignment(layout.dx * 2 - 1, 1 - layout.dy * 2),
+              child: pw.Transform.rotate(angle: angle, child: textWidget),
             ),
-          ),
-        ),
-      ),
     );
   }
 }

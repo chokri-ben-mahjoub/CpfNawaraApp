@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../../core/export/pdf_style_set.dart';
@@ -139,11 +141,11 @@ class PdfStyleEditor extends StatelessWidget {
   }
 
   Widget _colors(int? current, ValueChanged<int?> pick, {bool allowAuto = true}) {
-    Widget dot(int? argb) {
+    Widget dot(int? argb, {VoidCallback? onTap}) {
       final selected = current == argb;
       return InkWell(
         customBorder: const CircleBorder(),
-        onTap: () => pick(argb),
+        onTap: onTap ?? () => pick(argb),
         child: Container(
           width: 32,
           height: 32,
@@ -158,7 +160,36 @@ class PdfStyleEditor extends StatelessWidget {
       );
     }
 
-    return Wrap(spacing: 8, runSpacing: 8, children: [if (allowAuto) dot(null), for (final c in _swatches) dot(c)]);
+    final custom = current != null && !_swatches.contains(current);
+    return Builder(
+      builder: (context) => Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          if (allowAuto) dot(null),
+          for (final c in _swatches) dot(c),
+          if (custom) dot(current),
+          InkWell(
+            customBorder: const CircleBorder(),
+            onTap: () async {
+              final picked = await showPdfColorPickerDialog(context, current ?? 0xFF000000, s);
+              if (picked != null) pick(picked);
+            },
+            child: Container(
+              width: 32,
+              height: 32,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.grey),
+                gradient: const SweepGradient(colors: [Colors.red, Colors.yellow, Colors.green, Colors.cyan, Colors.blue, Colors.purple, Colors.red]),
+              ),
+              child: const Icon(Icons.add, size: 16, color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _slider(String label, double value, double min, double max, ValueChanged<double> set, {String? auto, VoidCallback? onAuto}) {
@@ -213,6 +244,144 @@ class PdfStyleEditor extends StatelessWidget {
         if (!autoPad) _slider(s('pdfStylePadV'), t.padV ?? 5, 0, 20, (x) => set(t.copyWith(padV: x, padH: t.padH ?? 5))),
         _slider(s('pdfStyleSpaceBefore'), t.spaceBeforeTable, 0, 40, (x) => set(t.copyWith(spaceBeforeTable: x))),
         _slider(s('pdfStyleSpaceAfter'), t.spaceAfterTitle, 0, 30, (x) => set(t.copyWith(spaceAfterTitle: x))),
+      ],
+    );
+  }
+}
+
+/// Ouvre une roue de couleurs (teinte/saturation + luminosité) avec un champ
+/// hexadécimal, pour choisir n'importe quelle couleur plutôt que les 10
+/// pastilles prédéfinies. `null` si l'utilisateur annule.
+Future<int?> showPdfColorPickerDialog(BuildContext context, int initialArgb, String Function(String) s) {
+  return showDialog<int>(
+    context: context,
+    builder: (context) => _PdfColorPickerDialog(initialArgb: initialArgb, s: s),
+  );
+}
+
+class _PdfColorPickerDialog extends StatefulWidget {
+  final int initialArgb;
+  final String Function(String) s;
+  const _PdfColorPickerDialog({required this.initialArgb, required this.s});
+
+  @override
+  State<_PdfColorPickerDialog> createState() => _PdfColorPickerDialogState();
+}
+
+class _PdfColorPickerDialogState extends State<_PdfColorPickerDialog> {
+  late HSVColor _hsv = HSVColor.fromColor(Color(widget.initialArgb));
+  late final TextEditingController _hex = TextEditingController(text: _hexOf(_hsv.toColor()));
+
+  static String _hexOf(Color c) =>
+      '#${(c.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase()}';
+
+  void _setColor(Color c, {bool fromHex = false}) {
+    setState(() {
+      _hsv = HSVColor.fromColor(c);
+      if (!fromHex) _hex.text = _hexOf(c);
+    });
+  }
+
+  void _setFromWheel(Offset local, double size) {
+    final center = Offset(size / 2, size / 2);
+    final v = local - center;
+    final radius = size / 2;
+    final dist = v.distance.clamp(0, radius);
+    // Convention cohérente avec le placement du curseur (cos, -sin) plus bas.
+    final angle = (math.atan2(-v.dy, v.dx) * 180 / math.pi + 360) % 360;
+    _setColor(HSVColor.fromAHSV(1, angle, (dist / radius).clamp(0, 1), _hsv.value).toColor());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    String s(String k) => widget.s(k);
+    final color = _hsv.toColor();
+    const wheelSize = 220.0;
+    return AlertDialog(
+      title: Text(s('pdfColorPickerTitle')),
+      content: SizedBox(
+        width: wheelSize,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            GestureDetector(
+              onPanDown: (d) => _setFromWheel(d.localPosition, wheelSize),
+              onPanUpdate: (d) => _setFromWheel(d.localPosition, wheelSize),
+              child: Container(
+                width: wheelSize,
+                height: wheelSize,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: SweepGradient(
+                    colors: [Colors.red, Colors.yellow, Colors.green, Colors.cyan, Colors.blue, Colors.purple, Colors.red],
+                  ),
+                ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(colors: [Colors.white.withValues(alpha: 1), Colors.white.withValues(alpha: 0)]),
+                  ),
+                  child: Align(
+                    alignment: Alignment(
+                      _hsv.saturation * math.cos(_hsv.hue * math.pi / 180),
+                      -_hsv.saturation * math.sin(_hsv.hue * math.pi / 180),
+                    ),
+                    child: Container(
+                      width: 16,
+                      height: 16,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: color,
+                        border: Border.all(color: Colors.white, width: 2),
+                        boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 3)],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Text(s('pdfColorBrightness'), style: const TextStyle(fontSize: 12)),
+                Expanded(
+                  child: Slider(
+                    value: _hsv.value,
+                    onChanged: (v) => _setColor(_hsv.withValue(v).toColor()),
+                  ),
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(color: color, border: Border.all(color: Colors.grey), borderRadius: BorderRadius.circular(6)),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: _hex,
+                    decoration: const InputDecoration(isDense: true, prefixText: '#'),
+                    textCapitalization: TextCapitalization.characters,
+                    onChanged: (v) {
+                      final hex = v.replaceAll('#', '').trim();
+                      if (hex.length == 6) {
+                        final parsed = int.tryParse(hex, radix: 16);
+                        if (parsed != null) _setColor(Color(0xFF000000 | parsed), fromHex: true);
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: Text(s('cancel'))),
+        FilledButton(onPressed: () => Navigator.of(context).pop(color.toARGB32()), child: Text(s('confirm'))),
       ],
     );
   }

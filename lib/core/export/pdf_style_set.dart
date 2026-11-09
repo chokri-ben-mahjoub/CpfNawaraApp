@@ -80,6 +80,47 @@ class PdfTextStyleSpec {
   int get hashCode => Object.hash(family, size, bold, italic, colorArgb, align);
 }
 
+/// Position et taille libres d'un élément déplaçable à la souris sur la page
+/// de garde (logo, bloc titre, filigrane) : [dx]/[dy] sont la fraction
+/// (0 à 1) de la zone utile de la page où placer son coin haut-gauche,
+/// [scale] multiplie sa taille normale, [angleDeg] le fait pivoter (filigrane
+/// seulement). `null` dans [PdfStyleSet] = position historique, inchangée.
+class PdfElementLayout {
+  final double dx;
+  final double dy;
+  final double scale;
+  final double angleDeg;
+
+  const PdfElementLayout({this.dx = 0.5, this.dy = 0.5, this.scale = 1, this.angleDeg = 0});
+
+  PdfElementLayout copyWith({double? dx, double? dy, double? scale, double? angleDeg}) =>
+      PdfElementLayout(dx: dx ?? this.dx, dy: dy ?? this.dy, scale: scale ?? this.scale, angleDeg: angleDeg ?? this.angleDeg);
+
+  Map<String, dynamic> toJson() => {'dx': dx, 'dy': dy, 'scale': scale, 'angle': angleDeg};
+
+  factory PdfElementLayout.fromJson(Map<String, dynamic>? j, PdfElementLayout fallback) {
+    if (j == null) return fallback;
+    double num0(String k, double lo, double hi, double d) {
+      final v = j[k];
+      return v is num && v >= lo && v <= hi ? v.toDouble() : d;
+    }
+
+    return PdfElementLayout(
+      dx: num0('dx', 0, 1, fallback.dx),
+      dy: num0('dy', 0, 1, fallback.dy),
+      scale: num0('scale', 0.2, 4, fallback.scale),
+      angleDeg: num0('angle', -180, 180, fallback.angleDeg),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is PdfElementLayout && other.dx == dx && other.dy == dy && other.scale == scale && other.angleDeg == angleDeg;
+
+  @override
+  int get hashCode => Object.hash(dx, dy, scale, angleDeg);
+}
+
 /// Apparence du cadre des tableaux. `null` = automatique (suit la palette).
 class PdfTableStyleSpec {
   final int? headerBgArgb;
@@ -186,6 +227,14 @@ class PdfStyleSet {
   final PdfTextStyleSpec pageFooter;
   final PdfTextStyleSpec secondary;
 
+  /// Position/taille libres sur la page de garde (voir [PdfElementLayout]) :
+  /// `null` = position historique (logo absent de la page de garde, titre
+  /// centré, filigrane centré à -35°). Dès qu'on déplace un élément à la
+  /// souris, il obtient sa position et le reste en mode libre.
+  final PdfElementLayout? logoLayout;
+  final PdfElementLayout? titleLayout;
+  final PdfElementLayout? watermarkLayout;
+
   const PdfStyleSet({
     this.pageHeader = const PdfTextStyleSpec(),
     this.pageFooter = const PdfTextStyleSpec(),
@@ -197,6 +246,9 @@ class PdfStyleSet {
     this.columnHeader = const PdfTextStyleSpec(bold: true, align: PdfTextAlign.center),
     this.cell = const PdfTextStyleSpec(),
     this.table = const PdfTableStyleSpec(),
+    this.logoLayout,
+    this.titleLayout,
+    this.watermarkLayout,
   });
 
   static const defaults = PdfStyleSet();
@@ -210,6 +262,12 @@ class PdfStyleSet {
     PdfTextStyleSpec? pageHeader,
     PdfTextStyleSpec? pageFooter,
     PdfTextStyleSpec? secondary,
+    PdfElementLayout? logoLayout,
+    bool clearLogoLayout = false,
+    PdfElementLayout? titleLayout,
+    bool clearTitleLayout = false,
+    PdfElementLayout? watermarkLayout,
+    bool clearWatermarkLayout = false,
   }) => PdfStyleSet(
     pageHeader: pageHeader ?? this.pageHeader,
     pageFooter: pageFooter ?? this.pageFooter,
@@ -219,6 +277,9 @@ class PdfStyleSet {
     columnHeader: columnHeader ?? this.columnHeader,
     cell: cell ?? this.cell,
     table: table ?? this.table,
+    logoLayout: clearLogoLayout ? null : (logoLayout ?? this.logoLayout),
+    titleLayout: clearTitleLayout ? null : (titleLayout ?? this.titleLayout),
+    watermarkLayout: clearWatermarkLayout ? null : (watermarkLayout ?? this.watermarkLayout),
   );
 
   bool get isDefault => this == defaults;
@@ -233,6 +294,9 @@ class PdfStyleSet {
     'pageHeader': pageHeader.toJson(),
     'pageFooter': pageFooter.toJson(),
     'secondary': secondary.toJson(),
+    if (logoLayout != null) 'logoLayout': logoLayout!.toJson(),
+    if (titleLayout != null) 'titleLayout': titleLayout!.toJson(),
+    if (watermarkLayout != null) 'watermarkLayout': watermarkLayout!.toJson(),
   };
 
   String encode() => jsonEncode(toJson());
@@ -249,6 +313,11 @@ class PdfStyleSet {
       pageHeader: PdfTextStyleSpec.fromJson(m('pageHeader'), d.pageHeader),
       pageFooter: PdfTextStyleSpec.fromJson(m('pageFooter'), d.pageFooter),
       secondary: PdfTextStyleSpec.fromJson(m('secondary'), d.secondary),
+      logoLayout: m('logoLayout') == null ? null : PdfElementLayout.fromJson(m('logoLayout'), const PdfElementLayout()),
+      titleLayout: m('titleLayout') == null ? null : PdfElementLayout.fromJson(m('titleLayout'), const PdfElementLayout()),
+      watermarkLayout: m('watermarkLayout') == null
+          ? null
+          : PdfElementLayout.fromJson(m('watermarkLayout'), const PdfElementLayout()),
     );
   }
 
@@ -274,8 +343,23 @@ class PdfStyleSet {
       other.table == table &&
       other.pageHeader == pageHeader &&
       other.pageFooter == pageFooter &&
-      other.secondary == secondary;
+      other.secondary == secondary &&
+      other.logoLayout == logoLayout &&
+      other.titleLayout == titleLayout &&
+      other.watermarkLayout == watermarkLayout;
 
   @override
-  int get hashCode => Object.hash(reportTitle, tableTitle, columnHeader, cell, table, pageHeader, pageFooter, secondary);
+  int get hashCode => Object.hash(
+    reportTitle,
+    tableTitle,
+    columnHeader,
+    cell,
+    table,
+    pageHeader,
+    pageFooter,
+    secondary,
+    logoLayout,
+    titleLayout,
+    watermarkLayout,
+  );
 }

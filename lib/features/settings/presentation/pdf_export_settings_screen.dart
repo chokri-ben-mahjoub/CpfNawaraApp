@@ -10,6 +10,7 @@ import '../../../core/plant/plant_repository.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/export/pdf_style_set.dart';
 import 'pdf_page_preview.dart';
+import 'pdf_layout_canvas.dart';
 import 'pdf_real_preview.dart';
 import 'pdf_style_editor.dart';
 
@@ -522,6 +523,10 @@ class _PdfExportSettingsScreenState
             },
           ),
         ]),
+        if (_kind.isPlant)
+          _card(context, Icons.control_camera_outlined, s('pdfLayoutSection'), [
+            PdfLayoutCanvas(style: _cfg.style, s: s, onChanged: (v) => _update(_cfg.copyWith(style: v))),
+          ]),
         _card(context, Icons.crop_portrait, s('pdfSetPage'), [
           _chips<PdfOrientation>(s('pdfSetOrientation'), _cfg.orientation, [
             (PdfOrientation.auto, s('pdfSetAuto')),

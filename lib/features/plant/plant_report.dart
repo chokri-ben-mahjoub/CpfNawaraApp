@@ -429,6 +429,70 @@ Future<Uint8List> buildPlantDailyReport({
     PdfOrientation.landscape => PdfPageFormat.a4.landscape,
     _ => PdfPageFormat.a4,
   };
+  final pageMargin = look.margin(32, 28);
+
+  // Page de garde : rendu historique (logo absent, titre centré à 220 pt du
+  // haut) tant que rien n'a été déplacé à la souris (Réglages › Exports PDF
+  // › Mise en page libre) ; dès qu'un élément a une position choisie, toute
+  // la page de garde passe en positionnement libre (pw.Stack).
+  pw.Widget coverPage() {
+    final logoLayout = pdfCfg.style.logoLayout;
+    final titleLayout = pdfCfg.style.titleLayout;
+    final titleScale = titleLayout?.scale ?? 1;
+    final titleBlock = pw.Column(
+      mainAxisSize: pw.MainAxisSize.min,
+      children: [
+        if (pdfCfg.showAppName)
+          pw.Text(
+            currentAppName,
+            textAlign: pw.TextAlign.center,
+            style: pw.TextStyle(fontSize: 14 * k * titleScale, fontWeight: pw.FontWeight.bold, color: accentC),
+          ),
+        if (pdfCfg.showTitle) ...[
+          pw.SizedBox(height: 8),
+          reportTitleW(reportTitle, 22 * titleScale, centerBox: false),
+        ],
+        if (pdfCfg.showReportNumber) ...[
+          pw.SizedBox(height: 8),
+          pw.Text(
+            '${t('plantReportNumberLabel')} $reportNumber',
+            textAlign: pw.TextAlign.center,
+            style: pw.TextStyle(fontSize: 14 * k * titleScale, fontWeight: pw.FontWeight.bold, color: accentC),
+          ),
+        ],
+      ],
+    );
+
+    if (logoLayout == null && titleLayout == null) {
+      return pw.Column(children: [pw.SizedBox(height: 220), pw.Center(child: titleBlock)]);
+    }
+    // Un élément a été déplacé : la page de garde n'a plus d'en-tête/pied de
+    // page (voir plus bas) et occupe toute la zone utile.
+    return pw.SizedBox(
+      width: pageFormat.width - pageMargin.horizontal,
+      height: pageFormat.height - pageMargin.vertical,
+      child: pw.Stack(
+        children: [
+          if (logoLayout != null && logoImage != null)
+            pw.Align(
+              alignment: pw.Alignment(logoLayout.dx * 2 - 1, 1 - logoLayout.dy * 2),
+              child: pw.Image(logoImage, height: 30 * logoLayout.scale),
+            ),
+          pw.Align(
+            alignment: titleLayout == null ? pw.Alignment.center : pw.Alignment(titleLayout.dx * 2 - 1, 1 - titleLayout.dy * 2),
+            child: titleBlock,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Vrai si la page de garde est en positionnement libre (un élément a été
+  /// déplacé à la souris) : elle occupe alors toute la zone utile, donc sans
+  /// en-tête/pied de page superposés dessus.
+  bool coverPageIsFreeLayout(pw.Context context) =>
+      pdfCfg.coverPage && context.pageNumber == 1 && (pdfCfg.style.logoLayout != null || pdfCfg.style.titleLayout != null);
+
   final footerParts = [
     if (pdfCfg.datePlacement == PdfDatePlacement.footer) '${t('plantReportGenerated')} $headerStamp',
     if (pdfCfg.showOperator && operatorName.isNotEmpty) _safe(operatorName),
@@ -439,10 +503,10 @@ Future<Uint8List> buildPlantDailyReport({
     pw.MultiPage(
       pageTheme: pw.PageTheme(
         pageFormat: pageFormat,
-        margin: look.margin(32, 28),
+        margin: pageMargin,
         buildBackground: look.background,
       ),
-      header: (context) => pw.Column(
+      header: (context) => coverPageIsFreeLayout(context) ? pw.SizedBox() : pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.Row(
@@ -483,7 +547,7 @@ Future<Uint8List> buildPlantDailyReport({
           pw.Divider(color: accentC, thickness: 1.5),
         ],
       ),
-      footer: (context) => pw.Row(
+      footer: (context) => coverPageIsFreeLayout(context) ? pw.SizedBox() : pw.Row(
         children: [
           pw.Text(footerParts.join(' - '), style: look.note(pdfCfg.style.pageFooter, size: 8 * k, color: _grey)),
           pw.Spacer(),
@@ -493,31 +557,7 @@ Future<Uint8List> buildPlantDailyReport({
       ),
       build: (context) => [
         if (pdfCfg.coverPage) ...[
-          pw.SizedBox(height: 220),
-          pw.Center(
-            child: pw.Column(
-              children: [
-                if (pdfCfg.showAppName)
-                  pw.Text(
-                    currentAppName,
-                    textAlign: pw.TextAlign.center,
-                    style: pw.TextStyle(fontSize: 14 * k, fontWeight: pw.FontWeight.bold, color: accentC),
-                  ),
-                if (pdfCfg.showTitle) ...[
-                  pw.SizedBox(height: 8),
-                  reportTitleW(reportTitle, 22, centerBox: false),
-                ],
-                if (pdfCfg.showReportNumber) ...[
-                  pw.SizedBox(height: 8),
-                  pw.Text(
-                    '${t('plantReportNumberLabel')} $reportNumber',
-                    textAlign: pw.TextAlign.center,
-                    style: pw.TextStyle(fontSize: 14 * k, fontWeight: pw.FontWeight.bold, color: accentC),
-                  ),
-                ],
-              ],
-            ),
-          ),
+          coverPage(),
           pw.NewPage(),
         ] else ...[
           if (pdfCfg.showTitle)
