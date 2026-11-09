@@ -216,7 +216,7 @@ class _PdfExportSettingsScreenState
           const SizedBox(height: 10),
           Expanded(
             child: _realPreview
-                ? PdfRealPreview(cfg: _cfg, title: s('pdfSetTitle'))
+                ? PdfRealPreview(cfg: _cfg, title: s('pdfSetTitle'), s: s, languageCode: locale.languageCode)
                 : Center(
               child: PdfPagePreview(
                 cfg: _cfg,

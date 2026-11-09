@@ -177,7 +177,19 @@ class PdfStyleSet {
   final PdfTextStyleSpec cell;
   final PdfTableStyleSpec table;
 
+  /// En-tête et pied de page de chaque page, et textes secondaires (notes
+  /// grises : équipement, source, mentions « aucune analyse »…). Pour ces
+  /// trois-là, la taille et la couleur `null` laissent chaque élément à son
+  /// propre réglage historique, et « gras » vrai force le gras partout (faux =
+  /// inchangé) ; l'alignement n'a pas d'effet.
+  final PdfTextStyleSpec pageHeader;
+  final PdfTextStyleSpec pageFooter;
+  final PdfTextStyleSpec secondary;
+
   const PdfStyleSet({
+    this.pageHeader = const PdfTextStyleSpec(),
+    this.pageFooter = const PdfTextStyleSpec(),
+    this.secondary = const PdfTextStyleSpec(),
     this.reportTitle = const PdfTextStyleSpec(size: 16, bold: true, colorArgb: 0xFF0B1E2D),
     this.tableTitle = const PdfTextStyleSpec(size: 12, bold: true, colorArgb: 0xFF0B1E2D),
     // Taille et couleur automatiques : taille selon le nombre de colonnes,
@@ -195,7 +207,13 @@ class PdfStyleSet {
     PdfTextStyleSpec? columnHeader,
     PdfTextStyleSpec? cell,
     PdfTableStyleSpec? table,
+    PdfTextStyleSpec? pageHeader,
+    PdfTextStyleSpec? pageFooter,
+    PdfTextStyleSpec? secondary,
   }) => PdfStyleSet(
+    pageHeader: pageHeader ?? this.pageHeader,
+    pageFooter: pageFooter ?? this.pageFooter,
+    secondary: secondary ?? this.secondary,
     reportTitle: reportTitle ?? this.reportTitle,
     tableTitle: tableTitle ?? this.tableTitle,
     columnHeader: columnHeader ?? this.columnHeader,
@@ -212,6 +230,9 @@ class PdfStyleSet {
     'columnHeader': columnHeader.toJson(),
     'cell': cell.toJson(),
     'table': table.toJson(),
+    'pageHeader': pageHeader.toJson(),
+    'pageFooter': pageFooter.toJson(),
+    'secondary': secondary.toJson(),
   };
 
   String encode() => jsonEncode(toJson());
@@ -225,6 +246,9 @@ class PdfStyleSet {
       columnHeader: PdfTextStyleSpec.fromJson(m('columnHeader'), d.columnHeader),
       cell: PdfTextStyleSpec.fromJson(m('cell'), d.cell),
       table: PdfTableStyleSpec.fromJson(m('table')),
+      pageHeader: PdfTextStyleSpec.fromJson(m('pageHeader'), d.pageHeader),
+      pageFooter: PdfTextStyleSpec.fromJson(m('pageFooter'), d.pageFooter),
+      secondary: PdfTextStyleSpec.fromJson(m('secondary'), d.secondary),
     );
   }
 
@@ -247,8 +271,11 @@ class PdfStyleSet {
       other.tableTitle == tableTitle &&
       other.columnHeader == columnHeader &&
       other.cell == cell &&
-      other.table == table;
+      other.table == table &&
+      other.pageHeader == pageHeader &&
+      other.pageFooter == pageFooter &&
+      other.secondary == secondary;
 
   @override
-  int get hashCode => Object.hash(reportTitle, tableTitle, columnHeader, cell, table);
+  int get hashCode => Object.hash(reportTitle, tableTitle, columnHeader, cell, table, pageHeader, pageFooter, secondary);
 }

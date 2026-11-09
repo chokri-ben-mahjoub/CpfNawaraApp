@@ -7,6 +7,8 @@ import 'package:printing/printing.dart';
 import '../../../core/export/export_table.dart';
 import '../../../core/export/pdf_export_settings.dart';
 import '../../../core/export/pdf_table_exporter.dart';
+import '../../../core/plant/plant_sample.dart';
+import '../../plant/plant_report.dart';
 
 /// Aperçu du vrai PDF, généré par le code d'export réel avec des données
 /// d'exemple et les réglages en cours d'édition ([cfg], même non encore
@@ -14,6 +16,8 @@ import '../../../core/export/pdf_table_exporter.dart';
 class PdfRealPreview extends StatefulWidget {
   final PdfExportSettings cfg;
   final String title;
+  final String Function(String) s;
+  final String languageCode;
 
   /// Données d'exemple par défaut : deux tableaux, dont un large (beaucoup de
   /// colonnes) pour voir l'effet des tailles et marges.
@@ -38,7 +42,7 @@ class PdfRealPreview extends StatefulWidget {
     ),
   ];
 
-  const PdfRealPreview({super.key, required this.cfg, required this.title});
+  const PdfRealPreview({super.key, required this.cfg, required this.title, required this.s, required this.languageCode});
 
   @override
   State<PdfRealPreview> createState() => _PdfRealPreviewState();
@@ -76,8 +80,29 @@ class _PdfRealPreviewState extends State<PdfRealPreview> {
   Future<void> _render() async {
     final gen = ++_gen;
     try {
-      final tables = PdfRealPreview.defaultSample();
-      final bytes = await PdfTableExporter.encode(tables, title: widget.title, operatorName: 'Opérateur', settings: widget.cfg);
+      final cfg = widget.cfg;
+      final Uint8List bytes;
+      if (cfg.kind.isPlant) {
+        // Vrai rapport usine, sur des données d'exemple (aucune donnée réelle).
+        final day = DateTime.now();
+        final plant = samplePlantForPreview(day);
+        final all = plant.circuits;
+        final one = all.where((c) => c.id == cfg.circuitId);
+        final everything = cfg.kind == PdfReportKind.allCircuits;
+        bytes = await buildPlantDailyReport(
+          controller: plant.controller,
+          day: day,
+          circuits: everything ? all : [one.isEmpty ? all.first : one.first],
+          s: widget.s,
+          languageCode: widget.languageCode,
+          operatorName: 'Opérateur',
+          reportNumber: '1/26',
+          allCircuits: everything,
+          settings: cfg,
+        );
+      } else {
+        bytes = await PdfTableExporter.encode(PdfRealPreview.defaultSample(), title: widget.title, operatorName: 'Opérateur', settings: cfg);
+      }
       if (!mounted || gen != _gen) return;
       setState(() {
         _bytes = bytes;

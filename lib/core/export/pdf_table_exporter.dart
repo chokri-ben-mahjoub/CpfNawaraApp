@@ -108,32 +108,32 @@ class PdfTableExporter {
                 if (cfg.showAppName)
                   pw.Text(
                     currentAppName,
-                    style: pw.TextStyle(color: look.accent, fontWeight: pw.FontWeight.bold, fontSize: 12 * k),
+                    style: look.note(cfg.style.pageHeader, size: 12 * k, color: look.accent, bold: true),
                   ),
                 pw.Spacer(),
-                if (cfg.showTitle) pw.Text(safeTitle, style: pw.TextStyle(color: _grey, fontSize: 9 * k)),
+                if (cfg.showTitle) pw.Text(safeTitle, style: look.note(cfg.style.pageHeader, size: 9 * k, color: _grey)),
                 if (cfg.datePlacement == PdfDatePlacement.header) ...[
                   if (cfg.showTitle) pw.SizedBox(width: 10),
-                  pw.Text(generated, style: pw.TextStyle(color: _navy, fontSize: 9 * k, fontWeight: pw.FontWeight.bold)),
+                  pw.Text(generated, style: look.note(cfg.style.pageHeader, size: 9 * k, color: _navy, bold: true)),
                 ],
               ],
             ),
             if (cfg.headerText.trim().isNotEmpty)
               pw.Padding(
                 padding: const pw.EdgeInsets.only(top: 2),
-                child: pw.Text(_safe(cfg.headerText.trim()), style: pw.TextStyle(color: _grey, fontSize: 8.5 * k)),
+                child: pw.Text(_safe(cfg.headerText.trim()), style: look.note(cfg.style.pageHeader, size: 8.5 * k, color: _grey)),
               ),
             pw.Divider(color: look.accent, thickness: 1.5),
           ],
         ),
         footer: (context) => pw.Row(
           children: [
-            pw.Text(footerParts.join(' - '), style: pw.TextStyle(color: _grey, fontSize: 8 * k)),
+            pw.Text(footerParts.join(' - '), style: look.note(cfg.style.pageFooter, size: 8 * k, color: _grey)),
             pw.Spacer(),
             if (cfg.showPageNumbers)
               pw.Text(
                 '${context.pageNumber} / ${context.pagesCount}',
-                style: pw.TextStyle(color: _grey, fontSize: 8 * k),
+                style: look.note(cfg.style.pageFooter, size: 8 * k, color: _grey),
               ),
           ],
         ),
@@ -143,7 +143,7 @@ class PdfTableExporter {
           if (cfg.datePlacement == PdfDatePlacement.top)
             pw.Padding(
               padding: const pw.EdgeInsets.only(top: 3),
-              child: pw.Text(dateText, style: pw.TextStyle(fontSize: 10 * k, color: _grey)),
+              child: pw.Text(dateText, style: look.note(cfg.style.secondary, size: 10 * k, color: _grey)),
             ),
           ...sections,
         ],

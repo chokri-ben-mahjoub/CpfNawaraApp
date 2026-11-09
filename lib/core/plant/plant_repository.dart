@@ -305,6 +305,10 @@ class PlantController extends StateNotifier<PlantState> {
   @visibleForTesting
   PlantController.seeded(super.initial);
 
+  /// Contrôleur d'exemple sans base locale, pour l'aperçu des PDF (voir
+  /// `plant_sample.dart`) : ne lit ni n'écrit aucune donnée réelle.
+  PlantController.preview(super.initial);
+
   Future<void> reload() => _load();
 
   Future<void> _load() async {

@@ -99,6 +99,32 @@ void main() {
     expect(b.length, isNot(a.length));
   });
 
+  test('en-tête/pied/secondaire : défaut identique à l\'historique, personnalisé différent', () async {
+    final look = PdfLook(PdfExportSettings());
+    const grey = PdfColor.fromInt(0xFF757575);
+    const d = PdfStyleSet.defaults;
+    Future<String> r(pw.TextStyle s) => _render(pw.Text('Texte', style: s));
+    expect(await r(look.note(d.pageFooter, size: 8, color: grey)), await r(pw.TextStyle(color: grey, fontSize: 8)));
+    expect(
+      await r(look.note(d.pageHeader, size: 12, color: PdfColors.red, bold: true)),
+      await r(pw.TextStyle(color: PdfColors.red, fontWeight: pw.FontWeight.bold, fontSize: 12)),
+    );
+    final custom = look.note(const PdfTextStyleSpec(family: PdfFontFamily.times, size: 14, bold: true), size: 8, color: grey);
+    expect(await r(custom), isNot(await r(pw.TextStyle(color: grey, fontSize: 8))));
+  });
+
+  test('le style complet (avec en-tête/pied/secondaire) survit à JSON', () {
+    const s = PdfStyleSet(
+      pageHeader: PdfTextStyleSpec(family: PdfFontFamily.courier, size: 10, italic: true),
+      pageFooter: PdfTextStyleSpec(colorArgb: 0xFF112233),
+      secondary: PdfTextStyleSpec(bold: true),
+    );
+    expect(PdfStyleSet.decode(s.encode()), s);
+    // Ancien JSON (sans les nouveaux champs) : défauts pour ceux-là.
+    final old = PdfStyleSet.decode('{"reportTitle":{"size":20}}');
+    expect(old.pageHeader, PdfStyleSet.defaults.pageHeader);
+  });
+
   test('aperçu : les réglages passés (non enregistrés) priment sur les enregistrés', () async {
     SharedPreferences.setMockInitialValues({});
     const t = [ExportTable(name: 'T', headers: ['A'], rows: [['x']])];

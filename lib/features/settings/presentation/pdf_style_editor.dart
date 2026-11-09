@@ -44,6 +44,9 @@ class PdfStyleEditor extends StatelessWidget {
         _textBlock(s('pdfStyleColHeader'), style.columnHeader, (v) => onChanged(style.copyWith(columnHeader: v)), autoSize: true),
         _textBlock(s('pdfStyleCell'), style.cell, (v) => onChanged(style.copyWith(cell: v)), autoSize: true),
         _frameBlock(),
+        _textBlock(s('pdfStylePageHeader'), style.pageHeader, (v) => onChanged(style.copyWith(pageHeader: v)), autoSize: true, plain: true),
+        _textBlock(s('pdfStylePageFooter'), style.pageFooter, (v) => onChanged(style.copyWith(pageFooter: v)), autoSize: true, plain: true),
+        _textBlock(s('pdfStyleSecondary'), style.secondary, (v) => onChanged(style.copyWith(secondary: v)), autoSize: true, plain: true),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -62,7 +65,7 @@ class PdfStyleEditor extends StatelessWidget {
     child: Text(t, style: const TextStyle(fontSize: 13)),
   );
 
-  Widget _textBlock(String title, PdfTextStyleSpec v, ValueChanged<PdfTextStyleSpec> set, {required bool autoSize}) {
+  Widget _textBlock(String title, PdfTextStyleSpec v, ValueChanged<PdfTextStyleSpec> set, {required bool autoSize, bool plain = false}) {
     return ExpansionTile(
       tilePadding: EdgeInsets.zero,
       childrenPadding: const EdgeInsets.only(bottom: 8),
@@ -111,7 +114,8 @@ class PdfStyleEditor extends StatelessWidget {
             FilterChip(label: Text(s('pdfStyleItalic')), selected: v.italic, onSelected: (on) => set(v.copyWith(italic: on))),
           ],
         ),
-        _label(s('pdfStyleAlign')),
+        if (!plain) _label(s('pdfStyleAlign')),
+        if (!plain)
         Wrap(
           spacing: 8,
           children: [

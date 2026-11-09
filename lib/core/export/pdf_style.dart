@@ -60,6 +60,12 @@ class PdfLook {
     };
   }
 
+  /// Texte d'en-tête, de pied de page ou secondaire : [size], [color] et
+  /// [bold] sont ceux historiques de l'élément, remplacés seulement si le
+  /// réglage [s] en impose d'autres (« gras » du réglage = gras partout).
+  pw.TextStyle note(PdfTextStyleSpec s, {required double size, PdfColor? color, bool bold = false}) =>
+      textStyle(s.copyWith(bold: s.bold || bold), size: size, color: color);
+
   /// Titre (rapport ou tableau) au style [s]. [scale] multiplie la taille
   /// (réglage « taille du texte ») ; l'alignement par défaut (gauche) n'ajoute
   /// aucun conteneur, pour garder le PDF identique à l'historique.

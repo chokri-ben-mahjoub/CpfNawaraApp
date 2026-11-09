@@ -46,13 +46,16 @@ Future<Uint8List> buildPlantDailyReport({
   Set<String>? analysisIds,
   Set<String>? paramKeys,
   ReportOptions options = const ReportOptions(),
+
+  /// Réglages à utiliser à la place de ceux enregistrés (aperçu en direct).
+  PdfExportSettings? settings,
 }) async {
   // Polices standard du PDF : pas de tiret long ni de ≤ / ≥.
   String t(String key) => _safe(s(key));
   // Circuit précis (style propre à ce circuit, s'il a été personnalisé) :
   // seulement quand le rapport ne porte que sur un seul circuit.
   final onlyCircuitId = !allCircuits && circuits.length == 1 ? circuits.first.id : null;
-  final pdfCfg = await PdfExportSettings.load(
+  final pdfCfg = settings ?? await PdfExportSettings.load(
     allCircuits ? PdfReportKind.allCircuits : PdfReportKind.samples,
     onlyCircuitId,
   );
@@ -187,7 +190,7 @@ Future<Uint8List> buildPlantDailyReport({
             pw.SizedBox(width: 6),
             pw.Text(
               _safe('(${point.equipment})'),
-              style: const pw.TextStyle(color: _grey, fontSize: 9),
+              style: look.note(pdfCfg.style.secondary, size: 9, color: _grey),
             ),
             pw.Spacer(),
             pw.Text(
@@ -215,7 +218,7 @@ Future<Uint8List> buildPlantDailyReport({
             padding: const pw.EdgeInsets.only(top: 3),
             child: pw.Text(
               t('plantNoAnalysisThatDay'),
-              style: const pw.TextStyle(color: _grey, fontSize: 9),
+              style: look.note(pdfCfg.style.secondary, size: 9, color: _grey),
             ),
           ),
         );
@@ -241,7 +244,7 @@ Future<Uint8List> buildPlantDailyReport({
             padding: const pw.EdgeInsets.only(top: 3),
             child: pw.Text(
               t('plantNoValuesForParams'),
-              style: const pw.TextStyle(color: _grey, fontSize: 9),
+              style: look.note(pdfCfg.style.secondary, size: 9, color: _grey),
             ),
           ),
         );
@@ -383,7 +386,7 @@ Future<Uint8List> buildPlantDailyReport({
           sections.add(
             pw.Padding(
               padding: const pw.EdgeInsets.only(top: 4),
-              child: pw.Text(meta, style: const pw.TextStyle(color: _grey, fontSize: 8.5)),
+              child: pw.Text(meta, style: look.note(pdfCfg.style.secondary, size: 8.5, color: _grey)),
             ),
           );
           if (a.comment != null && a.comment!.isNotEmpty)
@@ -448,11 +451,11 @@ Future<Uint8List> buildPlantDailyReport({
                     if (pdfCfg.showAppName)
                       pw.Text(
                         currentAppName,
-                        style: pw.TextStyle(color: accentC, fontWeight: pw.FontWeight.bold, fontSize: 12 * k),
+                        style: look.note(pdfCfg.style.pageHeader, size: 12 * k, color: accentC, bold: true),
                       ),
                     pw.Spacer(),
                     if (pdfCfg.datePlacement == PdfDatePlacement.header) ...[
-                      pw.Text(headerStamp, style: pw.TextStyle(color: _grey, fontSize: 9 * k)),
+                      pw.Text(headerStamp, style: look.note(pdfCfg.style.pageHeader, size: 9 * k, color: _grey)),
                       pw.SizedBox(width: 10),
                     ],
                     if (logoImage != null) pw.Image(logoImage, height: 30),
@@ -465,27 +468,27 @@ Future<Uint8List> buildPlantDailyReport({
                     if (pdfCfg.showAppName)
                       pw.Text(
                         currentAppName,
-                        style: pw.TextStyle(color: accentC, fontWeight: pw.FontWeight.bold, fontSize: 12 * k),
+                        style: look.note(pdfCfg.style.pageHeader, size: 12 * k, color: accentC, bold: true),
                       ),
                     pw.Spacer(),
                     if (pdfCfg.datePlacement == PdfDatePlacement.header)
-                      pw.Text(headerStamp, style: pw.TextStyle(color: _grey, fontSize: 9 * k)),
+                      pw.Text(headerStamp, style: look.note(pdfCfg.style.pageHeader, size: 9 * k, color: _grey)),
                   ],
           ),
           if (pdfCfg.headerText.trim().isNotEmpty)
             pw.Padding(
               padding: const pw.EdgeInsets.only(top: 2),
-              child: pw.Text(_safe(pdfCfg.headerText.trim()), style: pw.TextStyle(color: _grey, fontSize: 8.5 * k)),
+              child: pw.Text(_safe(pdfCfg.headerText.trim()), style: look.note(pdfCfg.style.pageHeader, size: 8.5 * k, color: _grey)),
             ),
           pw.Divider(color: accentC, thickness: 1.5),
         ],
       ),
       footer: (context) => pw.Row(
         children: [
-          pw.Text(footerParts.join(' - '), style: pw.TextStyle(color: _grey, fontSize: 8 * k)),
+          pw.Text(footerParts.join(' - '), style: look.note(pdfCfg.style.pageFooter, size: 8 * k, color: _grey)),
           pw.Spacer(),
           if (pdfCfg.showPageNumbers)
-            pw.Text('${context.pageNumber} / ${context.pagesCount}', style: pw.TextStyle(color: _grey, fontSize: 8 * k)),
+            pw.Text('${context.pageNumber} / ${context.pagesCount}', style: look.note(pdfCfg.style.pageFooter, size: 8 * k, color: _grey)),
         ],
       ),
       build: (context) => [
@@ -531,7 +534,7 @@ Future<Uint8List> buildPlantDailyReport({
           ],
           if (pdfCfg.datePlacement == PdfDatePlacement.top) ...[
             pw.SizedBox(height: 4),
-            pw.Text('${t('plantReportGenerated')} $headerStamp', style: pw.TextStyle(fontSize: 10 * k, color: _grey)),
+            pw.Text('${t('plantReportGenerated')} $headerStamp', style: look.note(pdfCfg.style.secondary, size: 10 * k, color: _grey)),
           ],
           pw.SizedBox(height: 16),
         ],
@@ -577,7 +580,7 @@ Future<Uint8List> buildPlantDailyReport({
         if (sections.isEmpty)
           pw.Padding(
             padding: const pw.EdgeInsets.only(top: 24),
-            child: pw.Text(t('plantReportNothing'), style: const pw.TextStyle(color: _grey, fontSize: 11)),
+            child: pw.Text(t('plantReportNothing'), style: look.note(pdfCfg.style.secondary, size: 11, color: _grey)),
           ),
       ],
     ),

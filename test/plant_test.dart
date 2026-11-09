@@ -7,6 +7,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:puitstrack/core/export/pdf_export_settings.dart';
 import 'package:puitstrack/core/export/pdf_style_set.dart';
 import 'package:puitstrack/core/plant/plant_catalog.dart';
+import 'package:puitstrack/core/plant/plant_sample.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:puitstrack/core/plant/plant_repository.dart';
 import 'package:puitstrack/features/plant/plant_report.dart';
@@ -248,6 +249,34 @@ void main() {
     expect(await size(), isNot(before));
     SharedPreferences.setMockInitialValues({});
     expect(await size(), before, reason: 'restaurer = rendu d\'origine');
+  });
+
+  test('aperçu usine : rapport sur données d\'exemple, réglages passés prioritaires', () async {
+    SharedPreferences.setMockInitialValues({});
+    final sample = samplePlantForPreview(today);
+    Future<int> size(PdfExportSettings cfg) async => (await buildPlantDailyReport(
+      controller: sample.controller,
+      day: today,
+      circuits: sample.circuits,
+      s: (key) => key,
+      languageCode: 'fr',
+      operatorName: 'Opérateur',
+      reportNumber: '1/26',
+      allCircuits: true,
+      settings: cfg,
+    )).length;
+    final base = PdfExportSettings.defaults(PdfReportKind.allCircuits);
+    final a = await size(base);
+    expect(a, greaterThan(2000));
+    final b = await size(
+      base.copyWith(
+        style: const PdfStyleSet(
+          pageFooter: PdfTextStyleSpec(family: PdfFontFamily.courier, size: 12),
+          secondary: PdfTextStyleSpec(italic: true, family: PdfFontFamily.times),
+        ),
+      ),
+    );
+    expect(b, isNot(a));
   });
 
   test('rapport PDF : points non analysés exclus par défaut, inclus sur demande', () async {
