@@ -2,6 +2,9 @@ import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
+import 'pdf_style.dart';
+import 'pdf_style_set.dart';
+
 const _navy = PdfColor.fromInt(0xFF0B1E2D);
 const _grey = PdfColor.fromInt(0xFF757575);
 
@@ -37,14 +40,21 @@ const pdfChartPalette = [
 
 /// Construit la section complète (titre + courbe + légende) d'un
 /// [PdfReportChart], ou un widget vide si moins de 2 points au total.
-pw.Widget buildPdfChartSection(PdfReportChart chart, {double height = 170}) {
+///
+/// Avec [look], le titre suit le style « titre de tableau » quand il a été
+/// personnalisé ; sinon (ou sans [look]) rendu historique inchangé.
+pw.Widget buildPdfChartSection(PdfReportChart chart, {double height = 170, PdfLook? look}) {
   final nonEmpty = chart.series.where((s) => s.points.length >= 2).toList();
   if (nonEmpty.isEmpty) return pw.SizedBox();
 
+  final spec = look?.cfg.style.tableTitle;
+  final custom = look != null && spec != null && spec != PdfStyleSet.defaults.tableTitle;
   return pw.Column(
     crossAxisAlignment: pw.CrossAxisAlignment.start,
     children: [
-      pw.Text(chart.title, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11, color: _navy)),
+      custom
+          ? look.title(chart.title, spec, size: 11, color: _navy)
+          : pw.Text(chart.title, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11, color: _navy)),
       pw.SizedBox(height: 6),
       _buildChart(nonEmpty, height: height),
     ],

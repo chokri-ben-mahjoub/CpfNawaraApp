@@ -4,7 +4,10 @@ import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:puitstrack/core/export/pdf_export_settings.dart';
+import 'package:puitstrack/core/export/pdf_style_set.dart';
 import 'package:puitstrack/core/plant/plant_catalog.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:puitstrack/core/plant/plant_repository.dart';
 import 'package:puitstrack/features/plant/plant_report.dart';
 
@@ -220,6 +223,31 @@ void main() {
     );
     expect(ascii.decode(bytes.take(5).toList()), '%PDF-');
     expect(bytes.length, greaterThan(2000));
+  });
+
+  test('rapport PDF : le style personnalisé (titres, tableaux) est appliqué', () async {
+    SharedPreferences.setMockInitialValues({});
+    final plant = seededPlant(today);
+    Future<int> size() async => (await buildPlantDailyReport(
+      controller: plant,
+      day: today,
+      circuits: _circuitsById.values.toList(),
+      s: (key) => key,
+      languageCode: 'fr',
+      operatorName: 'Ahmed',
+      reportNumber: '1/26',
+    )).length;
+    final before = await size();
+    await PdfExportSettings.applyStyleToAll(
+      const PdfStyleSet(
+        reportTitle: PdfTextStyleSpec(family: PdfFontFamily.times, size: 26, bold: true, align: PdfTextAlign.right),
+        columnHeader: PdfTextStyleSpec(family: PdfFontFamily.courier, italic: true),
+        table: PdfTableStyleSpec(headerBgArgb: 0xFF334455),
+      ),
+    );
+    expect(await size(), isNot(before));
+    SharedPreferences.setMockInitialValues({});
+    expect(await size(), before, reason: 'restaurer = rendu d\'origine');
   });
 
   test('rapport PDF : points non analysés exclus par défaut, inclus sur demande', () async {

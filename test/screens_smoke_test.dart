@@ -486,6 +486,12 @@ void main() {
     await t.pumpAndSettle();
     expect(t.takeException(), isNull);
   });
+  testWidgets('réglages exports PDF : la carte « Style avancé » est présente', (t) async {
+    await _render(t, const PdfExportSettingsScreen(), height: 1000);
+    await t.dragUntilVisible(find.text('Style avancé (polices, tailles, couleurs)'), find.byType(ListView).last, const Offset(0, -300));
+    expect(find.text('Style avancé (polices, tailles, couleurs)'), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
   testWidgets(
     'réglages exports PDF : aperçu en direct (grand écran, anglais)',
     (t) async {

@@ -30,8 +30,12 @@ class PdfTableExporter {
     required String title,
     String operatorName = '',
     List<PdfReportChart> charts = const [],
+
+    /// Réglages à utiliser à la place de ceux enregistrés (aperçu en direct
+    /// pendant l'édition, avant enregistrement).
+    PdfExportSettings? settings,
   }) async {
-    final cfg = await PdfExportSettings.load();
+    final cfg = settings ?? await PdfExportSettings.load();
     final look = PdfLook(cfg);
     final k = cfg.textScale;
     final safeTitle = _safe(title);
@@ -55,15 +59,13 @@ class PdfTableExporter {
     final sections = <pw.Widget>[];
     final chartWidgets = <pw.Widget>[
       if (cfg.charts != PdfChartsPosition.hidden)
-        for (final chart in charts) ...[pw.SizedBox(height: 16), buildPdfChartSection(chart)],
+        for (final chart in charts) ...[pw.SizedBox(height: 16), buildPdfChartSection(chart, look: look)],
     ];
     if (cfg.charts == PdfChartsPosition.before) sections.addAll(chartWidgets);
     for (final table in tables) {
-      sections.add(pw.SizedBox(height: 16));
-      sections.add(
-        pw.Text(_safe(table.name), style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12, color: _navy)),
-      );
-      sections.add(pw.SizedBox(height: 6));
+      sections.add(pw.SizedBox(height: cfg.style.table.spaceBeforeTable));
+      sections.add(look.title(_safe(table.name), cfg.style.tableTitle, size: 12, color: _navy));
+      sections.add(pw.SizedBox(height: cfg.style.table.spaceAfterTitle));
       sections.add(
         look.table(
           headers: table.headers.map(_safe).toList(),
@@ -137,7 +139,7 @@ class PdfTableExporter {
         ),
         build: (context) => [
           if (cfg.showTitle)
-            pw.Text(safeTitle, style: pw.TextStyle(fontSize: 16 * k, fontWeight: pw.FontWeight.bold, color: _navy)),
+            look.title(safeTitle, cfg.style.reportTitle, size: 16, color: _navy, scale: k),
           if (cfg.datePlacement == PdfDatePlacement.top)
             pw.Padding(
               padding: const pw.EdgeInsets.only(top: 3),

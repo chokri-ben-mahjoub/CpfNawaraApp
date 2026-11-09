@@ -1,6 +1,8 @@
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'pdf_style_set.dart';
+
 enum PdfChartsPosition { after, before, hidden }
 
 enum PdfDatePlacement { header, footer, top, hidden }
@@ -127,7 +129,11 @@ class PdfExportSettings {
   final int margins; // 0 serrées, 1 standard, 2 larges
   final String watermark; // filigrane (ex: CONFIDENTIEL), vide = aucun
 
+  /// Style fin (polices, tailles, couleurs, bordures) des titres et tableaux.
+  final PdfStyleSet style;
+
   const PdfExportSettings({
+    this.style = PdfStyleSet.defaults,
     this.kind = PdfReportKind.tables,
     this.circuitId,
     this.charts = PdfChartsPosition.after,
@@ -232,7 +238,9 @@ class PdfExportSettings {
     int? tableStyle,
     int? margins,
     String? watermark,
+    PdfStyleSet? style,
   }) => PdfExportSettings(
+    style: style ?? this.style,
     kind: kind,
     circuitId: circuitId,
     charts: charts ?? this.charts,
@@ -329,6 +337,7 @@ class PdfExportSettings {
         tableStyle: p.getInt('${k}tableStyle') ?? d.tableStyle,
         margins: p.getInt('${k}margins') ?? d.margins,
         watermark: p.getString('${k}watermark') ?? d.watermark,
+        style: p.containsKey('${k}style_json') ? PdfStyleSet.decode(p.getString('${k}style_json')) : d.style,
       );
     } catch (_) {
       return d;
@@ -375,6 +384,39 @@ class PdfExportSettings {
       await p.setInt('${k}tableStyle', tableStyle);
       await p.setInt('${k}margins', margins);
       await p.setString('${k}watermark', watermark);
+      if (style.isDefault) {
+        await p.remove('${k}style_json');
+      } else {
+        await p.setString('${k}style_json', style.encode());
+      }
+    } catch (_) {}
+  }
+
+  /// Restaure le style fin par défaut de cette famille (ou de ce circuit),
+  /// sans toucher aux autres réglages.
+  Future<PdfExportSettings> resetStyle() async {
+    final r = copyWith(style: PdfStyleSet.defaults);
+    await r.save();
+    return r;
+  }
+
+  /// Copie [style] vers toutes les familles (« Appliquer à tous »). Les
+  /// circuits ayant un style propre sont retirés pour reprendre celui de leur
+  /// famille.
+  static Future<void> applyStyleToAll(PdfStyleSet style) async {
+    try {
+      final p = await SharedPreferences.getInstance();
+      for (final kind in PdfReportKind.values) {
+        final key = '${kind.prefix}style_json';
+        if (style.isDefault) {
+          await p.remove(key);
+        } else {
+          await p.setString(key, style.encode());
+        }
+        for (final k in p.getKeys().where((k) => k.startsWith('${kind.prefix}c_') && k.endsWith('style_json')).toList()) {
+          await p.remove(k);
+        }
+      }
     } catch (_) {}
   }
 }

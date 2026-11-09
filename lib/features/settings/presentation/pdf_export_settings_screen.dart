@@ -8,7 +8,10 @@ import '../../../core/export/pdf_export_settings.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/plant/plant_repository.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/export/pdf_style_set.dart';
 import 'pdf_page_preview.dart';
+import 'pdf_real_preview.dart';
+import 'pdf_style_editor.dart';
 
 /// Page « Exports PDF » : pour chaque famille de PDF (tous les circuits,
 /// échantillons CPI, tableaux), tout ce qui s'affiche et où — avec un aperçu
@@ -33,6 +36,7 @@ class _PdfExportSettingsScreenState
   );
   bool _loaded = false;
   bool _showPreview = true;
+  bool _realPreview = false;
   final _header = TextEditingController();
   final _footer = TextEditingController();
   final _title = TextEditingController();
@@ -199,9 +203,21 @@ class _PdfExportSettingsScreenState
               ),
             ],
           ),
+          const SizedBox(height: 6),
+          SegmentedButton<bool>(
+            showSelectedIcon: false,
+            segments: [
+              ButtonSegment(value: false, label: Text(s('pdfPreviewMock'))),
+              ButtonSegment(value: true, label: Text(s('pdfPreviewReal'))),
+            ],
+            selected: {_realPreview},
+            onSelectionChanged: (v) => setState(() => _realPreview = v.first),
+          ),
           const SizedBox(height: 10),
           Expanded(
-            child: Center(
+            child: _realPreview
+                ? PdfRealPreview(cfg: _cfg, title: s('pdfSetTitle'))
+                : Center(
               child: PdfPagePreview(
                 cfg: _cfg,
                 s: s,
@@ -486,6 +502,24 @@ class _PdfExportSettingsScreenState
             hint: s('pdfSetWatermarkHint'),
             helper: s('pdfSetEmptyNone'),
             onChanged: (v) => _update(_cfg.copyWith(watermark: v)),
+          ),
+        ]),
+        _card(context, Icons.text_fields, s('pdfStyleSection'), [
+          PdfStyleEditor(
+            style: _cfg.style,
+            s: s,
+            onChanged: (v) => _update(_cfg.copyWith(style: v)),
+            onReset: () {
+              _update(_cfg.copyWith(style: PdfStyleSet.defaults));
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s('pdfStyleResetDone'))));
+            },
+            onApplyAll: () async {
+              final messenger = ScaffoldMessenger.of(context);
+              await _cfg.save();
+              await PdfExportSettings.applyStyleToAll(_cfg.style);
+              await _load(_kind, circuitId: _circuitId);
+              messenger.showSnackBar(SnackBar(content: Text(s('pdfStyleAppliedAll'))));
+            },
           ),
         ]),
         _card(context, Icons.crop_portrait, s('pdfSetPage'), [

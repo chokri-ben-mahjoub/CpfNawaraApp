@@ -3,6 +3,9 @@ import 'dart:typed_data';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
+import '../export/pdf_export_settings.dart';
+import '../export/pdf_style.dart';
+import '../export/pdf_style_set.dart';
 import '../l10n/app_strings.dart' show currentAppName;
 import 'qr_links.dart';
 
@@ -25,6 +28,14 @@ Future<Uint8List> buildQrLabelsPdf({
   final doc = pw.Document(title: title, author: currentAppName);
   const navy = PdfColor.fromInt(0xFF0B1E2D);
   const grey = PdfColor.fromInt(0xFF757575);
+  // Titre de la planche : suit le style « titre du rapport » s'il a été
+  // personnalisé (même police/couleur/alignement, taille proportionnelle à
+  // 11/16) ; sinon rendu historique.
+  final cfg = await PdfExportSettings.load();
+  final look = PdfLook(cfg);
+  final base = cfg.style.reportTitle;
+  final customTitle = base != PdfStyleSet.defaults.reportTitle;
+  final spec = base.size == null ? base : base.copyWith(size: base.size! * 11 / 16);
 
   pw.Widget cell(QrLabel l) => pw.Container(
     width: 165,
@@ -68,10 +79,12 @@ Future<Uint8List> buildQrLabelsPdf({
       margin: const pw.EdgeInsets.all(28),
       header: (context) => pw.Padding(
         padding: const pw.EdgeInsets.only(bottom: 10),
-        child: pw.Text(
-          '$currentAppName - $title',
-          style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: navy),
-        ),
+        child: customTitle
+            ? look.title('$currentAppName - $title', spec, size: 11, color: navy)
+            : pw.Text(
+                '$currentAppName - $title',
+                style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: navy),
+              ),
       ),
       build: (context) => [
         pw.Wrap(spacing: 10, runSpacing: 10, children: [for (final l in labels) cell(l)]),

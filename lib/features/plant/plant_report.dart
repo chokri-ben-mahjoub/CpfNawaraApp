@@ -16,6 +16,7 @@ import '../../core/plant/plant_repository.dart';
 import '../../core/export/pdf_export_settings.dart';
 import '../../core/export/export_table.dart';
 import '../../core/export/pdf_style.dart';
+import '../../core/export/pdf_style_set.dart';
 import '../../core/lab/gas_bottle_repository.dart';
 import '../../core/lab/sample_manifest_repository.dart';
 import 'report_options.dart';
@@ -67,6 +68,29 @@ Future<Uint8List> buildPlantDailyReport({
   final logoImage = logo == null || !options.logo ? null : pw.MemoryImage(logo);
   final headerStamp = pdfCfg.stamp();
   final reportDay = DateFormat('dd-MM-yyyy').format(day);
+
+  // Titres : sans personnalisation, rendu historique inchangé ; sinon le style
+  // choisi (police, taille, couleur, alignement) prend le dessus.
+  final rtSpec = pdfCfg.style.reportTitle;
+  final rtDefault = rtSpec == PdfStyleSet.defaults.reportTitle;
+  final ttSpec = pdfCfg.style.tableTitle;
+  final ttDefault = ttSpec == PdfStyleSet.defaults.tableTitle;
+  pw.Widget reportTitleW(String text, double base, {required bool centerBox}) {
+    if (!rtDefault) {
+      final spec = rtSpec.size == null ? rtSpec : rtSpec.copyWith(size: rtSpec.size! * base / 18);
+      return look.title(text, spec, size: base, color: _navy, scale: k);
+    }
+    final txt = pw.Text(
+      text,
+      textAlign: pw.TextAlign.center,
+      style: pw.TextStyle(fontSize: base * k, fontWeight: pw.FontWeight.bold, color: _navy),
+    );
+    return centerBox ? pw.Center(child: txt) : txt;
+  }
+
+  pw.Widget tableTitleW(String text, double base) => ttDefault
+      ? pw.Text(text, style: pw.TextStyle(fontSize: base * k, fontWeight: pw.FontWeight.bold, color: _navy))
+      : look.title(text, ttSpec, size: base, color: _navy, scale: k);
 
   // Bloc « Date : … / Nom : fonction », en gras comme sur le modèle.
   pw.Widget signatureBlock() => pw.Column(
@@ -227,7 +251,7 @@ Future<Uint8List> buildPlantDailyReport({
       void addCharts() {
         for (final chart in plantPointCharts(controller, point, s, keys: paramKeys)) {
           sections.add(pw.SizedBox(height: 8));
-          sections.add(buildPdfChartSection(chart, height: 130));
+          sections.add(buildPdfChartSection(chart, height: 130, look: look));
         }
       }
 
@@ -478,11 +502,7 @@ Future<Uint8List> buildPlantDailyReport({
                   ),
                 if (pdfCfg.showTitle) ...[
                   pw.SizedBox(height: 8),
-                  pw.Text(
-                    reportTitle,
-                    textAlign: pw.TextAlign.center,
-                    style: pw.TextStyle(fontSize: 22 * k, fontWeight: pw.FontWeight.bold, color: _navy),
-                  ),
+                  reportTitleW(reportTitle, 22, centerBox: false),
                 ],
                 if (pdfCfg.showReportNumber) ...[
                   pw.SizedBox(height: 8),
@@ -498,13 +518,7 @@ Future<Uint8List> buildPlantDailyReport({
           pw.NewPage(),
         ] else ...[
           if (pdfCfg.showTitle)
-            pw.Center(
-              child: pw.Text(
-                reportTitle,
-                textAlign: pw.TextAlign.center,
-                style: pw.TextStyle(fontSize: 18 * k, fontWeight: pw.FontWeight.bold, color: _navy),
-              ),
-            ),
+            reportTitleW(reportTitle, 18, centerBox: true),
           if (pdfCfg.showReportNumber) ...[
             pw.SizedBox(height: 2),
             pw.Center(
@@ -522,10 +536,7 @@ Future<Uint8List> buildPlantDailyReport({
           pw.SizedBox(height: 16),
         ],
         if (sampleManifest.isNotEmpty) ...[
-          pw.Text(
-            t('plantScopeOfWorkTitle'),
-            style: pw.TextStyle(fontSize: 13 * k, fontWeight: pw.FontWeight.bold, color: _navy),
-          ),
+          tableTitleW(t('plantScopeOfWorkTitle'), 13),
           pw.SizedBox(height: 8),
           look.table(
             headers: [
@@ -547,11 +558,8 @@ Future<Uint8List> buildPlantDailyReport({
         ...sections,
         if (gasBottles.isNotEmpty) ...[
           pw.SizedBox(height: 20),
-          pw.Text(
-            t('plantGasBottlesSurveyTitle'),
-            style: pw.TextStyle(fontSize: 12 * k, fontWeight: pw.FontWeight.bold, color: _navy),
-          ),
-          pw.SizedBox(height: 6),
+          tableTitleW(t('plantGasBottlesSurveyTitle'), 12),
+          pw.SizedBox(height: pdfCfg.style.table.spaceAfterTitle),
           look.table(
             headers: [t('plantGasBottlesColCylinder'), t('plantGasBottlesColPressure'), t('plantGasBottlesColLocation')],
             fontSize: 8.5 * k,
