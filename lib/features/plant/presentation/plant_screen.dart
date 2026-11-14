@@ -77,7 +77,6 @@ Future<void> exportPlantAnalyses(WidgetRef ref, BuildContext context) async {
                 : (a.values[param.key] == null
                       ? null
                       : s('${a.values[param.key]}')),
-          s(a.source),
           a.operatorName,
           a.comment ?? '',
         ]);
@@ -99,7 +98,6 @@ Future<void> exportPlantAnalyses(WidgetRef ref, BuildContext context) async {
             param.unit.isEmpty
                 ? s(param.labelKey)
                 : '${s(param.labelKey)} (${param.unit})',
-          s('plantColSource'),
           s('colOperator'),
           s('colComment'),
         ],

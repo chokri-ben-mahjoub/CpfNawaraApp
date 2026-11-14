@@ -82,7 +82,6 @@ Future<void> _exportPoint(
               : (a.values[param.key] == null
                     ? null
                     : s('${a.values[param.key]}')),
-        s(a.source),
         a.operatorName,
         a.comment ?? '',
       ],
@@ -103,7 +102,6 @@ Future<void> _exportPoint(
             param.unit.isEmpty
                 ? s(param.labelKey)
                 : '${s(param.labelKey)} (${param.unit})',
-          s('plantColSource'),
           s('colOperator'),
           s('colComment'),
         ],
@@ -260,7 +258,6 @@ class PlantPointScreen extends ConsumerWidget {
               Text(
                 [
                   '${s('plantSamplingTime')} ${a.samplingTime}',
-                  s(a.source),
                   if (a.operatorName.isNotEmpty) a.operatorName,
                   if (a.comment != null && a.comment!.isNotEmpty) a.comment!,
                 ].join(' · '),
@@ -444,7 +441,7 @@ class _HistoryTile extends ConsumerWidget {
       ),
       subtitle: Text(
         out.isEmpty
-            ? '${analysis.values.length} ${s('plantValuesCount')} · ${s(analysis.source)}'
+            ? '${analysis.values.length} ${s('plantValuesCount')}'
             : '${s('plantStatusOut')} : ${out.map((p) => s(p.labelKey)).join(', ')}',
         maxLines: 2,
         overflow: TextOverflow.ellipsis,

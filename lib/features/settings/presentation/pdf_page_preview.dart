@@ -400,13 +400,10 @@ class _Page extends StatelessWidget {
           rowOut: const [true, false, null],
           highlightOutOfRange: cfg.highlightOutOfRange,
         ),
-        if (cfg.showDetails)
+        if (cfg.showDetails && operatorName.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 3),
-            child: Text(
-              '${s('plantSourceLab')}${operatorName.isEmpty ? '' : ' - $operatorName'}',
-              style: TextStyle(color: _grey, fontSize: 8.5 * k),
-            ),
+            child: Text(operatorName, style: TextStyle(color: _grey, fontSize: 8.5 * k)),
           ),
         if (cfg.showPhoto && i == 0)
           Padding(

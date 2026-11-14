@@ -383,8 +383,8 @@ Future<Uint8List> buildPlantDailyReport({
             );
           }
         }
-        final meta = [t(a.source), if (a.operatorName.isNotEmpty) a.operatorName].map(_safe).join(' - ');
-        if (options.details) {
+        final meta = [if (a.operatorName.isNotEmpty) a.operatorName].map(_safe).join(' - ');
+        if (options.details && meta.isNotEmpty) {
           sections.add(
             pw.Padding(
               padding: const pw.EdgeInsets.only(top: 4),
@@ -727,7 +727,6 @@ List<ExportTable> plantReportTables({
           s('plantColPoint'),
           s('plantColName'),
           for (final p in cols) p.unit.isEmpty ? s(p.labelKey) : '${s(p.labelKey)} (${p.unit})',
-          s('plantColSource'),
           s('colOperator'),
           s('colComment'),
           s('plantColOutOfRangeComments'),
@@ -741,7 +740,6 @@ List<ExportTable> plantReportTables({
               point.name,
               for (final p in cols)
                 p.isNumeric ? a.number(p.key) : (a.values[p.key] == null ? null : s('${a.values[p.key]}')),
-              s(a.source),
               a.operatorName,
               a.comment ?? '',
               [

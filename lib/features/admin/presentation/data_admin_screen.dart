@@ -231,7 +231,6 @@ class _DataAdminScreenState extends ConsumerState<DataAdminScreen> {
             s('colDate'),
             s('plantColPoint'),
             for (final p in params) p.unit.isEmpty ? s(p.labelKey) : '${s(p.labelKey)} (${p.unit})',
-            s('plantColSource'),
             s('colOperator'),
             s('colComment'),
           ],
@@ -242,7 +241,6 @@ class _DataAdminScreenState extends ConsumerState<DataAdminScreen> {
                 controller.point(a.pointId)?.code ?? a.pointId,
                 for (final p in params)
                   p.isNumeric ? a.number(p.key) : (a.values[p.key] == null ? null : s('${a.values[p.key]}')),
-                s(a.source),
                 a.operatorName,
                 a.comment ?? '',
               ],

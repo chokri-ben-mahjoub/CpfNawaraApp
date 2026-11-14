@@ -490,21 +490,6 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
             ],
             const SizedBox(height: 18),
             TextFormField(
-              controller: _sourceController,
-              decoration: InputDecoration(labelText: s('plantColSource')),
-              validator: (v) => (v ?? '').trim().isEmpty ? s('plantSourceRequired') : null,
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 4,
-              children: [
-                for (final key in plantSources)
-                  ActionChip(label: Text(s(key)), onPressed: () => setState(() => _sourceController.text = s(key))),
-              ],
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
               controller: _comment,
               minLines: 2,
               maxLines: 4,
