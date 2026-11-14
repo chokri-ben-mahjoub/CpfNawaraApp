@@ -29,6 +29,10 @@ class SharedConfig {
     final d = missingDeadline;
     return now.hour > d.hour || (now.hour == d.hour && now.minute >= d.minute);
   }
+
+  /// Heure du relevé des bouteilles de gaz (« HH:mm »), vide tant qu'elle
+  /// n'a pas été saisie.
+  String get gasBottlesReadingTime => values[gasBottlesReadingTimeKey] ?? '';
 }
 
 const missingDeadlineKey = 'missing_deadline';
@@ -38,6 +42,11 @@ const defaultMissingDeadline = TimeOfDay(hour: 10, minute: 0);
 /// l'équipe, pour ne jamais numéroter deux rapports pareil même générés
 /// depuis des appareils différents).
 const plantReportCounterKey = 'plant_report_counter';
+
+/// Heure du relevé des bouteilles de gaz du laboratoire (« Reading time »,
+/// une seule heure pour tout le relevé du jour, pas par bouteille), affichée
+/// au-dessus du tableau dans le rapport usine.
+const gasBottlesReadingTimeKey = 'gas_bottles_reading_time';
 
 String formatDeadline(TimeOfDay t) => '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
@@ -72,6 +81,8 @@ class SharedConfigController extends StateNotifier<SharedConfig> {
 
   Future<void> setMissingDeadline(TimeOfDay time) => set(missingDeadlineKey, formatDeadline(time));
 
+  Future<void> setGasBottlesReadingTime(TimeOfDay time) => set(gasBottlesReadingTimeKey, formatDeadline(time));
+
   /// Prochain numéro proposé (sans l'enregistrer).
   int peekNextReportNumber() => (int.tryParse(state.values[plantReportCounterKey] ?? '') ?? 0) + 1;
 
@@ -89,3 +100,11 @@ class SharedConfigController extends StateNotifier<SharedConfig> {
 final sharedConfigProvider = StateNotifierProvider<SharedConfigController, SharedConfig>(
   (ref) => SharedConfigController(),
 );
+
+/// Pour le rapport PDF usine (fonction pure, sans contexte Riverpod) : lit
+/// directement la base locale, comme [loadGasBottles].
+Future<String> loadGasBottlesReadingTime() async {
+  final db = await LocalDatabase.instance.database;
+  final rows = await db.query('app_config', where: 'id = ?', whereArgs: [gasBottlesReadingTimeKey], limit: 1);
+  return rows.isEmpty ? '' : (rows.first['value'] as String? ?? '');
+}

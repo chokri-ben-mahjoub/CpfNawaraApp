@@ -7,6 +7,7 @@ import 'package:pdf/widgets.dart' as pw;
 
 import '../../core/analysis/series.dart';
 import '../../core/branding/app_logo.dart';
+import '../../core/config/shared_config.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/export/pdf_chart.dart';
 import '../../core/plant/plant_catalog.dart';
@@ -63,6 +64,7 @@ Future<Uint8List> buildPlantDailyReport({
   final look = PdfLook(pdfCfg);
   final accentC = look.accent;
   final gasBottles = pdfCfg.showGasBottles ? await loadGasBottles() : const <GasBottle>[];
+  final gasBottlesReadingTime = gasBottles.isEmpty ? '' : await loadGasBottlesReadingTime();
   final sampleManifest = pdfCfg.showScopeOfWork ? await loadSampleManifest(day) : const <SampleManifestEntry>[];
   final reportTitle = pdfCfg.reportTitle.trim().isEmpty ? t(allCircuits ? 'plantReportTitle' : 'plantSampleReportTitle') : _safe(pdfCfg.reportTitle.trim());
   final roleText = pdfCfg.signatureRole.trim().isEmpty ? t('plantReportRole') : _safe(pdfCfg.signatureRole.trim());
@@ -602,6 +604,13 @@ Future<Uint8List> buildPlantDailyReport({
         if (gasBottles.isNotEmpty) ...[
           pw.SizedBox(height: 20),
           tableTitleW(t('plantGasBottlesSurveyTitle'), 12),
+          if (gasBottlesReadingTime.isNotEmpty) ...[
+            pw.SizedBox(height: 4),
+            pw.Text(
+              '${t('plantGasBottlesReadingTime')}: $gasBottlesReadingTime',
+              style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: _navy),
+            ),
+          ],
           pw.SizedBox(height: pdfCfg.style.table.spaceAfterTitle),
           look.table(
             headers: [t('plantGasBottlesColCylinder'), t('plantGasBottlesColPressure'), t('plantGasBottlesColLocation')],

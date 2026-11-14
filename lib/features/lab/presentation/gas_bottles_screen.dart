@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/config/shared_config.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/lab/gas_bottle_repository.dart';
 import '../../../core/theme/app_theme.dart';
@@ -19,7 +20,18 @@ class GasBottlesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final locale = ref.watch(localeProvider);
     final bottles = ref.watch(gasBottleControllerProvider);
+    final shared = ref.watch(sharedConfigProvider);
     String s(String key) => tr(locale, key);
+
+    Future<void> pickReadingTime() async {
+      final now = TimeOfDay.now();
+      final current = shared.gasBottlesReadingTime.split(':');
+      final initial = current.length == 2
+          ? TimeOfDay(hour: int.tryParse(current[0]) ?? now.hour, minute: int.tryParse(current[1]) ?? now.minute)
+          : now;
+      final picked = await showTimePicker(context: context, initialTime: initial);
+      if (picked != null) await ref.read(sharedConfigProvider.notifier).setGasBottlesReadingTime(picked);
+    }
 
     return Scaffold(
       appBar: AppBar(title: Text(s('gasBottlesTitle'))),
@@ -46,6 +58,18 @@ class GasBottlesScreen extends ConsumerWidget {
               padding: pagePadding(context, top: 12, bottom: 100),
               children: [
                 Text(s('gasBottlesHint'), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12.5)),
+                const SizedBox(height: 14),
+                InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: pickReadingTime,
+                  child: InputDecorator(
+                    decoration: InputDecoration(
+                      labelText: s('gasBottlesReadingTimeLabel'),
+                      prefixIcon: const Icon(Icons.schedule_outlined),
+                    ),
+                    child: Text(shared.gasBottlesReadingTime.isEmpty ? '—' : shared.gasBottlesReadingTime),
+                  ),
+                ),
                 const SizedBox(height: 14),
                 AdminTable<GasBottle>(
                   items: bottles,
