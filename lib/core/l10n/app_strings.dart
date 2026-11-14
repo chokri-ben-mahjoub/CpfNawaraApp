@@ -1264,7 +1264,7 @@ final _strings = <String, Map<String, String>>{
     'en': 'Out-of-range value comments',
   },
   'reportOpt_details': {'fr': 'Source, opérateur, commentaire', 'en': 'Source, operator, comment'},
-  'reportOpt_samplingTime': {'fr': 'Heure de prélèvement', 'en': 'Sampling time'},
+  'reportOpt_samplingTime': {'fr': 'Heure de prélèvement', 'en': 'Reading time'},
   'reportOpt_allAnalyses': {'fr': 'Toutes les analyses du jour (sinon la dernière)', 'en': 'All analyses of the day (else the latest)'},
   'reportOpt_headerDateTime': {'fr': 'Date et heure dans l\'en-tête', 'en': 'Date and time in the header'},
   'reportOpt_signatureBottom': {'fr': 'Date + nom / fonction en bas du rapport', 'en': 'Date + name / role at the bottom of the report'},
@@ -1336,7 +1336,7 @@ final _strings = <String, Map<String, String>>{
   'pdfSetMethods': {'fr': 'Méthode ASTM (si connue)', 'en': 'ASTM method (if known)'},
   'pdfSetSamplingTimeColumn': {
     'fr': "Heure de prélèvement en colonne fusionnée du tableau",
-    'en': "Sampling time as a merged column of the table",
+    'en': "Reading time as a merged column of the table",
   },
   'pdfSetScopeOfWork': {'fr': 'Page "Scope of Work" (échantillons du jour)', 'en': '"Scope of Work" page (daily samples)'},
   'pdfSetGasBottles': {
@@ -1546,7 +1546,7 @@ final _strings = <String, Map<String, String>>{
   'plantSampleDate': {'fr': 'Date du prélèvement', 'en': 'Sampling date'},
   'plantStartTime': {'fr': 'Heure de début', 'en': 'Start time'},
   'plantEndTime': {'fr': 'Heure de fin', 'en': 'End time'},
-  'plantSamplingTime': {'fr': 'Heure de prélèvement', 'en': 'Sampling time'},
+  'plantSamplingTime': {'fr': 'Heure de prélèvement', 'en': 'Reading time'},
   'colStartTime': {'fr': 'Heure début', 'en': 'Start time'},
   'colEndTime': {'fr': 'Heure fin', 'en': 'End time'},
   'plantPhotoLabel': {'fr': 'Photo (facultatif)', 'en': 'Photo (optional)'},
