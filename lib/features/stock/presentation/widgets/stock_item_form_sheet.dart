@@ -39,6 +39,7 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
   late final TextEditingController _consumptionController;
   String? _attachment;
   String? _attachmentName;
+  DateTime? _expiryDate;
 
   bool get _isNew => widget.existing == null;
 
@@ -48,6 +49,7 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
     final e = widget.existing;
     _attachment = e?.attachment;
     _attachmentName = e?.attachmentName;
+    _expiryDate = e?.expiryDate;
     _nameController = TextEditingController(text: e?.name ?? '');
     _unitController = TextEditingController(text: e?.unit ?? '');
     _quantityController = TextEditingController(text: e == null ? '' : decimalText(e.quantity));
@@ -103,6 +105,17 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
     });
   }
 
+  Future<void> _pickExpiry() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _expiryDate ?? now,
+      firstDate: DateTime(now.year - 5),
+      lastDate: DateTime(now.year + 20),
+    );
+    if (picked != null) setState(() => _expiryDate = picked);
+  }
+
   void _removeAttachment() => setState(() {
     _attachment = null;
     _attachmentName = null;
@@ -135,6 +148,7 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
         attachment: _attachment,
         attachmentName: _attachmentName,
         consumptionOverride: consumption,
+        expiryDate: _expiryDate,
       );
       messenger.showSnackBar(SnackBar(content: Text(s('stockItemAdded'))));
     } else {
@@ -156,6 +170,8 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
           clearAttachment: _attachment == null,
           consumptionOverride: consumption,
           clearConsumptionOverride: consumption == null,
+          expiryDate: _expiryDate,
+          clearExpiryDate: _expiryDate == null,
         ),
       );
       messenger.showSnackBar(SnackBar(content: Text(s('stockItemUpdated'))));
@@ -283,6 +299,30 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
               for (final zone in stockZoneSuggestions)
                 ActionChip(label: Text(zone), onPressed: () => setState(() => _zoneController.text = zone)),
             ],
+          ),
+          const SizedBox(height: 12),
+          InputDecorator(
+            decoration: InputDecoration(labelText: s('stockColExpiry')),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextButton.icon(
+                    onPressed: _pickExpiry,
+                    icon: const Icon(Icons.event_outlined),
+                    label: Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: Text(
+                        _expiryDate == null
+                            ? s('stockExpiryPick')
+                            : '${_expiryDate!.day.toString().padLeft(2, '0')}/${_expiryDate!.month.toString().padLeft(2, '0')}/${_expiryDate!.year}',
+                      ),
+                    ),
+                  ),
+                ),
+                if (_expiryDate != null)
+                  IconButton(icon: const Icon(Icons.clear), onPressed: () => setState(() => _expiryDate = null)),
+              ],
+            ),
           ),
           const SizedBox(height: 12),
           TextFormField(
