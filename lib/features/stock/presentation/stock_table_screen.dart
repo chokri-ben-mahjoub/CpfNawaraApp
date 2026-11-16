@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/data/stock_repository.dart';
 import '../../../core/l10n/app_strings.dart';
@@ -128,6 +129,7 @@ class _ZoneTable extends StatelessWidget {
       125.0,
       105.0,
       150.0,
+      110.0,
       200.0,
     ];
     final baseTotal = baseWidths.fold<double>(0, (a, b) => a + b);
@@ -187,7 +189,14 @@ class _ZoneTable extends StatelessWidget {
                             width: widths[8],
                             color: r.forecast.hasRate && r.forecast.within(30) ? const Color(0xFFE08A1E) : null,
                           ),
-                          cell(r.item.notes, width: widths[9]),
+                          cell(
+                            r.item.expiryDate == null ? '' : DateFormat('dd/MM/yyyy').format(r.item.expiryDate!),
+                            width: widths[9],
+                            color: r.item.expiryDate != null && r.item.expiryDate!.isBefore(DateTime.now())
+                                ? scheme.error
+                                : null,
+                          ),
+                          cell(r.item.notes, width: widths[10]),
                         ],
                       ),
                     ),

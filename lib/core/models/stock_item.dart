@@ -56,6 +56,9 @@ class StockItem {
   /// sorties de stock enregistrées ; nul = garder le calcul automatique.
   final double? consumptionOverride;
 
+  /// Date d'expiration du produit ; nulle = non renseignée.
+  final DateTime? expiryDate;
+
   const StockItem({
     required this.id,
     required this.name,
@@ -72,6 +75,7 @@ class StockItem {
     this.attachment,
     this.attachmentName,
     this.consumptionOverride,
+    this.expiryDate,
   });
 
   bool get isOut => quantity <= 0;
@@ -95,6 +99,8 @@ class StockItem {
     bool clearAttachment = false,
     double? consumptionOverride,
     bool clearConsumptionOverride = false,
+    DateTime? expiryDate,
+    bool clearExpiryDate = false,
   }) => StockItem(
     id: id,
     name: name ?? this.name,
@@ -111,6 +117,7 @@ class StockItem {
     attachment: clearAttachment ? null : (attachment ?? this.attachment),
     attachmentName: clearAttachment ? null : (attachmentName ?? this.attachmentName),
     consumptionOverride: clearConsumptionOverride ? null : (consumptionOverride ?? this.consumptionOverride),
+    expiryDate: clearExpiryDate ? null : (expiryDate ?? this.expiryDate),
   );
 
   /// Besoin annuel : la consommation de l'année en cours [consumption], ou

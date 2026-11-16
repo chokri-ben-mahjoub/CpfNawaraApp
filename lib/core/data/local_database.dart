@@ -21,7 +21,7 @@ class LocalDatabase {
   static final LocalDatabase instance = LocalDatabase._();
 
   /// Version du schéma (voir `onUpgrade`), enregistrée dans les sauvegardes.
-  static const schemaVersion = 30;
+  static const schemaVersion = 31;
 
   /// Tables sauvegardées / restaurées / synchronisées.
   static const dataTables = [
@@ -367,6 +367,10 @@ class LocalDatabase {
             // Work" du rapport usine.
             await _createSampleManifestTable(db);
           }
+          if (oldVersion >= 13 && oldVersion < 31) {
+            // Date d'expiration d'un article de stock (ISO yyyy-MM-dd).
+            await db.execute('alter table stock_items add column expiry_date text');
+          }
         },
       ),
     );
@@ -555,6 +559,7 @@ class LocalDatabase {
         attachment text,
         attachment_name text,
         consumption_override real,
+        expiry_date text,
         zone text not null default '',
         updated_at integer not null default 0,
         dirty integer not null default 0

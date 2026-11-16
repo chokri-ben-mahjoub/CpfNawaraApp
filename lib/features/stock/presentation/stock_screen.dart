@@ -84,6 +84,7 @@ List<String> stockTableHeaders(String Function(String) s, int year) => [
   fill(s('stockColPending'), {'y': '$year'}),
   s('stockColToOrder'),
   s('stockColRunOut'),
+  s('stockColExpiry'),
   s('stockNotesLabel'),
 ];
 
@@ -117,6 +118,7 @@ Future<void> exportStock(WidgetRef ref, BuildContext context) async {
                 r.item.pendingOrder,
                 r.toOrder,
                 stockForecastText(r.forecast, s),
+                r.item.expiryDate == null ? '' : DateFormat('dd/MM/yyyy').format(r.item.expiryDate!),
                 r.item.notes,
               ],
           ],

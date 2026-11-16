@@ -174,6 +174,7 @@ class StockController extends StateNotifier<StockState> {
     String? attachment,
     String? attachmentName,
     double? consumptionOverride,
+    DateTime? expiryDate,
   }) async {
     final db = await LocalDatabase.instance.database;
     await db.insert(
@@ -194,6 +195,7 @@ class StockController extends StateNotifier<StockState> {
         'attachment': attachment,
         'attachment_name': attachmentName,
         'consumption_override': consumptionOverride,
+        'expiry_date': expiryDate?.toIso8601String().substring(0, 10),
       }),
     );
     await _afterWrite();
@@ -219,6 +221,7 @@ class StockController extends StateNotifier<StockState> {
         'attachment': item.attachment,
         'attachment_name': item.attachmentName,
         'consumption_override': item.consumptionOverride,
+        'expiry_date': item.expiryDate?.toIso8601String().substring(0, 10),
       }),
       where: 'id = ?',
       whereArgs: [item.id],
@@ -311,6 +314,7 @@ class StockController extends StateNotifier<StockState> {
     attachment: row['attachment'] as String?,
     attachmentName: row['attachment_name'] as String?,
     consumptionOverride: (row['consumption_override'] as num?)?.toDouble(),
+    expiryDate: DateTime.tryParse(row['expiry_date'] as String? ?? ''),
   );
 
   StockMovement _movementFromRow(Map<String, Object?> row) => StockMovement(

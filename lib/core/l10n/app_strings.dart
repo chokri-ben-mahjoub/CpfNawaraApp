@@ -587,6 +587,8 @@ final _strings = <String, Map<String, String>>{
   'stockColAvailable': {'fr': 'Stock disponible {y}', 'en': '{y} Available Stock'},
   'stockColPending': {'fr': 'Commande {y} livrée / en attente', 'en': '{y} Available order Delivered/waiting delivery'},
   'stockColToOrder': {'fr': 'Quantité à commander', 'en': 'Quantity to be ordered'},
+  'stockColExpiry': {'fr': 'Date d\'expiration', 'en': 'Expiry dates'},
+  'stockExpiryPick': {'fr': 'Choisir une date', 'en': 'Pick a date'},
   'stockNewProduct': {'fr': 'NOUVEAU PRODUIT', 'en': 'NEW PRODUCT'},
   'stockWatchSection': {'fr': 'À surveiller — rupture prévue sous 30 jours', 'en': 'To watch — stock-out expected within 30 days'},
   'stockForecastTitle': {'fr': 'Prévision de rupture', 'en': 'Stock-out forecast'},
