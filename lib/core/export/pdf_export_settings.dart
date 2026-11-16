@@ -154,7 +154,7 @@ class PdfExportSettings {
     this.showReportNumber = true,
     this.showPhoto = true,
     this.showLimit = true,
-    this.showStatus = true,
+    this.showStatus = false,
     this.showDetails = true,
     this.showSamplingTime = true,
     this.samplingTimeColumn = false,

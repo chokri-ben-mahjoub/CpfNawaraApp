@@ -168,47 +168,19 @@ Future<Uint8List> buildPlantDailyReport({
       final analysis = selected != null
           ? (selected.isEmpty ? null : selected.last)
           : controller.analysisOn(point.id, day);
-      final status = selected != null
-          ? (selected.isEmpty
-                ? PlantStatus.missing
-                : (selected.any(
-                        (x) => controller.outOfRange(point, x).isNotEmpty,
-                      )
-                      ? PlantStatus.outOfRange
-                      : PlantStatus.ok))
-          : controller.status(point, day);
       if (analysis == null && !includeMissing) continue;
       sections.add(pw.SizedBox(height: 8));
       sections.add(
         pw.Row(
           children: [
+            pw.Container(width: 4, height: 4, decoration: const pw.BoxDecoration(color: PdfColors.black, shape: pw.BoxShape.circle)),
+            pw.SizedBox(width: 8),
             pw.Text(
-              _safe('${point.code} - ${point.name}'),
+              _safe('${t(circuit.labelKey)}: ${point.name}'),
               style: pw.TextStyle(
                 fontWeight: pw.FontWeight.bold,
                 fontSize: 10.5,
-              ),
-            ),
-            pw.SizedBox(width: 6),
-            pw.Text(
-              _safe('(${point.equipment})'),
-              style: look.note(pdfCfg.style.secondary, size: 9, color: _grey),
-            ),
-            pw.Spacer(),
-            pw.Text(
-              switch (status) {
-                PlantStatus.ok => t('plantStatusOk'),
-                PlantStatus.outOfRange => t('plantStatusOut'),
-                PlantStatus.missing => t('plantStatusMissing'),
-              },
-              style: pw.TextStyle(
-                fontSize: 9.5,
-                fontWeight: pw.FontWeight.bold,
-                color: switch (status) {
-                  PlantStatus.ok => _ok,
-                  PlantStatus.outOfRange => _out,
-                  PlantStatus.missing => _grey,
-                },
+                decoration: pw.TextDecoration.underline,
               ),
             ),
           ],
@@ -264,7 +236,7 @@ Future<Uint8List> buildPlantDailyReport({
       // Colonne fusionnée (plutôt que la ligne de texte habituelle) : seulement
       // pour une analyse par point affiché (sinon une date par ligne serait
       // nécessaire, voir le cas [analysisIds] ci-dessous).
-      final useTimeColumn = pdfCfg.samplingTimeColumn && options.samplingTime;
+      final useTimeColumn = options.samplingTime && (pdfCfg.samplingTimeColumn || daily.length > 1);
       // Lignes de résultats d'une analyse (sans la colonne « heure »).
       List<List<Object>> rowsFor(PlantAnalysis a) => [
               for (final param in point.params)
@@ -279,7 +251,9 @@ Future<Uint8List> buildPlantDailyReport({
                           ? formatNumber((a.values[param.key] as num).toDouble())
                           : t('${a.values[param.key]}');
                       final out = controller.isOut(point.id, param, a.values[param.key]);
-                      if (out == null || !pdfCfg.highlightOutOfRange) return valueText;
+                      if (out == null || !pdfCfg.highlightOutOfRange) {
+                        return pw.Text(valueText, style: pw.TextStyle(fontSize: 8.5 * k, fontWeight: pw.FontWeight.bold));
+                      }
                       return pw.Text(
                         valueText,
                         style: pw.TextStyle(fontSize: 8.5 * k, fontWeight: pw.FontWeight.bold, color: out ? _out : _ok),
@@ -323,7 +297,7 @@ Future<Uint8List> buildPlantDailyReport({
             cellAlignments: () {
               var i = 1;
               final m = <int, pw.Alignment>{};
-              i++; // libellé du test
+              m[i++] = pw.Alignment.center; // libellé du test
               if (pdfCfg.showMethods) m[i++] = pw.Alignment.center;
               m[i++] = pw.Alignment.center; // unité
               m[i++] = pw.Alignment.center; // valeur

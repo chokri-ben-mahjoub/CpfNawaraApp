@@ -195,11 +195,8 @@ class PdfLook {
     Map<int, pw.TableColumnWidth>? columnWidths,
   }) {
     final st = cfg.style;
-    final customBg = st.table.headerBgArgb;
-    final filled =
-        cfg.tableStyle == 0 || cfg.tableStyle == 2 || customBg != null;
-    final bg = customBg == null ? header : PdfColor.fromInt(customBg);
-    final lineColor = PdfColor.fromInt(st.table.borderArgb);
+        // Rendu « rapport de laboratoire » : en-tête sans fond, texte noir, quadrillage complet.
+            final lineColor = PdfColor.fromInt(st.table.borderArgb);
     final side = pw.BorderSide(color: lineColor, width: st.table.borderWidth);
     final none = pw.BorderSide.none;
     final pad = (st.table.padH == null && st.table.padV == null)
@@ -208,12 +205,11 @@ class PdfLook {
             horizontal: st.table.padH ?? 5,
             vertical: st.table.padV ?? 5,
           );
-    final horizontalOnly = cfg.tableStyle == 1;
-    final cellStyle = textStyle(st.cell, size: fontSize);
+        final cellStyle = textStyle(st.cell, size: fontSize);
     final headerStyle = textStyle(
       st.columnHeader,
       size: fontSize,
-      color: filled ? PdfColors.white : header,
+      color: PdfColors.black,
     );
 
     pw.Widget cell(
@@ -243,17 +239,8 @@ class PdfLook {
                   ? pw.Alignment.center
                   : _align(st.columnHeader.align),
               style: headerStyle,
-              border: horizontalOnly
-                  ? pw.Border(bottom: pw.BorderSide(color: accent, width: 1.4))
-                  : (cfg.tableStyle == 3 || filled
-                        ? pw.Border.all(
-                            color: lineColor,
-                            width: st.table.borderWidth,
-                          )
-                        : pw.Border(
-                            bottom: pw.BorderSide(color: accent, width: 1.4),
-                          )),
-              fill: filled ? bg : null,
+              border: pw.Border.all(color: lineColor, width: st.table.borderWidth),
+              fill: null,
             ),
         ],
       ),
@@ -275,8 +262,8 @@ class PdfLook {
                 align: pw.Alignment.center,
                 style: textStyle(st.cell.copyWith(bold: true), size: fontSize),
                 border: pw.Border(
-                  left: horizontalOnly ? none : side,
-                  right: horizontalOnly ? none : side,
+                  left: side,
+                  right: side,
                   top: first ? side : none,
                   bottom: last ? side : none,
                 ),
@@ -287,13 +274,7 @@ class PdfLook {
                   lines[r][c],
                   align: cellAlignments?[c + 1] ?? _align(st.cell.align),
                   style: cellStyle,
-                  border: horizontalOnly
-                      ? pw.Border(top: side, bottom: side)
-                      : pw.Border.all(
-                          color: lineColor,
-                          width: st.table.borderWidth,
-                        ),
-                  fill: fill,
+                  border: pw.Border.all(color: lineColor, width: st.table.borderWidth),
                 ),
             ],
           ),
