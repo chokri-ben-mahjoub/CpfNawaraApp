@@ -6,6 +6,12 @@ import 'pdf_style_set.dart';
 
 const _grey = PdfColor.fromInt(0xFF757575);
 
+/// Marque une cellule de [PdfLook.groupedTable] fusionnée avec celle du dessus
+/// (le texte de la cellule du haut est centré sur toute la hauteur fusionnée).
+class PdfCellContinues {
+  const PdfCellContinues();
+}
+
 /// Apparence commune des PDF d'après les réglages : couleurs de la palette,
 /// style des tableaux (en-tête plein, filets, lignes alternées), marges et
 /// filigrane. Utilisée par le rapport usine et par les exports de tableaux.
@@ -270,12 +276,33 @@ class PdfLook {
                 fill: fill,
               ),
               for (var c = 0; c < lines[r].length; c++)
-                cell(
-                  lines[r][c],
-                  align: cellAlignments?[c + 1] ?? _align(st.cell.align),
-                  style: cellStyle,
-                  border: pw.Border.all(color: lineColor, width: st.table.borderWidth),
-                ),
+                () {
+                  final cont = lines[r][c] is PdfCellContinues;
+                  var start = r;
+                  while (start > 0 && lines[start][c] is PdfCellContinues) {
+                    start--;
+                  }
+                  var end = r;
+                  while (end + 1 < lines.length && lines[end + 1][c] is PdfCellContinues) {
+                    end++;
+                  }
+                  final spanned = cont || (end > r);
+                  final show = spanned ? r == start + (end - start) ~/ 2 : true;
+                  return cell(
+                    show ? lines[start][c] : '',
+                    align: cellAlignments?[c + 1] ?? _align(st.cell.align),
+                    style: cellStyle,
+                    border: spanned
+                        ? pw.Border(
+                            left: side,
+                            right: side,
+                            top: r == start ? side : none,
+                            bottom: r == end ? side : none,
+                          )
+                        : pw.Border.all(color: lineColor, width: st.table.borderWidth),
+                    fill: fill,
+                  );
+                }(),
             ],
           ),
         );

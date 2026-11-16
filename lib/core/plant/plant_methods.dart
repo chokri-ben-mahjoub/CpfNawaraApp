@@ -14,6 +14,9 @@ const _astmMethodByParamKey = {
   'conductivity': 'ASTM D 1125',
   'concentration': 'Automatic titration',
   'foam': 'ASTM D 1881',
+  'appr_free_condensate': 'Settling',
+  'appr_emulsion': 'Settling',
+  'appr_sand': 'Settling',
 };
 
 String? astmMethodFor(String paramKey) => _astmMethodByParamKey[paramKey];

@@ -238,11 +238,48 @@ Future<Uint8List> buildPlantDailyReport({
       // nécessaire, voir le cas [analysisIds] ci-dessous).
       final useTimeColumn = options.samplingTime && (pdfCfg.samplingTimeColumn || daily.length > 1);
       // Lignes de résultats d'une analyse (sans la colonne « heure »).
-      List<List<Object>> rowsFor(PlantAnalysis a) => [
-              for (final param in point.params)
-                if (a.values[param.key] != null &&
-                    (paramKeys == null || paramKeys.contains(param.key)))
-                  [
+      List<List<Object>> rowsFor(PlantAnalysis a) {
+        const apprKeys = ['appr_free_condensate', 'appr_emulsion', 'appr_sand'];
+        bool shown(PlantParam p) => a.values[p.key] != null && (paramKeys == null || paramKeys.contains(p.key));
+        final out = <List<Object>>[];
+        var apprDone = false;
+        for (final param in point.params) {
+          if (param.key.startsWith('appr_') && param.key.endsWith('_v')) continue;
+          if (apprKeys.contains(param.key)) {
+            if (apprDone) continue;
+            apprDone = true;
+            final subs = [for (final p in point.params) if (apprKeys.contains(p.key) && shown(p)) p];
+            for (var n = 0; n < subs.length; n++) {
+              final sp = subs[n];
+              final choice = '${a.values[sp.key]}';
+              final measured = choice == 'plantApprMeasured' ? a.values['${sp.key}_v'] : null;
+              final bad = controller.isOut(point.id, sp, choice) == true;
+              final color = !pdfCfg.highlightOutOfRange ? PdfColors.black : (bad ? _out : _ok);
+              final valueText = measured is num ? '${measured.toDouble().toStringAsFixed(3).replaceFirst(RegExp(r'\.?0+$'), '')}%V' : t(choice);
+              out.add([
+                n == 0 ? t('plantParamAppearance') : const PdfCellContinues(),
+                if (pdfCfg.showMethods) (n == 0 ? (astmMethodFor(sp.key) ?? '-') : const PdfCellContinues()),
+                n == 0 ? '%Vol' : const PdfCellContinues(),
+                pw.RichText(
+                  text: pw.TextSpan(
+                    style: pw.TextStyle(fontSize: 8.5 * k),
+                    children: [
+                      pw.TextSpan(text: '${t(sp.labelKey)}: '),
+                      pw.TextSpan(
+                        text: valueText,
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: color),
+                      ),
+                    ],
+                  ),
+                ),
+                if (options.limitColumn) t('plantApprPass'),
+                if (options.statusColumn) (bad ? t('plantStatusOut') : t('plantStatusOk')),
+              ]);
+            }
+            continue;
+          }
+          if (!shown(param)) continue;
+          out.add([
                     t(param.labelKey),
                     if (pdfCfg.showMethods) (astmMethodFor(param.key) ?? '-'),
                     param.unit,
@@ -273,8 +310,10 @@ Future<Uint8List> buildPlantDailyReport({
                         false => t('plantStatusOk'),
                         null => '-',
                       },
-                  ],
-      ];
+                  ]);
+        }
+        return out;
+      }
 
       // Plusieurs analyses du même point (ex. 7h30 et 17h30) : un seul tableau,
       // la cellule « heure de prélèvement » fusionnée en face des lignes de
@@ -365,7 +404,7 @@ Future<Uint8List> buildPlantDailyReport({
               return m;
             }(),
             data: [
-              for (final r in rowsFor(a)) [if (useTimeColumn) (rowIndex++ == 0 ? a.samplingTime : ''), ...r],
+              for (final r in rowsFor(a)) [if (useTimeColumn) (rowIndex++ == 0 ? a.samplingTime : ''), for (final c in r) c is PdfCellContinues ? '' : c],
             ],
           ),
         );

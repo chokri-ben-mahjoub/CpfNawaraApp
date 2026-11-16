@@ -175,6 +175,35 @@ const _waterParams = [
     choices: ['plantAppearanceClear', 'plantAppearanceSlightlyTurbid', 'plantAppearanceTurbid', 'plantAppearanceOily'],
     okChoices: ['plantAppearanceClear', 'plantAppearanceSlightlyTurbid'],
   ),
+  // Sous-lignes de l'aspect (essai de décantation) : un choix, et la valeur
+  // mesurée en %V quand le choix est « valeur mesurée ».
+  PlantParam(
+    'appr_free_condensate',
+    'plantParamApprFreeCondensate',
+    '',
+    kind: ParamKind.choice,
+    choices: ['plantApprPass', 'plantApprTraces', 'plantApprMeasured'],
+    okChoices: ['plantApprPass', 'plantApprTraces'],
+  ),
+  PlantParam('appr_free_condensate_v', 'plantParamApprFreeCondensateV', '%V'),
+  PlantParam(
+    'appr_emulsion',
+    'plantParamApprEmulsion',
+    '',
+    kind: ParamKind.choice,
+    choices: ['plantApprPass', 'plantApprTraces', 'plantApprMeasured'],
+    okChoices: ['plantApprPass', 'plantApprTraces'],
+  ),
+  PlantParam('appr_emulsion_v', 'plantParamApprEmulsionV', '%V'),
+  PlantParam(
+    'appr_sand',
+    'plantParamApprSand',
+    '',
+    kind: ParamKind.choice,
+    choices: ['plantApprPass', 'plantApprTraces', 'plantApprMeasured'],
+    okChoices: ['plantApprPass', 'plantApprTraces'],
+  ),
+  PlantParam('appr_sand_v', 'plantParamApprSandV', '%V'),
   PlantParam('iron', 'plantParamIron', 'mg/L'),
   PlantParam('tph', 'plantParamTph', 'mg/L'),
   // Perte d'hydrocarbures dans l'eau produite : débit, TPH et densité du
