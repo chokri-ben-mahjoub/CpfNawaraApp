@@ -853,9 +853,98 @@ class PlantCircuitChips extends ConsumerWidget {
               ),
             ),
           ),
+        if (circuits.length > 1)
+          ActionChip(
+            avatar: const Icon(Icons.swap_vert, size: 16),
+            label: Text(s('plantCircuitsReorder')),
+            tooltip: s('plantCircuitsReorderTitle'),
+            onPressed: () => _showCircuitOrderSheet(context, ref, circuits, s),
+          ),
       ],
     );
   }
+}
+
+/// Feuille « Ordre des circuits » : liste à poignées de glisser et flèches
+/// haut/bas, plus simple que de glisser les puces. Chaque changement est
+/// enregistré tout de suite (puces et rapport suivent cet ordre).
+Future<void> _showCircuitOrderSheet(
+  BuildContext context,
+  WidgetRef ref,
+  List<PlantCircuit> circuits,
+  String Function(String) s,
+) {
+  final items = [...circuits];
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+    builder: (sheetContext) => StatefulBuilder(
+      builder: (ctx, setState) {
+        void move(int from, int to) {
+          if (to < 0 || to >= items.length || from == to) return;
+          setState(() => items.insert(to, items.removeAt(from)));
+          ref.read(plantControllerProvider.notifier).reorderCircuits([for (final c in items) c.id]);
+        }
+
+        return SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.85),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
+                  child: Text(
+                    s('plantCircuitsReorderTitle'),
+                    style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                  child: Text(s('plantCircuitsReorderHint'), style: Theme.of(ctx).textTheme.bodySmall),
+                ),
+                Flexible(
+                  child: ReorderableListView(
+                    shrinkWrap: true,
+                    buildDefaultDragHandles: false,
+                    onReorder: (oldIndex, newIndex) => move(oldIndex, newIndex > oldIndex ? newIndex - 1 : newIndex),
+                    children: [
+                      for (var i = 0; i < items.length; i++)
+                        ListTile(
+                          key: ValueKey(items[i].id),
+                          leading: Icon(items[i].icon, color: items[i].color),
+                          title: Text('${i + 1}. ${s(items[i].labelKey)}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.keyboard_arrow_up),
+                                onPressed: i == 0 ? null : () => move(i, i - 1),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.keyboard_arrow_down),
+                                onPressed: i == items.length - 1 ? null : () => move(i, i + 1),
+                              ),
+                              ReorderableDragStartListener(
+                                index: i,
+                                child: const Padding(padding: EdgeInsets.all(8), child: Icon(Icons.drag_handle)),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+      },
+    ),
+  );
 }
 
 class _CircuitTabs extends ConsumerWidget {

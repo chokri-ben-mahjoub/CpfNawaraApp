@@ -1547,6 +1547,12 @@ final _strings = <String, Map<String, String>>{
   'plantStartTime': {'fr': 'Heure de début', 'en': 'Start time'},
   'plantEndTime': {'fr': 'Heure de fin', 'en': 'End time'},
   'plantSamplingTime': {'fr': 'Heure de prélèvement', 'en': 'Reading time'},
+  'plantCircuitsReorder': {'fr': 'Ordre', 'en': 'Order'},
+  'plantCircuitsReorderTitle': {'fr': 'Ordre des circuits', 'en': 'Circuit order'},
+  'plantCircuitsReorderHint': {
+    'fr': "Faites glisser par la poignée ou utilisez les flèches. Cet ordre est repris par les puces et par le rapport.",
+    'en': 'Drag by the handle or use the arrows. This order is used by the chips and by the report.',
+  },
   'plantSamplingTimeColumn': {'fr': 'Heure de prélèvement', 'en': 'Sampling Time'},
   'colStartTime': {'fr': 'Heure début', 'en': 'Start time'},
   'colEndTime': {'fr': 'Heure fin', 'en': 'End time'},
