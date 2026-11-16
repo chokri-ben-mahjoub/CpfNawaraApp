@@ -17,8 +17,10 @@ class PdfLook {
   PdfColor get header => PdfColor.fromInt(cfg.headerArgb);
 
   /// Marges de la page, mises à l'échelle des réglages.
-  pw.EdgeInsets margin(double left, double top) =>
-      pw.EdgeInsets.symmetric(horizontal: left * cfg.marginScale, vertical: top * cfg.marginScale);
+  pw.EdgeInsets margin(double left, double top) => pw.EdgeInsets.symmetric(
+    horizontal: left * cfg.marginScale,
+    vertical: top * cfg.marginScale,
+  );
 
   static pw.Alignment _align(PdfTextAlign a) => switch (a) {
     PdfTextAlign.left => pw.Alignment.centerLeft,
@@ -30,13 +32,22 @@ class PdfLook {
   /// servent que quand le réglage est « automatique » (null). Helvetica reste
   /// la police du thème par défaut (aucune police explicite), pour que le
   /// rendu par défaut soit strictement inchangé.
-  pw.TextStyle textStyle(PdfTextStyleSpec s, {required double size, PdfColor? color}) {
+  pw.TextStyle textStyle(
+    PdfTextStyleSpec s, {
+    required double size,
+    PdfColor? color,
+  }) {
     final argb = s.colorArgb;
     final c = argb == null ? color : PdfColor.fromInt(argb);
     final weight = s.bold ? pw.FontWeight.bold : pw.FontWeight.normal;
     final style = s.italic ? pw.FontStyle.italic : pw.FontStyle.normal;
     return switch (s.family) {
-      PdfFontFamily.helvetica => pw.TextStyle(fontSize: s.size ?? size, fontWeight: weight, fontStyle: style, color: c),
+      PdfFontFamily.helvetica => pw.TextStyle(
+        fontSize: s.size ?? size,
+        fontWeight: weight,
+        fontStyle: style,
+        color: c,
+      ),
       PdfFontFamily.times => pw.TextStyle(
         font: pw.Font.times(),
         fontBold: pw.Font.timesBold(),
@@ -63,18 +74,37 @@ class PdfLook {
   /// Texte d'en-tête, de pied de page ou secondaire : [size], [color] et
   /// [bold] sont ceux historiques de l'élément, remplacés seulement si le
   /// réglage [s] en impose d'autres (« gras » du réglage = gras partout).
-  pw.TextStyle note(PdfTextStyleSpec s, {required double size, PdfColor? color, bool bold = false}) =>
-      textStyle(s.copyWith(bold: s.bold || bold), size: size, color: color);
+  pw.TextStyle note(
+    PdfTextStyleSpec s, {
+    required double size,
+    PdfColor? color,
+    bool bold = false,
+  }) => textStyle(
+    s.copyWith(bold: s.bold || bold),
+    size: size,
+    color: color,
+  );
 
   /// Titre (rapport ou tableau) au style [s]. [scale] multiplie la taille
   /// (réglage « taille du texte ») ; l'alignement par défaut (gauche) n'ajoute
   /// aucun conteneur, pour garder le PDF identique à l'historique.
-  pw.Widget title(String text, PdfTextStyleSpec s, {required double size, PdfColor? color, double scale = 1}) {
+  pw.Widget title(
+    String text,
+    PdfTextStyleSpec s, {
+    required double size,
+    PdfColor? color,
+    double scale = 1,
+  }) {
     final scaled = s.size == null ? s : s.copyWith(size: s.size! * scale);
-    final t = pw.Text(text, style: textStyle(scaled, size: size * scale, color: color));
+    final t = pw.Text(
+      text,
+      style: textStyle(scaled, size: size * scale, color: color),
+    );
     if (s.align == PdfTextAlign.left) return t;
     return pw.Align(
-      alignment: s.align == PdfTextAlign.center ? pw.Alignment.center : pw.Alignment.centerRight,
+      alignment: s.align == PdfTextAlign.center
+          ? pw.Alignment.center
+          : pw.Alignment.centerRight,
       child: t,
     );
   }
@@ -84,7 +114,10 @@ class PdfLook {
     required List<String> headers,
     required List<List<Object>> data,
     required double fontSize,
-    pw.EdgeInsets cellPadding = const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 5),
+    pw.EdgeInsets cellPadding = const pw.EdgeInsets.symmetric(
+      horizontal: 5,
+      vertical: 5,
+    ),
     pw.Alignment cellAlignment = pw.Alignment.centerLeft,
     Map<int, pw.Alignment>? cellAlignments,
     Map<int, pw.TableColumnWidth>? columnWidths,
@@ -94,7 +127,8 @@ class PdfLook {
     // comme un rapport de laboratoire imprimé).
     final st = cfg.style;
     final customBg = st.table.headerBgArgb;
-    final filled = cfg.tableStyle == 0 || cfg.tableStyle == 2 || customBg != null;
+    final filled =
+        cfg.tableStyle == 0 || cfg.tableStyle == 2 || customBg != null;
     final bg = customBg == null ? header : PdfColor.fromInt(customBg);
     final line = PdfColor.fromInt(st.table.borderArgb);
     final lineWidth = st.table.borderWidth;
@@ -107,26 +141,169 @@ class PdfLook {
     return pw.TableHelper.fromTextArray(
       headers: headers,
       data: data,
-      headerStyle: textStyle(st.columnHeader, size: fontSize, color: filled ? PdfColors.white : header),
+      headerStyle: textStyle(
+        st.columnHeader,
+        size: fontSize,
+        color: filled ? PdfColors.white : header,
+      ),
       headerAlignment: _align(st.columnHeader.align),
       headerDecoration: filled
           ? pw.BoxDecoration(color: bg)
           : (cfg.tableStyle == 3
                 ? null
-                : pw.BoxDecoration(border: pw.Border(bottom: pw.BorderSide(color: accent, width: 1.4)))),
+                : pw.BoxDecoration(
+                    border: pw.Border(
+                      bottom: pw.BorderSide(color: accent, width: 1.4),
+                    ),
+                  )),
       headerPadding: pad,
       cellStyle: textStyle(st.cell, size: fontSize),
       cellPadding: pad,
       // Alignement imposé par l'appelant (colonnes numériques...) prioritaire.
-      cellAlignment: cellAlignment == pw.Alignment.centerLeft ? _align(st.cell.align) : cellAlignment,
+      cellAlignment: cellAlignment == pw.Alignment.centerLeft
+          ? _align(st.cell.align)
+          : cellAlignment,
       cellAlignments: cellAlignments,
       columnWidths: columnWidths,
       border: cfg.tableStyle == 1
-          ? pw.TableBorder(horizontalInside: pw.BorderSide(color: line, width: lineWidth))
+          ? pw.TableBorder(
+              horizontalInside: pw.BorderSide(color: line, width: lineWidth),
+            )
           : pw.TableBorder.all(color: line, width: lineWidth),
       oddRowDecoration: cfg.tableStyle == 2
-          ? pw.BoxDecoration(color: PdfColor.fromInt((cfg.accentArgb & 0x00FFFFFF) | 0x14000000))
+          ? pw.BoxDecoration(
+              color: PdfColor.fromInt(
+                (cfg.accentArgb & 0x00FFFFFF) | 0x14000000,
+              ),
+            )
           : null,
+    );
+  }
+
+  /// Tableau à première colonne fusionnée par groupe (comme un rapport de
+  /// laboratoire : une cellule « heure de prélèvement » en face de toutes les
+  /// lignes d'une même analyse). Chaque élément de [groups] est le libellé
+  /// fusionné + les lignes du groupe (sans cette première colonne). La lib PDF
+  /// ne gère pas les `rowspan` : les bordures sont donc dessinées cellule par
+  /// cellule (haut du groupe, bas du groupe) et le libellé est placé sur la
+  /// ligne centrale du groupe.
+  pw.Widget groupedTable({
+    required List<String> headers,
+    required List<(String, List<List<Object>>)> groups,
+    required double fontSize,
+    Map<int, pw.Alignment>? cellAlignments,
+    Map<int, pw.TableColumnWidth>? columnWidths,
+  }) {
+    final st = cfg.style;
+    final customBg = st.table.headerBgArgb;
+    final filled =
+        cfg.tableStyle == 0 || cfg.tableStyle == 2 || customBg != null;
+    final bg = customBg == null ? header : PdfColor.fromInt(customBg);
+    final lineColor = PdfColor.fromInt(st.table.borderArgb);
+    final side = pw.BorderSide(color: lineColor, width: st.table.borderWidth);
+    final none = pw.BorderSide.none;
+    final pad = (st.table.padH == null && st.table.padV == null)
+        ? const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 5)
+        : pw.EdgeInsets.symmetric(
+            horizontal: st.table.padH ?? 5,
+            vertical: st.table.padV ?? 5,
+          );
+    final horizontalOnly = cfg.tableStyle == 1;
+    final cellStyle = textStyle(st.cell, size: fontSize);
+    final headerStyle = textStyle(
+      st.columnHeader,
+      size: fontSize,
+      color: filled ? PdfColors.white : header,
+    );
+
+    pw.Widget cell(
+      Object? content, {
+      required pw.Alignment align,
+      required pw.TextStyle style,
+      required pw.Border border,
+      PdfColor? fill,
+    }) => pw.Container(
+      padding: pad,
+      alignment: align,
+      decoration: pw.BoxDecoration(color: fill, border: border),
+      child: content is pw.Widget
+          ? content
+          : (content == null || '$content'.isEmpty
+                ? null
+                : pw.Text('$content', style: style)),
+    );
+
+    final rows = <pw.TableRow>[
+      pw.TableRow(
+        children: [
+          for (var c = 0; c < headers.length; c++)
+            cell(
+              headers[c],
+              align: c == 0
+                  ? pw.Alignment.center
+                  : _align(st.columnHeader.align),
+              style: headerStyle,
+              border: horizontalOnly
+                  ? pw.Border(bottom: pw.BorderSide(color: accent, width: 1.4))
+                  : (cfg.tableStyle == 3 || filled
+                        ? pw.Border.all(
+                            color: lineColor,
+                            width: st.table.borderWidth,
+                          )
+                        : pw.Border(
+                            bottom: pw.BorderSide(color: accent, width: 1.4),
+                          )),
+              fill: filled ? bg : null,
+            ),
+        ],
+      ),
+    ];
+    final oddFill = PdfColor.fromInt(
+      (cfg.accentArgb & 0x00FFFFFF) | 0x14000000,
+    );
+    for (var g = 0; g < groups.length; g++) {
+      final (label, lines) = groups[g];
+      final mid = (lines.length - 1) ~/ 2;
+      final fill = cfg.tableStyle == 2 && g.isOdd ? oddFill : null;
+      for (var r = 0; r < lines.length; r++) {
+        final first = r == 0, last = r == lines.length - 1;
+        rows.add(
+          pw.TableRow(
+            children: [
+              cell(
+                r == mid ? label : '',
+                align: pw.Alignment.center,
+                style: textStyle(st.cell.copyWith(bold: true), size: fontSize),
+                border: pw.Border(
+                  left: horizontalOnly ? none : side,
+                  right: horizontalOnly ? none : side,
+                  top: first ? side : none,
+                  bottom: last ? side : none,
+                ),
+                fill: fill,
+              ),
+              for (var c = 0; c < lines[r].length; c++)
+                cell(
+                  lines[r][c],
+                  align: cellAlignments?[c + 1] ?? _align(st.cell.align),
+                  style: cellStyle,
+                  border: horizontalOnly
+                      ? pw.Border(top: side, bottom: side)
+                      : pw.Border.all(
+                          color: lineColor,
+                          width: st.table.borderWidth,
+                        ),
+                  fill: fill,
+                ),
+            ],
+          ),
+        );
+      }
+    }
+    return pw.Table(
+      columnWidths: columnWidths,
+      defaultVerticalAlignment: pw.TableCellVerticalAlignment.full,
+      children: rows,
     );
   }
 
@@ -140,12 +317,21 @@ class PdfLook {
     final angle = (layout?.angleDeg ?? -35.5) * 3.14159265 / 180;
     final textWidget = pw.Opacity(
       opacity: 0.12,
-      child: pw.Text(text.toUpperCase(), style: pw.TextStyle(fontSize: fontSize, fontWeight: pw.FontWeight.bold, color: _grey)),
+      child: pw.Text(
+        text.toUpperCase(),
+        style: pw.TextStyle(
+          fontSize: fontSize,
+          fontWeight: pw.FontWeight.bold,
+          color: _grey,
+        ),
+      ),
     );
     return (context) => pw.FullPage(
       ignoreMargins: true,
       child: layout == null
-          ? pw.Center(child: pw.Transform.rotate(angle: angle, child: textWidget))
+          ? pw.Center(
+              child: pw.Transform.rotate(angle: angle, child: textWidget),
+            )
           : pw.Align(
               alignment: pw.Alignment(layout.dx * 2 - 1, 1 - layout.dy * 2),
               child: pw.Transform.rotate(angle: angle, child: textWidget),

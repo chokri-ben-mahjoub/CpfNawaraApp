@@ -264,58 +264,13 @@ Future<Uint8List> buildPlantDailyReport({
       // Colonne fusionnée (plutôt que la ligne de texte habituelle) : seulement
       // pour une analyse par point affiché (sinon une date par ligne serait
       // nécessaire, voir le cas [analysisIds] ci-dessous).
-      final useTimeColumn = pdfCfg.samplingTimeColumn && options.samplingTime && analysisIds == null;
-      for (final a in daily) {
-        sections.add(pw.SizedBox(height: 4));
-        if (!useTimeColumn && (options.samplingTime || analysisIds != null)) {
-          sections.add(
-            pw.Text(
-              '${t('plantSamplingTime')}: ${analysisIds != null ? '${DateFormat('dd-MM-yyyy').format(a.date)} ' : ''}${a.samplingTime}',
-              style: pw.TextStyle(
-                fontSize: 9,
-                fontWeight: pw.FontWeight.bold,
-                color: _navy,
-              ),
-            ),
-          );
-        }
-        sections.add(pw.SizedBox(height: 3));
-        final tableFontSize = 8.5 * k;
-        var rowIndex = 0;
-        sections.add(
-          look.table(
-            headers: [
-              if (useTimeColumn) t('plantSamplingTime'),
-              t('plantColTest'),
-              if (pdfCfg.showMethods) t('plantColMethod'),
-              t('colUnit'),
-              t('plantColResults'),
-              if (options.limitColumn) t('plantColSpec'),
-              if (options.statusColumn) t('colStatus'),
-            ],
-            fontSize: tableFontSize,
-            cellAlignments: () {
-              var i = useTimeColumn ? 1 : 0;
-              final m = <int, pw.Alignment>{};
-              if (useTimeColumn) m[0] = pw.Alignment.center;
-              i++; // libellé du test
-              if (pdfCfg.showMethods) m[i++] = pw.Alignment.center;
-              m[i++] = pw.Alignment.center; // unité
-              m[i++] = pw.Alignment.centerRight; // valeur
-              m[i++] = pw.Alignment.center; // seuil
-              m[i] = pw.Alignment.center; // statut
-              return m;
-            }(),
-            data: [
+      final useTimeColumn = pdfCfg.samplingTimeColumn && options.samplingTime;
+      // Lignes de résultats d'une analyse (sans la colonne « heure »).
+      List<List<Object>> rowsFor(PlantAnalysis a) => [
               for (final param in point.params)
                 if (a.values[param.key] != null &&
                     (paramKeys == null || paramKeys.contains(param.key)))
                   [
-                    // Heure de prélèvement affichée sur la première ligne
-                    // seulement : la table PDF ne fusionne pas les cellules,
-                    // mais une cellule vide en dessous donne le même effet
-                    // visuel qu'une colonne fusionnée.
-                    if (useTimeColumn) (rowIndex++ == 0 ? a.samplingTime : ''),
                     t(param.labelKey),
                     if (pdfCfg.showMethods) (astmMethodFor(param.key) ?? '-'),
                     param.unit,
@@ -345,6 +300,98 @@ Future<Uint8List> buildPlantDailyReport({
                         null => '-',
                       },
                   ],
+      ];
+
+      // Plusieurs analyses du même point (ex. 7h30 et 17h30) : un seul tableau,
+      // la cellule « heure de prélèvement » fusionnée en face des lignes de
+      // chaque analyse, comme sur le modèle PDF du laboratoire.
+      if (useTimeColumn) {
+        final tableFontSize = 8.5 * k;
+        sections.add(pw.SizedBox(height: 3));
+        sections.add(
+          look.groupedTable(
+            headers: [
+              t('plantSamplingTime'),
+              t('plantColTest'),
+              if (pdfCfg.showMethods) t('plantColMethod'),
+              t('colUnit'),
+              t('plantColResults'),
+              if (options.limitColumn) t('plantColSpec'),
+              if (options.statusColumn) t('colStatus'),
+            ],
+            fontSize: tableFontSize,
+            cellAlignments: () {
+              var i = 1;
+              final m = <int, pw.Alignment>{};
+              i++; // libellé du test
+              if (pdfCfg.showMethods) m[i++] = pw.Alignment.center;
+              m[i++] = pw.Alignment.center; // unité
+              m[i++] = pw.Alignment.center; // valeur
+              m[i++] = pw.Alignment.center; // seuil
+              m[i] = pw.Alignment.center; // statut
+              return m;
+            }(),
+            columnWidths: {
+              0: const pw.FlexColumnWidth(1.6),
+              1: const pw.FlexColumnWidth(3),
+              for (var c = 2; c < 2 + (pdfCfg.showMethods ? 1 : 0); c++) c: const pw.FlexColumnWidth(2.4),
+            },
+            groups: [
+              for (final a in daily)
+                (
+                  analysisIds != null
+                      ? '${DateFormat('dd-MM-yyyy').format(a.date)}\n${a.samplingTime}'
+                      : a.samplingTime,
+                  rowsFor(a),
+                ),
+            ],
+          ),
+        );
+      }
+
+      for (final a in daily) {
+        sections.add(pw.SizedBox(height: 4));
+        if (!useTimeColumn && (options.samplingTime || analysisIds != null)) {
+          sections.add(
+            pw.Text(
+              '${t('plantSamplingTime')}: ${analysisIds != null ? '${DateFormat('dd-MM-yyyy').format(a.date)} ' : ''}${a.samplingTime}',
+              style: pw.TextStyle(
+                fontSize: 9,
+                fontWeight: pw.FontWeight.bold,
+                color: _navy,
+              ),
+            ),
+          );
+        }
+        sections.add(pw.SizedBox(height: 3));
+        final tableFontSize = 8.5 * k;
+        var rowIndex = 0;
+        if (!useTimeColumn) sections.add(
+          look.table(
+            headers: [
+              if (useTimeColumn) t('plantSamplingTime'),
+              t('plantColTest'),
+              if (pdfCfg.showMethods) t('plantColMethod'),
+              t('colUnit'),
+              t('plantColResults'),
+              if (options.limitColumn) t('plantColSpec'),
+              if (options.statusColumn) t('colStatus'),
+            ],
+            fontSize: tableFontSize,
+            cellAlignments: () {
+              var i = useTimeColumn ? 1 : 0;
+              final m = <int, pw.Alignment>{};
+              if (useTimeColumn) m[0] = pw.Alignment.center;
+              i++; // libellé du test
+              if (pdfCfg.showMethods) m[i++] = pw.Alignment.center;
+              m[i++] = pw.Alignment.center; // unité
+              m[i++] = pw.Alignment.centerRight; // valeur
+              m[i++] = pw.Alignment.center; // seuil
+              m[i] = pw.Alignment.center; // statut
+              return m;
+            }(),
+            data: [
+              for (final r in rowsFor(a)) [if (useTimeColumn) (rowIndex++ == 0 ? a.samplingTime : ''), ...r],
             ],
           ),
         );
