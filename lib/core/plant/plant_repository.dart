@@ -665,6 +665,34 @@ class PlantController extends StateNotifier<PlantState> {
     return true;
   }
 
+  /// Enregistre l'ordre choisi des circuits (glisser-déposer des puces) :
+  /// numérote 1..n dans l'ordre de [orderedIds]. Cet ordre sert aussi au
+  /// rapport PDF « tous les circuits ».
+  Future<void> reorderCircuits(List<String> orderedIds) async {
+    final db = await LocalDatabase.instance.database;
+    final batch = db.batch();
+    var n = 0;
+    for (final id in orderedIds) {
+      final c = state.circuits.where((x) => x.id == id).firstOrNull;
+      if (c == null) continue;
+      n++;
+      batch.insert(
+        'plant_circuits',
+        LocalDatabase.stamp({
+          'id': c.id,
+          'label_key': c.labelKey,
+          'color': c.colorValue,
+          'icon': c.iconKey,
+          'default_profile': c.defaultProfile,
+          'sort_order': n,
+        }),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+    await batch.commit(noResult: true);
+    await _afterWrite();
+  }
+
   /// Prochain numéro d'ordre (nouveau circuit affiché en fin de liste).
   int get nextCircuitSortOrder => state.circuits.fold<int>(0, (m, c) => c.sortOrder > m ? c.sortOrder : m) + 1;
 

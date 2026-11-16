@@ -804,21 +804,54 @@ class PlantCircuitChips extends ConsumerWidget {
     final locale = ref.watch(localeProvider);
     String s(String key) => tr(locale, key);
     final selected = selectedPlantCircuit(circuits, ref.watch(plantListCircuitProvider));
+    Widget chip(PlantCircuit c) => ChoiceChip(
+      avatar: Icon(c.icon, size: 16, color: c.id == selected.id ? Colors.white : c.color),
+      label: Text(s(c.labelKey)),
+      selected: c.id == selected.id,
+      selectedColor: c.color,
+      labelStyle: TextStyle(
+        color: c.id == selected.id ? Colors.white : null,
+        fontWeight: FontWeight.w700,
+      ),
+      onSelected: (_) => ref.read(plantListCircuitProvider.notifier).state = c.id,
+    );
+
+    // Glisser-déposer : maintenir une puce puis la déposer sur une autre pour
+    // la placer à sa position. L'ordre est enregistré et suivi par le rapport.
+    Future<void> move(String draggedId, String targetId) async {
+      if (draggedId == targetId) return;
+      final ids = [for (final c in circuits) c.id];
+      final from = ids.indexOf(draggedId);
+      final to = ids.indexOf(targetId);
+      if (from < 0 || to < 0) return;
+      ids.removeAt(from);
+      ids.insert(to, draggedId);
+      await ref.read(plantControllerProvider.notifier).reorderCircuits(ids);
+    }
+
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children: [
         for (final c in circuits)
-          ChoiceChip(
-            avatar: Icon(c.icon, size: 16, color: c.id == selected.id ? Colors.white : c.color),
-            label: Text(s(c.labelKey)),
-            selected: c.id == selected.id,
-            selectedColor: c.color,
-            labelStyle: TextStyle(
-              color: c.id == selected.id ? Colors.white : null,
-              fontWeight: FontWeight.w700,
+          DragTarget<String>(
+            onWillAcceptWithDetails: (d) => d.data != c.id,
+            onAcceptWithDetails: (d) => move(d.data, c.id),
+            builder: (context, candidate, _) => LongPressDraggable<String>(
+              data: c.id,
+              delay: const Duration(milliseconds: 250),
+              feedback: Material(color: Colors.transparent, elevation: 6, child: chip(c)),
+              childWhenDragging: Opacity(opacity: 0.3, child: chip(c)),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  border: candidate.isNotEmpty
+                      ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2)
+                      : null,
+                ),
+                child: chip(c),
+              ),
             ),
-            onSelected: (_) => ref.read(plantListCircuitProvider.notifier).state = c.id,
           ),
       ],
     );

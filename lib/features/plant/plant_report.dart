@@ -324,7 +324,7 @@ Future<Uint8List> buildPlantDailyReport({
         sections.add(
           look.groupedTable(
             headers: [
-              t('plantSamplingTime'),
+              t('plantSamplingTimeColumn'),
               t('plantColTest'),
               if (pdfCfg.showMethods) t('plantColMethod'),
               t('colUnit'),
