@@ -193,7 +193,7 @@ class PdfLook {
   /// ne gère pas les `rowspan` : les bordures sont donc dessinées cellule par
   /// cellule (haut du groupe, bas du groupe) et le libellé est placé sur la
   /// ligne centrale du groupe.
-  pw.Widget groupedTable({
+  List<pw.Widget> groupedTable({
     required List<String> headers,
     required List<(String, List<List<Object>>)> groups,
     required double fontSize,
@@ -254,13 +254,18 @@ class PdfLook {
     final oddFill = PdfColor.fromInt(
       (cfg.accentArgb & 0x00FFFFFF) | 0x14000000,
     );
+    // Un bloc par groupe (analyse) : un groupe n'est jamais coupé entre deux
+    // pages, il passe en entier sur la page suivante.
+    final blocks = <List<pw.TableRow>>[];
     for (var g = 0; g < groups.length; g++) {
+      final groupRows = <pw.TableRow>[];
+      blocks.add(groupRows);
       final (label, lines) = groups[g];
       final mid = (lines.length - 1) ~/ 2;
       final fill = cfg.tableStyle == 2 && g.isOdd ? oddFill : null;
       for (var r = 0; r < lines.length; r++) {
         final first = r == 0, last = r == lines.length - 1;
-        rows.add(
+        groupRows.add(
           pw.TableRow(
             children: [
               cell(
@@ -308,11 +313,23 @@ class PdfLook {
         );
       }
     }
-    return pw.Table(
+    pw.Widget tableOf(List<pw.TableRow> rs) => pw.Table(
       columnWidths: columnWidths,
       defaultVerticalAlignment: pw.TableCellVerticalAlignment.full,
-      children: rows,
+      children: rs,
     );
+    // En-tête collé au premier groupe. Un groupe très long (plus d'une page)
+    // reste dans un tableau qui peut se couper, sinon la page ne le contiendrait pas.
+    const maxUnsplit = 35;
+    final widgets = <pw.Widget>[];
+    for (var i = 0; i < blocks.length; i++) {
+      final rs = [if (i == 0) ...rows, ...blocks[i]];
+      final t = tableOf(rs);
+      widgets.add(rs.length <= maxUnsplit ? pw.Container(child: t) : t);
+    }
+    // Widgets de premier niveau distincts : la mise en page peut changer de
+    // page entre deux groupes (jamais au milieu d'un groupe).
+    return widgets.isEmpty ? [tableOf(rows)] : widgets;
   }
 
   /// Fond de page : filigrane en diagonale (position/taille/angle historiques,

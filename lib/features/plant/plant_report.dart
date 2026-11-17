@@ -326,7 +326,7 @@ Future<Uint8List> buildPlantDailyReport({
       if (useTimeColumn) {
         final tableFontSize = 8.5 * k;
         sections.add(pw.SizedBox(height: 3));
-        sections.add(
+        sections.addAll(
           look.groupedTable(
             headers: [
               t('plantSamplingTimeColumn'),
