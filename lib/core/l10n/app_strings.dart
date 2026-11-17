@@ -492,7 +492,8 @@ final _strings = <String, Map<String, String>>{
   'plantGasBottlesColPressure': {'fr': 'Pression', 'en': 'Pressure'},
   'plantGasBottlesColLocation': {'fr': 'Emplacement', 'en': 'Location'},
   'plantGasBottlesReadingTime': {'fr': 'Heure du relevé', 'en': 'Reading time'},
-  'gasBottlesReadingTimeLabel': {'fr': 'Heure du relevé (aujourd\'hui)', 'en': 'Reading time (today)'},
+  'gasBottlesReadingTimeLabel': {'fr': 'Heure du relevé', 'en': 'Reading time'},
+  'gasBottlesReadingDateLabel': {'fr': 'Date du relevé', 'en': 'Reading date'},
   'sampleManifestTitle': {'fr': 'Échantillons du jour', 'en': 'Daily samples'},
   'sampleManifestAdd': {'fr': 'Ajouter', 'en': 'Add'},
   'sampleManifestEmpty': {
