@@ -1562,6 +1562,8 @@ final _strings = <String, Map<String, String>>{
   'colStartTime': {'fr': 'Heure début', 'en': 'Start time'},
   'colEndTime': {'fr': 'Heure fin', 'en': 'End time'},
   'plantPhotoLabel': {'fr': 'Photo (facultatif)', 'en': 'Photo (optional)'},
+  'plantPhotoTitleLabel': {'fr': 'Titre de la photo', 'en': 'Photo title'},
+  'plantPhotoTitleHint': {'fr': 'Ex: Eau produite à 07h30', 'en': 'e.g. Produced water sample at 07h30'},
   'plantPhotoAdd': {'fr': 'Ajouter une photo', 'en': 'Add a photo'},
   'plantPhotoReplace': {'fr': 'Remplacer', 'en': 'Replace'},
   'plantPhotoRemove': {'fr': 'Retirer la photo', 'en': 'Remove photo'},

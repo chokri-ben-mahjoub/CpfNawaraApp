@@ -44,6 +44,7 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
   TimeOfDay? _samplingTime;
   late final TextEditingController _sourceController;
   String? _photo;
+  final _photoTitle = TextEditingController();
   bool _saving = false;
 
   /// `null` : nouvelle analyse (sera ajoutée, sans remplacer celles déjà
@@ -122,6 +123,7 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
     _sourceController.text = tr(ref.read(localeProvider), existing.source);
     _samplingTime = _parseTime(existing.startTime);
     _photo = existing.photo;
+    _photoTitle.text = existing.photoTitle ?? '';
   }
 
   Future<void> _pickPhoto() async {
@@ -154,6 +156,7 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
       c.dispose();
     }
     _sourceController.dispose();
+    _photoTitle.dispose();
     super.dispose();
   }
 
@@ -194,6 +197,7 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
           id: _editingId,
           startTime: _formatTime(_samplingTime),
           photo: _photo,
+          photoTitle: _photoTitle.text.trim().isEmpty ? null : _photoTitle.text.trim(),
           paramComments: {
             for (final e in _paramComments.entries)
               if (e.value.text.trim().isNotEmpty) e.key: e.value.text.trim(),
@@ -528,6 +532,16 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
                   ],
                 ),
               ),
+            if (_photo != null) ...[
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: _photoTitle,
+                decoration: InputDecoration(
+                  labelText: s('plantPhotoTitleLabel'),
+                  hintText: s('plantPhotoTitleHint'),
+                ),
+              ),
+            ],
             const SizedBox(height: 20),
             SizedBox(
               height: 52,

@@ -481,8 +481,18 @@ Future<Uint8List> buildPlantDailyReport({
           sections.add(
             pw.Padding(
               padding: const pw.EdgeInsets.only(top: 6),
-              child: pw.Center(
-                child: pw.Image(photo, height: 150, fit: pw.BoxFit.contain),
+              child: pw.Column(
+                children: [
+                  pw.Center(child: pw.Image(photo, height: 150, fit: pw.BoxFit.contain)),
+                  if ((a.photoTitle ?? '').trim().isNotEmpty) ...[
+                    pw.SizedBox(height: 3),
+                    pw.Text(
+                      _safe(a.photoTitle!.trim()),
+                      textAlign: pw.TextAlign.center,
+                      style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: _navy),
+                    ),
+                  ],
+                ],
               ),
             ),
           );
