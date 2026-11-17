@@ -33,6 +33,21 @@ class GasBottlesScreen extends ConsumerWidget {
       if (picked != null) await ref.read(sharedConfigProvider.notifier).setGasBottlesReadingTime(picked);
     }
 
+    final readingDate = DateTime.tryParse(shared.gasBottlesReadingDate);
+    Future<void> pickReadingDate() async {
+      final now = DateTime.now();
+      final picked = await showDatePicker(
+        context: context,
+        initialDate: readingDate ?? now,
+        firstDate: DateTime(now.year - 2),
+        lastDate: now,
+      );
+      if (picked != null) await ref.read(sharedConfigProvider.notifier).setGasBottlesReadingDate(picked);
+    }
+
+    String fmtDate(DateTime d) =>
+        '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
     return Scaffold(
       appBar: AppBar(title: Text(s('gasBottlesTitle'))),
       floatingActionButton: FloatingActionButton.extended(
@@ -59,16 +74,33 @@ class GasBottlesScreen extends ConsumerWidget {
               children: [
                 Text(s('gasBottlesHint'), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12.5)),
                 const SizedBox(height: 14),
-                InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: pickReadingTime,
-                  child: InputDecorator(
-                    decoration: InputDecoration(
-                      labelText: s('gasBottlesReadingTimeLabel'),
-                      prefixIcon: const Icon(Icons.schedule_outlined),
+                ResponsiveWrapGrid(
+                  minItemWidth: 220,
+                  spacing: 12,
+                  children: [
+                    InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: pickReadingDate,
+                      child: InputDecorator(
+                        decoration: InputDecoration(
+                          labelText: s('gasBottlesReadingDateLabel'),
+                          prefixIcon: const Icon(Icons.event_outlined),
+                        ),
+                        child: Text(readingDate == null ? '—' : fmtDate(readingDate)),
+                      ),
                     ),
-                    child: Text(shared.gasBottlesReadingTime.isEmpty ? '—' : shared.gasBottlesReadingTime),
-                  ),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: pickReadingTime,
+                      child: InputDecorator(
+                        decoration: InputDecoration(
+                          labelText: s('gasBottlesReadingTimeLabel'),
+                          prefixIcon: const Icon(Icons.schedule_outlined),
+                        ),
+                        child: Text(shared.gasBottlesReadingTime.isEmpty ? '—' : shared.gasBottlesReadingTime),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 14),
                 AdminTable<GasBottle>(
