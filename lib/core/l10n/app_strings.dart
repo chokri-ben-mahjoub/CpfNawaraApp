@@ -509,6 +509,7 @@ final _strings = <String, Map<String, String>>{
   'sampleManifestColQuantity': {'fr': 'Qté', 'en': 'Qty'},
   'sampleManifestColLabel': {'fr': 'Label', 'en': 'Label'},
   'sampleManifestColCpfCode': {'fr': 'Code CPF', 'en': 'CPF code'},
+  'sampleManifestColSamplingTime': {'fr': 'Heure de prélèvement', 'en': 'Sampling Time'},
   'sampleManifestAdded': {'fr': 'Échantillon ajouté', 'en': 'Sample added'},
   'sampleManifestUpdated': {'fr': 'Échantillon modifié', 'en': 'Sample updated'},
   'sampleManifestDeleteConfirmTitle': {'fr': 'Supprimer cet échantillon ?', 'en': 'Delete this sample?'},
@@ -529,6 +530,7 @@ final _strings = <String, Map<String, String>>{
   'plantScopeColQuantity': {'fr': 'Qté', 'en': 'Quantity'},
   'plantScopeColLabel': {'fr': 'Label', 'en': 'Label'},
   'plantScopeColCpfCode': {'fr': 'Code OMV CPF', 'en': 'OMV CPF Code'},
+  'plantScopeColSamplingTime': {'fr': 'Heure de prélèvement', 'en': 'Sampling Time'},
   'stockAddItem': {'fr': 'Ajouter un article', 'en': 'Add an item'},
   'stockEmpty': {
     'fr': 'Aucun article pour le moment. Ajoutez les produits, pièces ou consommables utilisés sur vos puits.',

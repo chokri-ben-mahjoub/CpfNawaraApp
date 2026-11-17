@@ -39,6 +39,9 @@ class SampleManifestEntry {
   final int quantity;
   final String label;
   final String cpfCode;
+
+  /// Heure de prélèvement (« HH:mm »), vide si non renseignée.
+  final String samplingTime;
   final int sortOrder;
 
   const SampleManifestEntry({
@@ -49,6 +52,7 @@ class SampleManifestEntry {
     this.quantity = 1,
     this.label = '',
     this.cpfCode = '',
+    this.samplingTime = '',
     this.sortOrder = 0,
   });
 
@@ -58,6 +62,7 @@ class SampleManifestEntry {
     int? quantity,
     String? label,
     String? cpfCode,
+    String? samplingTime,
   }) => SampleManifestEntry(
     id: id,
     date: date,
@@ -66,6 +71,7 @@ class SampleManifestEntry {
     quantity: quantity ?? this.quantity,
     label: label ?? this.label,
     cpfCode: cpfCode ?? this.cpfCode,
+    samplingTime: samplingTime ?? this.samplingTime,
     sortOrder: sortOrder,
   );
 }
@@ -100,6 +106,7 @@ class SampleManifestController extends StateNotifier<List<SampleManifestEntry>> 
     int quantity = 1,
     String label = '',
     String cpfCode = '',
+    String samplingTime = '',
   }) async {
     final db = await LocalDatabase.instance.database;
     final sortOrder = state.isEmpty ? 0 : state.map((e) => e.sortOrder).reduce((a, b) => a > b ? a : b) + 1;
@@ -113,6 +120,7 @@ class SampleManifestController extends StateNotifier<List<SampleManifestEntry>> 
         'quantity': quantity,
         'label': label,
         'cpf_code': cpfCode,
+        'sampling_time': samplingTime,
         'sort_order': sortOrder,
       }),
     );
@@ -129,6 +137,7 @@ class SampleManifestController extends StateNotifier<List<SampleManifestEntry>> 
         'quantity': entry.quantity,
         'label': entry.label,
         'cpf_code': entry.cpfCode,
+        'sampling_time': entry.samplingTime,
       }),
       where: 'id = ?',
       whereArgs: [entry.id],
@@ -152,6 +161,7 @@ class SampleManifestController extends StateNotifier<List<SampleManifestEntry>> 
     quantity: (row['quantity'] as num?)?.toInt() ?? 1,
     label: row['label'] as String? ?? '',
     cpfCode: row['cpf_code'] as String? ?? '',
+    samplingTime: row['sampling_time'] as String? ?? '',
     sortOrder: (row['sort_order'] as num?)?.toInt() ?? 0,
   );
 }
