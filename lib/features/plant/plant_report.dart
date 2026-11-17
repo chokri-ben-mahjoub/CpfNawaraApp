@@ -238,10 +238,10 @@ Future<Uint8List> buildPlantDailyReport({
       }
 
       if (options.curves && pdfCfg.charts == PdfChartsPosition.before) addCharts();
-      // Colonne fusionnée (plutôt que la ligne de texte habituelle) : seulement
-      // pour une analyse par point affiché (sinon une date par ligne serait
-      // nécessaire, voir le cas [analysisIds] ci-dessous).
-      final useTimeColumn = options.samplingTime && (pdfCfg.samplingTimeColumn || daily.length > 1);
+      // Colonne fusionnée, toujours (une ou plusieurs analyses du point ce
+      // jour-là) plutôt que la ligne de texte : même présentation pour tous
+      // les points du rapport, comme sur le modèle papier.
+      final useTimeColumn = options.samplingTime;
       // Lignes de résultats d'une analyse (sans la colonne « heure »).
       List<List<Object>> rowsFor(PlantAnalysis a) {
         const apprKeys = ['appr_free_condensate', 'appr_emulsion', 'appr_sand'];

@@ -1558,7 +1558,7 @@ final _strings = <String, Map<String, String>>{
     'fr': "Faites glisser par la poignée ou utilisez les flèches. Cet ordre est repris par les puces et par le rapport.",
     'en': 'Drag by the handle or use the arrows. This order is used by the chips and by the report.',
   },
-  'plantSamplingTimeColumn': {'fr': 'Heure de prélèvement', 'en': 'Sampling Time'},
+  'plantSamplingTimeColumn': {'fr': 'Heure de prélèvement', 'en': 'Reading time'},
   'colStartTime': {'fr': 'Heure début', 'en': 'Start time'},
   'colEndTime': {'fr': 'Heure fin', 'en': 'End time'},
   'plantPhotoLabel': {'fr': 'Photo (facultatif)', 'en': 'Photo (optional)'},

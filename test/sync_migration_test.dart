@@ -183,7 +183,16 @@ void main() {
     expect(await db.query('gas_bottles'), isEmpty);
     // v30 : échantillons envoyés au labo, par jour (table créée, vide).
     expect(await db.query('sample_manifest'), isEmpty);
-    expect(LocalDatabase.schemaVersion, 30);
+    // v31 : date d'expiration d'un article de stock.
+    final stockItemsColumns3 = await db.rawQuery('pragma table_info(stock_items)');
+    expect(stockItemsColumns3.map((r) => r['name']), contains('expiry_date'));
+    // v32 : heure de prélèvement de chaque échantillon (Scope of Work).
+    final sampleManifestColumns = await db.rawQuery('pragma table_info(sample_manifest)');
+    expect(sampleManifestColumns.map((r) => r['name']), contains('sampling_time'));
+    // v33 : titre (légende) de la photo jointe à une analyse.
+    final plantAnalysesColumns3 = await db.rawQuery('pragma table_info(plant_analyses)');
+    expect(plantAnalysesColumns3.map((r) => r['name']), contains('photo_title'));
+    expect(LocalDatabase.schemaVersion, 33);
 
     // Première connexion : tout ce qui a été saisi/modifié part au serveur.
     final engine = SyncEngine(
