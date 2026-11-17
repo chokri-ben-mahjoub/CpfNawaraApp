@@ -655,12 +655,13 @@ Future<Uint8List> buildPlantDailyReport({
               t('plantScopeColQuantity'),
               t('plantScopeColLabel'),
               t('plantScopeColCpfCode'),
+              t('plantScopeColSamplingTime'),
             ],
             fontSize: 8.5 * k,
             cellAlignments: {2: pw.Alignment.center},
             data: [
               for (final e in sampleManifest)
-                [_safe(e.testItem), _safe(e.conditioning), '${e.quantity}', _safe(e.label), _safe(e.cpfCode)],
+                [_safe(e.testItem), _safe(e.conditioning), '${e.quantity}', _safe(e.label), _safe(e.cpfCode), _safe(e.samplingTime)],
             ],
           ),
           pw.NewPage(),

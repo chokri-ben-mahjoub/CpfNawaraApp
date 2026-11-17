@@ -103,6 +103,7 @@ class SampleManifestScreen extends ConsumerWidget {
                           AdminColumn(s('sampleManifestColQuantity'), (e) => Text('${e.quantity}'), numeric: true),
                           AdminColumn(s('sampleManifestColLabel'), (e) => Text(e.label.isEmpty ? '—' : e.label)),
                           AdminColumn(s('sampleManifestColCpfCode'), (e) => Text(e.cpfCode.isEmpty ? '—' : e.cpfCode)),
+                          AdminColumn(s('sampleManifestColSamplingTime'), (e) => Text(e.samplingTime.isEmpty ? '—' : e.samplingTime)),
                         ],
                         card: (context, e) => AdminCard(
                           leading: const IconBadge(Icons.biotech_outlined, color: accentColor),
@@ -136,6 +137,7 @@ class _SampleFormSheetState extends ConsumerState<_SampleFormSheet> {
   late final TextEditingController _quantity;
   late final TextEditingController _label;
   late final TextEditingController _cpfCode;
+  late final TextEditingController _samplingTime;
 
   bool get _isNew => widget.existing == null;
 
@@ -148,6 +150,7 @@ class _SampleFormSheetState extends ConsumerState<_SampleFormSheet> {
     _quantity = TextEditingController(text: '${e?.quantity ?? 1}');
     _label = TextEditingController(text: e?.label ?? '');
     _cpfCode = TextEditingController(text: e?.cpfCode ?? '');
+    _samplingTime = TextEditingController(text: e?.samplingTime ?? '');
   }
 
   @override
@@ -157,6 +160,7 @@ class _SampleFormSheetState extends ConsumerState<_SampleFormSheet> {
     _quantity.dispose();
     _label.dispose();
     _cpfCode.dispose();
+    _samplingTime.dispose();
     super.dispose();
   }
 
@@ -175,6 +179,7 @@ class _SampleFormSheetState extends ConsumerState<_SampleFormSheet> {
         quantity: quantity,
         label: _label.text.trim(),
         cpfCode: _cpfCode.text.trim(),
+        samplingTime: _samplingTime.text.trim(),
       );
       messenger.showSnackBar(SnackBar(content: Text(s('sampleManifestAdded'))));
     } else {
@@ -185,11 +190,25 @@ class _SampleFormSheetState extends ConsumerState<_SampleFormSheet> {
           quantity: quantity,
           label: _label.text.trim(),
           cpfCode: _cpfCode.text.trim(),
+          samplingTime: _samplingTime.text.trim(),
         ),
       );
       messenger.showSnackBar(SnackBar(content: Text(s('sampleManifestUpdated'))));
     }
     if (mounted) Navigator.of(context).pop();
+  }
+
+  Future<void> _pickSamplingTime() async {
+    final parts = _samplingTime.text.split(':');
+    final now = TimeOfDay.now();
+    final initial = parts.length == 2
+        ? TimeOfDay(hour: int.tryParse(parts[0]) ?? now.hour, minute: int.tryParse(parts[1]) ?? now.minute)
+        : now;
+    final picked = await showTimePicker(context: context, initialTime: initial);
+    if (picked != null) {
+      setState(() => _samplingTime.text =
+          '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}');
+    }
   }
 
   Future<void> _delete() async {
@@ -278,6 +297,18 @@ class _SampleFormSheetState extends ConsumerState<_SampleFormSheet> {
               TextFormField(
                 controller: _cpfCode,
                 decoration: InputDecoration(labelText: s('sampleManifestColCpfCode')),
+              ),
+              TextFormField(
+                controller: _samplingTime,
+                readOnly: true,
+                onTap: _pickSamplingTime,
+                decoration: InputDecoration(
+                  labelText: s('sampleManifestColSamplingTime'),
+                  prefixIcon: const Icon(Icons.schedule_outlined),
+                  suffixIcon: _samplingTime.text.isEmpty
+                      ? null
+                      : IconButton(icon: const Icon(Icons.clear), onPressed: () => setState(() => _samplingTime.clear())),
+                ),
               ),
             ],
           ),
