@@ -76,6 +76,9 @@ class PlantAnalysis {
   /// en base64 — voir `schema_image.dart` pour la compression à la saisie.
   final String? photo;
 
+  /// Titre (légende) de la photo, repris sous l'image dans le rapport PDF.
+  final String? photoTitle;
+
   /// Commentaire par paramètre (clé -> texte), pour justifier une valeur
   /// hors seuil ; indépendant du commentaire général [comment].
   final Map<String, String> paramComments;
@@ -92,6 +95,7 @@ class PlantAnalysis {
     this.startTime,
     this.endTime,
     this.photo,
+    this.photoTitle,
     this.paramComments = const {},
   });
 
@@ -354,6 +358,7 @@ class PlantController extends StateNotifier<PlantState> {
           startTime: a.startTime,
           endTime: a.endTime,
           photo: a.photo,
+          photoTitle: a.photoTitle,
           paramComments: a.paramComments,
         ),
       );
@@ -509,6 +514,7 @@ class PlantController extends StateNotifier<PlantState> {
     String? startTime,
     String? endTime,
     String? photo,
+    String? photoTitle,
     Map<String, String>? paramComments,
   }) async {
     final db = await LocalDatabase.instance.database;
@@ -534,6 +540,7 @@ class PlantController extends StateNotifier<PlantState> {
         'start_time': startTime,
         'end_time': endTime,
         'photo': photo,
+        'photo_title': photo == null ? null : photoTitle,
         'param_comments_json': (paramComments == null || paramComments.isEmpty) ? null : jsonEncode(paramComments),
       }),
       conflictAlgorithm: ConflictAlgorithm.replace,
@@ -987,6 +994,7 @@ PlantAnalysis? _analysisFromRow(Map<String, Object?> row) {
       startTime: row['start_time'] as String?,
       endTime: row['end_time'] as String?,
       photo: row['photo'] as String?,
+      photoTitle: row['photo_title'] as String?,
       paramComments: _decodeComments(row['param_comments_json'] as String?),
     );
   } catch (_) {

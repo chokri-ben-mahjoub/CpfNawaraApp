@@ -21,7 +21,7 @@ class LocalDatabase {
   static final LocalDatabase instance = LocalDatabase._();
 
   /// Version du schéma (voir `onUpgrade`), enregistrée dans les sauvegardes.
-  static const schemaVersion = 32;
+  static const schemaVersion = 33;
 
   /// Tables sauvegardées / restaurées / synchronisées.
   static const dataTables = [
@@ -371,6 +371,10 @@ class LocalDatabase {
             // Date d'expiration d'un article de stock (ISO yyyy-MM-dd).
             await db.execute('alter table stock_items add column expiry_date text');
           }
+          if (oldVersion >= 7 && oldVersion < 33) {
+            // Titre (légende) de la photo jointe à une analyse.
+            await db.execute('alter table plant_analyses add column photo_title text');
+          }
           if (oldVersion >= 30 && oldVersion < 32) {
             // Heure de prélèvement de chaque échantillon (« HH:mm »).
             await db.execute("alter table sample_manifest add column sampling_time text not null default ''");
@@ -446,6 +450,7 @@ class LocalDatabase {
         start_time text,
         end_time text,
         photo text,
+        photo_title text,
         param_comments_json text,
         updated_at integer not null default 0,
         dirty integer not null default 0
