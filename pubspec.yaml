@@ -2,7 +2,7 @@ name: puitstrack
 description: "CPF Laboratory NAWARA - suivi personnel des analyses de puits"
 publish_to: 'none'
 
-version: 0.30.5+94
+version: 0.30.6+95
 
 environment:
   sdk: ^3.13.3

@@ -349,10 +349,21 @@ Future<Uint8List> buildPlantDailyReport({
               m[i] = pw.Alignment.center; // statut
               return m;
             }(),
+            // Toutes les colonnes doivent avoir une largeur explicite : chaque
+            // groupe (heure de prélèvement) devient un tableau PDF séparé
+            // (pour ne jamais le couper entre deux pages), et une colonne
+            // sans largeur fixe se dimensionne sur son propre contenu —
+            // les grilles de deux groupes ne s'alignent alors plus entre
+            // elles (ex: "674.0" plus large que "0.100").
             columnWidths: {
-              0: const pw.FlexColumnWidth(1.6),
-              1: const pw.FlexColumnWidth(3),
-              for (var c = 2; c < 2 + (pdfCfg.showMethods ? 1 : 0); c++) c: const pw.FlexColumnWidth(2.4),
+              0: const pw.FlexColumnWidth(1.6), // heure
+              1: const pw.FlexColumnWidth(3), // test
+              if (pdfCfg.showMethods) 2: const pw.FlexColumnWidth(2.4), // méthode
+              2 + (pdfCfg.showMethods ? 1 : 0): const pw.FlexColumnWidth(1.3), // unité
+              3 + (pdfCfg.showMethods ? 1 : 0): const pw.FlexColumnWidth(1.8), // résultat
+              if (options.limitColumn) 4 + (pdfCfg.showMethods ? 1 : 0): const pw.FlexColumnWidth(1.6), // seuil
+              if (options.statusColumn)
+                4 + (pdfCfg.showMethods ? 1 : 0) + (options.limitColumn ? 1 : 0): const pw.FlexColumnWidth(1.6), // statut
             },
             groups: [
               for (final a in daily)
