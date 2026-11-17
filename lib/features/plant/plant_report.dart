@@ -64,7 +64,12 @@ Future<Uint8List> buildPlantDailyReport({
   final look = PdfLook(pdfCfg);
   final accentC = look.accent;
   final gasBottles = pdfCfg.showGasBottles ? await loadGasBottles() : const <GasBottle>[];
-  final gasBottlesReadingTime = gasBottles.isEmpty ? '' : await loadGasBottlesReadingTime();
+  var gasBottlesReadingTime = gasBottles.isEmpty ? '' : await loadGasBottlesReadingTime();
+  final gasReadingDate = gasBottles.isEmpty ? null : DateTime.tryParse(await loadGasBottlesReadingDate());
+  if (gasReadingDate != null) {
+    final d = '${gasReadingDate.day.toString().padLeft(2, '0')}/${gasReadingDate.month.toString().padLeft(2, '0')}/${gasReadingDate.year}';
+    gasBottlesReadingTime = '$d $gasBottlesReadingTime'.trim();
+  }
   final sampleManifest = pdfCfg.showScopeOfWork ? await loadSampleManifest(day) : const <SampleManifestEntry>[];
   final reportTitle = pdfCfg.reportTitle.trim().isEmpty ? t(allCircuits ? 'plantReportTitle' : 'plantSampleReportTitle') : _safe(pdfCfg.reportTitle.trim());
   final roleText = pdfCfg.signatureRole.trim().isEmpty ? t('plantReportRole') : _safe(pdfCfg.signatureRole.trim());

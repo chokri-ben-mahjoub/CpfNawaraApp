@@ -33,6 +33,9 @@ class SharedConfig {
   /// Heure du relevé des bouteilles de gaz (« HH:mm »), vide tant qu'elle
   /// n'a pas été saisie.
   String get gasBottlesReadingTime => values[gasBottlesReadingTimeKey] ?? '';
+
+  /// Date du relevé (« yyyy-MM-dd »), vide = aujourd'hui (non précisée).
+  String get gasBottlesReadingDate => values[gasBottlesReadingDateKey] ?? '';
 }
 
 const missingDeadlineKey = 'missing_deadline';
@@ -47,6 +50,10 @@ const plantReportCounterKey = 'plant_report_counter';
 /// une seule heure pour tout le relevé du jour, pas par bouteille), affichée
 /// au-dessus du tableau dans le rapport usine.
 const gasBottlesReadingTimeKey = 'gas_bottles_reading_time';
+
+/// Date du relevé des bouteilles de gaz, modifiable (ex. relevé oublié la
+/// veille). Vide = pas de date affichée (relevé du jour).
+const gasBottlesReadingDateKey = 'gas_bottles_reading_date';
 
 String formatDeadline(TimeOfDay t) => '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
@@ -83,6 +90,9 @@ class SharedConfigController extends StateNotifier<SharedConfig> {
 
   Future<void> setGasBottlesReadingTime(TimeOfDay time) => set(gasBottlesReadingTimeKey, formatDeadline(time));
 
+  Future<void> setGasBottlesReadingDate(DateTime date) =>
+      set(gasBottlesReadingDateKey, date.toIso8601String().substring(0, 10));
+
   /// Prochain numéro proposé (sans l'enregistrer).
   int peekNextReportNumber() => (int.tryParse(state.values[plantReportCounterKey] ?? '') ?? 0) + 1;
 
@@ -103,6 +113,12 @@ final sharedConfigProvider = StateNotifierProvider<SharedConfigController, Share
 
 /// Pour le rapport PDF usine (fonction pure, sans contexte Riverpod) : lit
 /// directement la base locale, comme [loadGasBottles].
+Future<String> loadGasBottlesReadingDate() async {
+  final db = await LocalDatabase.instance.database;
+  final rows = await db.query('app_config', where: 'id = ?', whereArgs: [gasBottlesReadingDateKey], limit: 1);
+  return rows.isEmpty ? '' : (rows.first['value'] as String? ?? '');
+}
+
 Future<String> loadGasBottlesReadingTime() async {
   final db = await LocalDatabase.instance.database;
   final rows = await db.query('app_config', where: 'id = ?', whereArgs: [gasBottlesReadingTimeKey], limit: 1);

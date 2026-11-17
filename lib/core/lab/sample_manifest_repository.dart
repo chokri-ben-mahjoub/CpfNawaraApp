@@ -7,10 +7,25 @@ import '../data/local_database.dart';
 import '../plant/plant_repository.dart' show plantDateKey;
 
 /// Types d'échantillon suggérés (texte libre, pas de liste fermée).
-const sampleTestItemSuggestions = ['Lean Amine', 'Produced water', 'Condensate', 'Rich Amine', 'Gas'];
+const sampleTestItemSuggestions = [
+  'Lean Amine',
+  'Produced water',
+  'Condensate',
+  'Rich Amine',
+  'Gas',
+  'TEG',
+  'Hot oil',
+  'Fresh water',
+  'Plant Water',
+  'Demin Water',
+  'Permeate Water',
+  'Aquifer Water',
+  'Deposite sample',
+  'Sludge Sample',
+];
 
 /// Conditionnements suggérés (idem, texte libre).
-const sampleConditioningSuggestions = ['01 glass bottle', '01 Cylinder bottle'];
+const sampleConditioningSuggestions = ['01 glass bottle', '01 Cylinder bottle', '01 Plastic bottle'];
 
 /// Un échantillon envoyé au labo un jour donné (table `sample_manifest`),
 /// pour la page « Scope of Work » ajoutée en début de rapport usine.
