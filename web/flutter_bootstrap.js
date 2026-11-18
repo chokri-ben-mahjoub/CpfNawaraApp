@@ -13,9 +13,9 @@
       .catch(function () {});
   }
 
-  // Mise à jour automatique : quand une nouvelle version de l'app prend la
-  // main (déploiement), la page se recharge d'elle-même une seule fois, sans
-  // Ctrl+F5. Pas de rechargement à la toute première installation.
+  // Mise à jour : une nouvelle version téléchargée attend l'accord de
+  // l'utilisateur (bandeau « Mettre à jour / Plus tard » côté Flutter). Une
+  // fois acceptée, la page se recharge une seule fois, sans Ctrl+F5.
   var hadController = !!navigator.serviceWorker.controller;
   var reloading = false;
   navigator.serviceWorker.addEventListener('controllerchange', function () {
@@ -24,10 +24,31 @@
     window.location.reload();
   });
 
+  var currentRegistration = null;
+  function signalUpdate(registration) {
+    if (!registration.waiting || !navigator.serviceWorker.controller) return;
+    window.__appUpdateReady = true;
+    window.dispatchEvent(new Event('app-update-ready'));
+  }
+  window.__applyAppUpdate = function () {
+    var waiting = currentRegistration && currentRegistration.waiting;
+    if (waiting) waiting.postMessage({ type: 'skip-waiting' });
+    else window.location.reload();
+  };
+
   var registered = new Promise(function (resolve) {
     window.addEventListener('load', function () {
       navigator.serviceWorker.register('offline_sw.js')
         .then(function (registration) {
+          currentRegistration = registration;
+          signalUpdate(registration);
+          registration.addEventListener('updatefound', function () {
+            var worker = registration.installing;
+            if (!worker) return;
+            worker.addEventListener('statechange', function () {
+              if (worker.state === 'installed') signalUpdate(registration);
+            });
+          });
           // Cherche une nouvelle version à chaque retour sur l'app et toutes
           // les 10 minutes (onglet laissé ouvert).
           var check = function () { registration.update().catch(function () {}); };

@@ -1019,6 +1019,15 @@ final _strings = <String, Map<String, String>>{
   'interventionResultFailure': {'fr': 'Échec', 'en': 'Failure'},
   'interventionResultPending': {'fr': 'À évaluer', 'en': 'To be assessed'},
 
+  // Mise à jour de l'app (web)
+  'appUpdateTitle': {'fr': 'Nouvelle version disponible', 'en': 'New version available'},
+  'appUpdateBody': {
+    'fr': "Une mise à jour est prête. Voulez-vous l'installer maintenant ? (la page va se recharger)",
+    'en': 'An update is ready. Install it now? (the page will reload)',
+  },
+  'appUpdateNow': {'fr': 'Mettre à jour', 'en': 'Update'},
+  'appUpdateLater': {'fr': 'Plus tard', 'en': 'Later'},
+
   // Réglages
   'settingsTitle': {'fr': 'Réglages', 'en': 'Settings'},
   'settingsEntrySubtitle': {

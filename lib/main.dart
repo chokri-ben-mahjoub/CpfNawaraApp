@@ -14,6 +14,7 @@ import 'core/settings/app_settings.dart';
 import 'core/settings/startup_tasks.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/page_transitions.dart';
+import 'core/update/app_update_banner.dart';
 import 'features/splash/splash_screen.dart';
 
 Future<void> main() async {
@@ -122,7 +123,8 @@ class _SuiviPuitsAppState extends ConsumerState<SuiviPuitsApp> with WidgetsBindi
       ],
       routerConfig: router,
       // Entrée en fondu après l'écran de démarrage.
-      builder: (context, child) => FadeInOnce(child: child ?? const SizedBox.shrink()),
+      builder: (context, child) =>
+          AppUpdateBanner(child: FadeInOnce(child: child ?? const SizedBox.shrink())),
     );
   }
 }
