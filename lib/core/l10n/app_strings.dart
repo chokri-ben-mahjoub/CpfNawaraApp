@@ -1587,6 +1587,12 @@ final _strings = <String, Map<String, String>>{
     'en': 'analysis/analyses already recorded that day — this one will be added, not replace them.',
   },
   'plantEntryEmpty': {'fr': 'Saisissez au moins une valeur.', 'en': 'Enter at least one value.'},
+  'plantBatchCopyLast': {'fr': 'Reprendre la dernière analyse', 'en': 'Copy last analysis'},
+  'plantBatchCopied': {'fr': '{n} valeur(s) reprise(s) — corrigez ce qui a changé.', 'en': '{n} value(s) copied — fix what changed.'},
+  'plantBatchCopyNone': {'fr': 'Rien à reprendre (aucune analyse précédente ou champs déjà remplis).', 'en': 'Nothing to copy (no previous analysis or fields already filled).'},
+  'plantOutReportBtn': {'fr': 'Rapport hors seuil', 'en': 'Out-of-range report'},
+  'plantOutReportTitle': {'fr': 'Valeurs hors seuil', 'en': 'Out-of-range values'},
+  'plantOutNone': {'fr': 'Aucune valeur hors seuil ce jour-là.', 'en': 'No out-of-range value that day.'},
   'plantBatchTitle': {'fr': 'Saisie en série', 'en': 'Batch entry'},
   'plantBatchIntro': {
     'fr': 'Choisissez un circuit puis les points (ex. MEMBRANE N° 1 à 6) : saisissez toutes les valeurs à la suite. Rouge = hors seuil, vert = conforme.',

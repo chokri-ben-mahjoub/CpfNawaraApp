@@ -49,6 +49,59 @@ String plantDayLabel(DateTime day, Locale locale, String Function(String) s) {
   return DateFormat('EEE d MMM yyyy', locale.languageCode).format(day);
 }
 
+/// Rapport court des seules valeurs hors seuil du jour affiché (PDF ou
+/// Excel au choix) : point, essai, valeur mesurée et seuil.
+Future<void> exportPlantOutOfRange(WidgetRef ref, BuildContext context) async {
+  final locale = ref.read(localeProvider);
+  String s(String key) => tr(locale, key);
+  final controller = ref.read(plantControllerProvider.notifier);
+  final day = ref.read(plantDayProvider);
+  String fmt(double v) => v == v.roundToDouble() ? v.toInt().toString() : v.toString();
+  final rows = <List<Object?>>[];
+  for (final point in ref.read(plantControllerProvider).points.where((p) => p.active)) {
+    for (final a in controller.analysesOnDay(point.id, day)) {
+      for (final param in controller.outOfRange(point, a)) {
+        final raw = a.values[param.key];
+        final t = controller.threshold(point.id, param.key);
+        final (mn, mx) = param.rangeToDisplay(t?.min, t?.max);
+        rows.add([
+          DateOnly(day),
+          a.startTime ?? '',
+          point.code,
+          point.name,
+          param.unit.isEmpty ? s(param.labelKey) : '${s(param.labelKey)} (${param.unit})',
+          param.isNumeric && raw is num ? fmt(param.toDisplay(raw.toDouble())) : s('$raw'),
+          param.isNumeric ? PlantThreshold(min: mn, max: mx).label(fmt) : '',
+        ]);
+      }
+    }
+  }
+  if (rows.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s('plantOutNone'))));
+    return;
+  }
+  await runExport(
+    context: context,
+    locale: locale,
+    baseName: 'usine_hors_seuil_${plantDateKey(day)}',
+    tables: [
+      ExportTable(
+        name: s('plantOutReportTitle'),
+        headers: [
+          s('colDate'),
+          s('plantSamplingTimeColumn'),
+          s('plantColPoint'),
+          s('plantColName'),
+          s('plantColTest'),
+          s('plantColResults'),
+          s('plantColSpec'),
+        ],
+        rows: rows,
+      ),
+    ],
+  );
+}
+
 /// Export Excel/CSV de toutes les analyses de l'usine : une feuille par
 /// circuit, une colonne par paramètre (action de la barre du haut).
 Future<void> exportPlantAnalyses(WidgetRef ref, BuildContext context) async {
@@ -193,15 +246,22 @@ class PlantScreen extends ConsumerWidget {
             ),
           ],
         ),
-        if (ref.watch(currentRoleProvider).canEnterData)
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              onPressed: () => context.push('/plant/batch?date=${plantDateKey(day)}'),
-              icon: const Icon(Icons.playlist_add_check_rounded, size: 18),
-              label: Text(s('plantBatchTitle')),
+        Wrap(
+          alignment: WrapAlignment.end,
+          children: [
+            if (ref.watch(currentRoleProvider).canEnterData)
+              TextButton.icon(
+                onPressed: () => context.push('/plant/batch?date=${plantDateKey(day)}'),
+                icon: const Icon(Icons.playlist_add_check_rounded, size: 18),
+                label: Text(s('plantBatchTitle')),
+              ),
+            TextButton.icon(
+              onPressed: () => exportPlantOutOfRange(ref, context),
+              icon: const Icon(Icons.report_gmailerrorred_rounded, size: 18),
+              label: Text(s('plantOutReportBtn')),
             ),
-          ),
+          ],
+        ),
         const SizedBox(height: 8),
         HeroHeader(
           icon: Icons.factory_outlined,
