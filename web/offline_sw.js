@@ -38,7 +38,8 @@ self.addEventListener('install', (event) => {
         // Ignoré : sera mis en cache à son premier chargement.
       }
     }));
-    await self.skipWaiting();
+    // Pas de skipWaiting ici : la nouvelle version attend l'accord de
+    // l'utilisateur (message 'skip-waiting', voir plus bas).
   })());
 });
 
@@ -58,6 +59,10 @@ self.addEventListener('activate', (event) => {
 // (premier lancement) : ajoutés au cache.
 self.addEventListener('message', (event) => {
   const data = event.data || {};
+  if (data.type === 'skip-waiting') {
+    self.skipWaiting();
+    return;
+  }
   if (data.type !== 'cache-urls' || !Array.isArray(data.urls)) return;
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE);
