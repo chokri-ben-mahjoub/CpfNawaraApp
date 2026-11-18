@@ -1,13 +1,13 @@
 {
-  "version": "0.31.1",
+  "version": "0.31.2",
   "notes": {
     "fr": [
-      "Saisie en série : plusieurs points d'un circuit à la suite (Usine › Saisie en série)",
-      "Couleur rouge/verte selon les seuils pendant la saisie"
+      "Saisie en série : bouton « Reprendre la dernière analyse »",
+      "Nouveau « Rapport hors seuil » du jour (PDF ou Excel) dans l'écran Usine"
     ],
     "en": [
-      "Batch entry: several points of a circuit in a row (Plant › Batch entry)",
-      "Red/green colour against thresholds while typing"
+      "Batch entry: new « Copy last analysis » button",
+      "New daily « Out-of-range report » (PDF or Excel) in the Plant screen"
     ]
   }
 }

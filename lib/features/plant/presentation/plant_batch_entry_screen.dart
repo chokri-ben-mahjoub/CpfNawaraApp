@@ -70,6 +70,46 @@ class _PlantBatchEntryScreenState extends ConsumerState<PlantBatchEntryScreen> {
   TextEditingController _field(String pointId, String key) =>
       (_fields[pointId] ??= {}).putIfAbsent(key, () => TextEditingController());
 
+  /// Préremplit les champs encore vides avec la dernière analyse de chaque
+  /// point choisi : on ne corrige ensuite que ce qui a changé.
+  void _copyLast() {
+    final controller = ref.read(plantControllerProvider.notifier);
+    var filled = 0;
+    for (final point
+        in ref
+            .read(plantControllerProvider)
+            .points
+            .where((p) => _selected.contains(p.id))) {
+      final history = controller.analysesFor(point.id)
+        ..sort((a, b) {
+          final byDay = b.date.compareTo(a.date);
+          return byDay != 0 ? byDay : b.recordedAt.compareTo(a.recordedAt);
+        });
+      if (history.isEmpty) continue;
+      for (final param in _numericParams(point)) {
+        final v = history.first.number(param.key);
+        final field = _field(point.id, param.key);
+        if (v == null || field.text.trim().isNotEmpty) continue;
+        final shown = param.toDisplay(v);
+        field.text = shown == shown.roundToDouble()
+            ? shown.toInt().toString()
+            : shown.toString();
+        filled++;
+      }
+    }
+    setState(() {});
+    final locale = ref.read(localeProvider);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          filled == 0
+              ? tr(locale, 'plantBatchCopyNone')
+              : fill(tr(locale, 'plantBatchCopied'), {'n': '$filled'}),
+        ),
+      ),
+    );
+  }
+
   Future<void> _save() async {
     final locale = ref.read(localeProvider);
     final controller = ref.read(plantControllerProvider.notifier);
@@ -278,6 +318,15 @@ class _PlantBatchEntryScreenState extends ConsumerState<PlantBatchEntryScreen> {
                 ),
             ],
           ),
+          if (chosen.isNotEmpty)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton.icon(
+                onPressed: _copyLast,
+                icon: const Icon(Icons.history_rounded, size: 18),
+                label: Text(s('plantBatchCopyLast')),
+              ),
+            ),
           const SizedBox(height: 16),
           for (final point in chosen)
             Card(
