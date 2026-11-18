@@ -25,6 +25,7 @@ import '../../features/entry/presentation/quick_entry_screen.dart';
 import '../../features/qr/presentation/qr_screen.dart';
 import '../../features/home/presentation/home_shell.dart';
 import '../../features/interventions/presentation/interventions_screen.dart';
+import '../../features/plant/presentation/plant_batch_entry_screen.dart';
 import '../../features/plant/presentation/plant_entry_screen.dart';
 import '../../features/plant/presentation/plant_point_screen.dart';
 import '../../features/owner/owner_screen.dart';
@@ -91,7 +92,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
       if (loc == '/entry' && !role.canEnterData) return '/home';
       if (loc == '/entry/batch' && !role.canEnterData) return '/home';
-      if (loc.startsWith('/plant/entry') && !role.canEnterData) return '/home';
+      if ((loc.startsWith('/plant/entry') || loc.startsWith('/plant/batch')) && !role.canEnterData) return '/home';
       if (loc.startsWith('/rounds/entry') && !role.canEnterData) return '/home';
       if (loc.startsWith('/plant/schema') && !role.canConfigure) return '/home';
       // Clients (codes d'activation) : propriétaire de PuitsTrack seulement.
@@ -144,6 +145,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/plant/point/:id/trend/:param',
         builder: (context, state) =>
             PlantTrendScreen(pointId: state.pathParameters['id']!, paramKey: state.pathParameters['param']!),
+      ),
+      GoRoute(
+        path: '/plant/batch',
+        builder: (context, state) =>
+            PlantBatchEntryScreen(initialDate: DateTime.tryParse(state.uri.queryParameters['date'] ?? '')),
       ),
       GoRoute(
         path: '/plant/entry/:id',

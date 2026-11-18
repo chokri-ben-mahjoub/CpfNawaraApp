@@ -193,6 +193,15 @@ class PlantScreen extends ConsumerWidget {
             ),
           ],
         ),
+        if (ref.watch(currentRoleProvider).canEnterData)
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: () => context.push('/plant/batch?date=${plantDateKey(day)}'),
+              icon: const Icon(Icons.playlist_add_check_rounded, size: 18),
+              label: Text(s('plantBatchTitle')),
+            ),
+          ),
         const SizedBox(height: 8),
         HeroHeader(
           icon: Icons.factory_outlined,
