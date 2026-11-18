@@ -19,7 +19,7 @@ assert sw.exists(), 'Lancez d\'abord : flutter build web --release --no-web-reso
 # Non mis en cache d'avance : symboles de débogage, moteurs de rendu non
 # utilisés par ce build (dart2js + CanvasKit) — la variante de CanvasKit
 # réellement chargée par le navigateur est ajoutée au premier lancement.
-EXCLUDED_NAMES = {'.last_build_id', 'flutter_service_worker.js', 'offline_sw.js'}
+EXCLUDED_NAMES = {'.last_build_id', 'flutter_service_worker.js', 'offline_sw.js', 'release_notes.json'}
 
 
 def excluded(rel: str) -> bool:

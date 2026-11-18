@@ -52,12 +52,27 @@ class _AppUpdateBannerState extends ConsumerState<AppUpdateBanner> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              tr(locale, 'appUpdateTitle'),
+                              appUpdateVersion() == null
+                                  ? tr(locale, 'appUpdateTitle')
+                                  : '${tr(locale, 'appUpdateTitle')} · v${appUpdateVersion()}',
                               style: TextStyle(
                                 color: scheme.onInverseSurface,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
+                            const SizedBox(height: 4),
+                            for (final note in appUpdateNotesFor(
+                              locale.languageCode,
+                            ).take(6))
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 2),
+                                child: Text(
+                                  '• $note',
+                                  style: TextStyle(
+                                    color: scheme.onInverseSurface,
+                                  ),
+                                ),
+                              ),
                             const SizedBox(height: 4),
                             Text(
                               tr(locale, 'appUpdateBody'),

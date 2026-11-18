@@ -1,0 +1,13 @@
+{
+  "version": "0.30.9",
+  "notes": {
+    "fr": [
+      "Aperçu du PDF avant l'envoi ou l'enregistrement d'un rapport",
+      "Le bandeau de mise à jour affiche maintenant les nouveautés"
+    ],
+    "en": [
+      "PDF preview before sending or saving a report",
+      "The update banner now shows what's new"
+    ]
+  }
+}

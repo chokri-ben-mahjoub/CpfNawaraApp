@@ -25,6 +25,28 @@ void startWatchingAppUpdates() {
   sync();
 }
 
+Map<Object?, Object?>? _notes() {
+  final raw = globalContext
+      .getProperty<JSAny?>('__appUpdateNotes'.toJS)
+      .dartify();
+  return raw is Map ? raw : null;
+}
+
+/// Numéro de la version en attente, si le serveur l'indique.
+String? appUpdateVersion() {
+  final v = _notes()?['version'];
+  return v is String && v.isNotEmpty ? v : null;
+}
+
+/// Nouveautés de la version en attente dans la langue demandée (sinon le
+/// français), vides si le fichier est introuvable.
+List<String> appUpdateNotesFor(String languageCode) {
+  final notes = _notes()?['notes'];
+  if (notes is! Map) return const [];
+  final list = notes[languageCode] ?? notes['fr'];
+  return list is List ? [for (final n in list) '$n'] : const [];
+}
+
 /// Active la nouvelle version : la page se recharge toute seule.
 void applyAppUpdate() {
   globalContext.callMethod<JSAny?>('__applyAppUpdate'.toJS);
