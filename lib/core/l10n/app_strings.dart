@@ -1019,6 +1019,8 @@ final _strings = <String, Map<String, String>>{
   'interventionResultFailure': {'fr': 'Échec', 'en': 'Failure'},
   'interventionResultPending': {'fr': 'À évaluer', 'en': 'To be assessed'},
 
+  'reportPreview': {'fr': 'Aperçu du PDF', 'en': 'Preview PDF'},
+
   // Mise à jour de l'app (web)
   'appUpdateTitle': {'fr': 'Nouvelle version disponible', 'en': 'New version available'},
   'appUpdateBody': {

@@ -13,6 +13,7 @@ import '../../../core/export/export_service.dart';
 import '../../../core/export/share_files.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/platform/app_platform.dart';
+import 'report_preview_page.dart';
 
 /// Destinataire enregistré du rapport (e-mail et/ou WhatsApp).
 class ReportRecipient {
@@ -195,6 +196,13 @@ class _ReportSendSheetState extends ConsumerState<_ReportSendSheet> {
     }
   }
 
+  Future<void> _preview() => Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          fullscreenDialog: true,
+          builder: (_) => ReportPreviewPage(title: widget.fileName, bytes: widget.bytes),
+        ),
+      );
+
   Future<void> _saveOrShare() async {
     await saveOrShareFile(
       context: context,
@@ -368,6 +376,16 @@ class _ReportSendSheetState extends ConsumerState<_ReportSendSheet> {
               ],
             ),
           const SizedBox(height: 18),
+          SizedBox(
+            height: 48,
+            child: OutlinedButton.icon(
+              onPressed: _preview,
+              icon: const Icon(Icons.visibility_rounded),
+              label: Text(s('reportPreview')),
+              style: OutlinedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+            ),
+          ),
+          const SizedBox(height: 10),
           SizedBox(
             height: 52,
             child: FilledButton.icon(
