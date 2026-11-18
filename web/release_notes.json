@@ -1,0 +1,11 @@
+{
+  "version": "0.31.0",
+  "notes": {
+    "fr": [
+      "Créer plusieurs points de prélèvement d'un coup (ex. MEMBRANE N° 1 à 6)"
+    ],
+    "en": [
+      "Create several sampling points at once (e.g. MEMBRANE No. 1 to 6)"
+    ]
+  }
+}
