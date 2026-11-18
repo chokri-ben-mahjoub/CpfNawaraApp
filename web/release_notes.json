@@ -1,0 +1,15 @@
+{
+  "version": "0.31.0",
+  "notes": {
+    "fr": [
+      "Créer plusieurs points de prélèvement d'un coup (ex. MEMBRANE N° 1 à 6)",
+      "Aperçu du PDF avant l'envoi ou l'enregistrement d'un rapport",
+      "Le bandeau de mise à jour affiche maintenant les nouveautés"
+    ],
+    "en": [
+      "Create several sampling points at once (e.g. MEMBRANE No. 1 to 6)",
+      "PDF preview before sending or saving a report",
+      "The update banner now shows what's new"
+    ]
+  }
+}

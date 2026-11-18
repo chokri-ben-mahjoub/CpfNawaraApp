@@ -23,6 +23,11 @@ function sameOrigin(url) {
   return new URL(url, SCOPE).origin === self.location.origin;
 }
 
+// Nouveautés de la version : toujours le réseau (jamais le cache).
+function isNotes(url) {
+  return new URL(url, SCOPE).pathname.endsWith('/release_notes.json');
+}
+
 function isSelf(url) {
   return new URL(url, SCOPE).pathname.endsWith('/offline_sw.js');
 }
@@ -80,7 +85,7 @@ self.addEventListener('message', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const request = event.request;
-  if (request.method !== 'GET' || !sameOrigin(request.url) || isSelf(request.url)) return;
+  if (request.method !== 'GET' || !sameOrigin(request.url) || isSelf(request.url) || isNotes(request.url)) return;
 
   if (request.mode === 'navigate') {
     event.respondWith((async () => {

@@ -2087,6 +2087,13 @@ final _strings = <String, Map<String, String>>{
     'en': 'This code is already used by another point.',
   },
   'pointsSaved': {'fr': 'Point enregistré.', 'en': 'Point saved.'},
+  'pointsSeriesCount': {'fr': 'Nombre de points à créer', 'en': 'Number of points to create'},
+  'pointsSeriesFirst': {'fr': 'Premier numéro', 'en': 'First number'},
+  'pointsSeriesHint': {
+    'fr': 'Plusieurs points à la fois : écrivez {n} là où le numéro doit apparaître (ex. MEMBRANE N° {n}).',
+    'en': 'Several points at once: write {n} where the number goes (e.g. MEMBRANE No. {n}).',
+  },
+  'pointsSeriesSaved': {'fr': '{n} points créés.', 'en': '{n} points created.'},
   'pointsDeleteTitle': {'fr': 'Supprimer ce point ?', 'en': 'Delete this point?'},
   'pointsDeleteBody': {
     'fr': 'Ses analyses et ses seuils seront aussi supprimés, sur tous les appareils.',

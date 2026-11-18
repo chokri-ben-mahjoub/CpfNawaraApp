@@ -32,7 +32,14 @@ class SamplePointsScreen extends ConsumerWidget {
       body: ListView(
         padding: pagePadding(context, top: 8, bottom: 130),
         children: [
-          Text(s('pointsIntro'), style: TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant, height: 1.4)),
+          Text(
+            s('pointsIntro'),
+            style: TextStyle(
+              fontSize: 12.5,
+              color: scheme.onSurfaceVariant,
+              height: 1.4,
+            ),
+          ),
           for (final circuit in plant.circuits) ...[
             AdminSectionTitle(s(circuit.labelKey)),
             AdminTable<SamplePoint>(
@@ -43,20 +50,35 @@ class SamplePointsScreen extends ConsumerWidget {
                   s('pointsCode'),
                   (p) => Text(
                     p.code,
-                    style: TextStyle(fontWeight: FontWeight.w800, color: circuit.color),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: circuit.color,
+                    ),
                   ),
                 ),
                 AdminColumn(s('pointsName'), (p) => Text(p.name)),
-                AdminColumn(s('pointsEquipment'), (p) => Text(p.equipment.isEmpty ? '—' : p.equipment)),
+                AdminColumn(
+                  s('pointsEquipment'),
+                  (p) => Text(p.equipment.isEmpty ? '—' : p.equipment),
+                ),
                 AdminColumn(
                   s('pointsParams'),
-                  (p) =>
-                      Text(p.params.map((x) => s(x.labelKey)).join(', '), maxLines: 2, overflow: TextOverflow.ellipsis),
+                  (p) => Text(
+                    p.params.map((x) => s(x.labelKey)).join(', '),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                AdminColumn(s('colStatus'), (p) => Text(s(p.active ? 'usersActive' : 'usersInactive'))),
+                AdminColumn(
+                  s('colStatus'),
+                  (p) => Text(s(p.active ? 'usersActive' : 'usersInactive')),
+                ),
               ],
               card: (context, p) => AdminCard(
-                leading: IconBadge(circuit.icon, color: p.active ? circuit.color : scheme.outline),
+                leading: IconBadge(
+                  circuit.icon,
+                  color: p.active ? circuit.color : scheme.outline,
+                ),
                 title: '${p.code} — ${p.name}',
                 subtitle:
                     '${p.equipment.isEmpty ? '' : '${p.equipment} · '}'
@@ -72,7 +94,10 @@ class SamplePointsScreen extends ConsumerWidget {
   }
 
   void _openEditor(BuildContext context, {SamplePoint? existing}) {
-    showAdminSheet<void>(context, builder: (_) => _PointForm(existing: existing));
+    showAdminSheet<void>(
+      context,
+      builder: (_) => _PointForm(existing: existing),
+    );
   }
 }
 
@@ -89,6 +114,8 @@ class _PointFormState extends ConsumerState<_PointForm> {
   late final TextEditingController _code;
   late final TextEditingController _name;
   late final TextEditingController _equipment;
+  final _count = TextEditingController(text: '1');
+  final _first = TextEditingController(text: '1');
   late PlantCircuit _circuit;
   late String _profile;
   late List<String> _params;
@@ -106,7 +133,9 @@ class _PointFormState extends ConsumerState<_PointForm> {
     _equipment = TextEditingController(text: p?.equipment ?? '');
     _circuit = p?.circuit ?? ref.read(plantControllerProvider).circuits.first;
     _profile = p?.profile ?? _circuit.defaultProfile;
-    _params = [for (final x in p?.storedParams ?? paramsForProfile(_profile)) x.key];
+    _params = [
+      for (final x in p?.storedParams ?? paramsForProfile(_profile)) x.key,
+    ];
     _active = p?.active ?? true;
   }
 
@@ -115,6 +144,8 @@ class _PointFormState extends ConsumerState<_PointForm> {
     _code.dispose();
     _name.dispose();
     _equipment.dispose();
+    _count.dispose();
+    _first.dispose();
     super.dispose();
   }
 
@@ -133,11 +164,28 @@ class _PointFormState extends ConsumerState<_PointForm> {
       return;
     }
     final controller = ref.read(plantControllerProvider.notifier);
-    final code = _code.text.trim().toUpperCase();
-    final duplicate = ref
-        .read(plantControllerProvider)
-        .points
-        .any((p) => p.code.toUpperCase() == code && p.id != widget.existing?.id);
+    // Série : « MEMBRANE N° {n} » + nombre 6 = 6 points d'un coup. Sans
+    // {n}, le numéro est ajouté à la fin du code et du nom.
+    final count = _isNew
+        ? (int.tryParse(_count.text.trim()) ?? 1).clamp(1, 50)
+        : 1;
+    final first = int.tryParse(_first.text.trim()) ?? 1;
+    String numbered(String text, int n, {required bool append}) {
+      if (text.contains('{n}')) return text.replaceAll('{n}', '$n');
+      return count > 1 && append ? '$text $n' : text;
+    }
+
+    final codes = [
+      for (var i = 0; i < count; i++)
+        numbered(_code.text.trim(), first + i, append: true).toUpperCase(),
+    ];
+    final existingCodes = {
+      for (final p in ref.read(plantControllerProvider).points)
+        if (p.id != widget.existing?.id) p.code.toUpperCase(),
+    };
+    final duplicate =
+        codes.toSet().length != codes.length ||
+        codes.any(existingCodes.contains);
     if (duplicate) {
       setState(() => _error = tr(locale, 'pointsDuplicateCode'));
       return;
@@ -145,29 +193,44 @@ class _PointFormState extends ConsumerState<_PointForm> {
     // Paramètres identiques à ceux du profil : rien à mémoriser (le point
     // suit le profil).
     final profileKeys = [for (final x in paramsForProfile(_profile)) x.key];
-    final sameAsProfile = profileKeys.length == _params.length && profileKeys.every(_params.contains);
+    final sameAsProfile =
+        profileKeys.length == _params.length &&
+        profileKeys.every(_params.contains);
     final ordered = [
       for (final x in plantParamCatalog)
         if (_params.contains(x.key)) x.key,
     ];
-    await controller.savePoint(
-      SamplePoint(
-        id: widget.existing?.id ?? '',
-        code: code,
-        circuit: _circuit,
-        name: _name.text.trim(),
-        equipment: _equipment.text.trim(),
-        profile: _profile,
-        sortOrder: widget.existing?.sortOrder ?? controller.nextSortOrder,
-        active: _active,
-        paramKeys: sameAsProfile
-            ? null
-            : [...profileKeys.where(_params.contains), ...ordered.where((k) => !profileKeys.contains(k))],
-      ),
-    );
+    for (var i = 0; i < count; i++) {
+      await controller.savePoint(
+        SamplePoint(
+          id: widget.existing?.id ?? '',
+          code: codes[i],
+          circuit: _circuit,
+          name: numbered(_name.text.trim(), first + i, append: true),
+          equipment: numbered(_equipment.text.trim(), first + i, append: false),
+          profile: _profile,
+          sortOrder: widget.existing?.sortOrder ?? controller.nextSortOrder,
+          active: _active,
+          paramKeys: sameAsProfile
+              ? null
+              : [
+                  ...profileKeys.where(_params.contains),
+                  ...ordered.where((k) => !profileKeys.contains(k)),
+                ],
+        ),
+      );
+    }
     if (!mounted) return;
     Navigator.of(context).pop();
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr(locale, 'pointsSaved'))));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          count > 1
+              ? fill(tr(locale, 'pointsSeriesSaved'), {'n': '$count'})
+              : tr(locale, 'pointsSaved'),
+        ),
+      ),
+    );
   }
 
   Future<void> _delete() async {
@@ -181,7 +244,9 @@ class _PointFormState extends ConsumerState<_PointForm> {
       cancel: s('cancel'),
     );
     if (!ok) return;
-    await ref.read(plantControllerProvider.notifier).deletePoint(widget.existing!.id);
+    await ref
+        .read(plantControllerProvider.notifier)
+        .deletePoint(widget.existing!.id);
     if (mounted) Navigator.of(context).pop();
   }
 
@@ -202,7 +267,8 @@ class _PointFormState extends ConsumerState<_PointForm> {
               Expanded(
                 child: Text(
                   s(_isNew ? 'pointsNew' : 'pointsEdit'),
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                  style: Theme.of(context).textTheme.titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w800),
                 ),
               ),
               if (!_isNew)
@@ -221,23 +287,63 @@ class _PointFormState extends ConsumerState<_PointForm> {
               TextFormField(
                 controller: _code,
                 textCapitalization: TextCapitalization.characters,
-                decoration: InputDecoration(labelText: s('pointsCode'), hintText: 'C1, W2, G3, LA...'),
-                validator: (v) => (v ?? '').trim().isEmpty ? s('wellsManageInvalidCode') : null,
+                decoration: InputDecoration(
+                  labelText: s('pointsCode'),
+                  hintText: 'C1, W2, G3, LA...',
+                ),
+                validator: (v) => (v ?? '').trim().isEmpty
+                    ? s('wellsManageInvalidCode')
+                    : null,
               ),
               TextFormField(
                 controller: _name,
-                decoration: InputDecoration(labelText: s('pointsName'), hintText: 'Inlet Separator'),
-                validator: (v) => (v ?? '').trim().isEmpty ? s('wellsManageInvalidName') : null,
+                decoration: InputDecoration(
+                  labelText: s('pointsName'),
+                  hintText: 'Inlet Separator',
+                ),
+                validator: (v) => (v ?? '').trim().isEmpty
+                    ? s('wellsManageInvalidName')
+                    : null,
               ),
             ],
           ),
+          if (_isNew) ...[
+            const SizedBox(height: 12),
+            ResponsiveWrapGrid(
+              minItemWidth: 200,
+              spacing: 12,
+              children: [
+                TextFormField(
+                  controller: _count,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: s('pointsSeriesCount'),
+                    helperText: s('pointsSeriesHint'),
+                  ),
+                ),
+                TextFormField(
+                  controller: _first,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: s('pointsSeriesFirst'),
+                  ),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 12),
           TextFormField(
             controller: _equipment,
-            decoration: InputDecoration(labelText: s('pointsEquipment'), hintText: s('pointsEquipmentHint')),
+            decoration: InputDecoration(
+              labelText: s('pointsEquipment'),
+              hintText: s('pointsEquipmentHint'),
+            ),
           ),
           const SizedBox(height: 16),
-          Text(s('pointsCircuit'), style: const TextStyle(fontWeight: FontWeight.w800)),
+          Text(
+            s('pointsCircuit'),
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -259,16 +365,25 @@ class _PointFormState extends ConsumerState<_PointForm> {
           DropdownButtonFormField<String>(
             isExpanded: true,
             initialValue: _profile,
-            decoration: InputDecoration(labelText: s('pointsProfile'), helperText: s('pointsProfileHint')),
+            decoration: InputDecoration(
+              labelText: s('pointsProfile'),
+              helperText: s('pointsProfileHint'),
+            ),
             items: [
-              for (final e in plantProfileLabelKeys.entries) DropdownMenuItem(value: e.key, child: Text(s(e.value))),
+              for (final e in plantProfileLabelKeys.entries)
+                DropdownMenuItem(value: e.key, child: Text(s(e.value))),
             ],
             onChanged: (v) => _setProfile(v ?? _profile),
           ),
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: Text(s('pointsParams'), style: const TextStyle(fontWeight: FontWeight.w800))),
+              Expanded(
+                child: Text(
+                  s('pointsParams'),
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
               TextButton.icon(
                 onPressed: () async {
                   final key = await showPlantParamForm(context);
@@ -279,7 +394,10 @@ class _PointFormState extends ConsumerState<_PointForm> {
               ),
             ],
           ),
-          Text(s('pointsParamsHint'), style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
+          Text(
+            s('pointsParamsHint'),
+            style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+          ),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -287,7 +405,8 @@ class _PointFormState extends ConsumerState<_PointForm> {
             children: [
               for (final p in plantParamCatalog)
                 SelectableEditableChip(
-                  label: '${s(p.labelKey)}${p.unit.isEmpty ? '' : ' (${p.displayed().unit})'}',
+                  label:
+                      '${s(p.labelKey)}${p.unit.isEmpty ? '' : ' (${p.displayed().unit})'}',
                   selected: _params.contains(p.key),
                   onSelected: (on) => setState(() {
                     _error = null;
@@ -296,8 +415,12 @@ class _PointFormState extends ConsumerState<_PointForm> {
                   onEdit: () async {
                     await showPlantParamForm(context, existing: p);
                     if (!mounted) return;
-                    final validKeys = plantParamCatalog.map((e) => e.key).toSet();
-                    setState(() => _params.removeWhere((k) => !validKeys.contains(k)));
+                    final validKeys = plantParamCatalog
+                        .map((e) => e.key)
+                        .toSet();
+                    setState(
+                      () => _params.removeWhere((k) => !validKeys.contains(k)),
+                    );
                   },
                 ),
             ],
@@ -314,15 +437,24 @@ class _PointFormState extends ConsumerState<_PointForm> {
           if (_error != null)
             Text(
               _error!,
-              style: TextStyle(color: scheme.error, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                color: scheme.error,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           const SizedBox(height: 16),
           SizedBox(
             height: 50,
             child: FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: accentColor, foregroundColor: Colors.white),
+              style: FilledButton.styleFrom(
+                backgroundColor: accentColor,
+                foregroundColor: Colors.white,
+              ),
               onPressed: _save,
-              child: Text(s('wellsManageSave'), style: const TextStyle(fontWeight: FontWeight.w700)),
+              child: Text(
+                s('wellsManageSave'),
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
             ),
           ),
         ],
