@@ -27,8 +27,17 @@
   var currentRegistration = null;
   function signalUpdate(registration) {
     if (!registration.waiting || !navigator.serviceWorker.controller) return;
-    window.__appUpdateReady = true;
-    window.dispatchEvent(new Event('app-update-ready'));
+    if (window.__appUpdateReady || window.__appUpdateChecking) return;
+    window.__appUpdateChecking = true;
+    // Nouveautés de la version en attente (fichier toujours pris sur le réseau).
+    fetch('release_notes.json', { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function () { return null; })
+      .then(function (notes) {
+        window.__appUpdateNotes = notes;
+        window.__appUpdateReady = true;
+        window.dispatchEvent(new Event('app-update-ready'));
+      });
   }
   window.__applyAppUpdate = function () {
     var waiting = currentRegistration && currentRegistration.waiting;
