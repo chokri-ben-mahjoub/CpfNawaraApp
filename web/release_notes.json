@@ -1,7 +1,7 @@
 {
-  "version": "0.32.8",
+  "version": "0.32.9",
   "notes": {
-    "fr": ["Écran CPF sur téléphone : onglets avec texte au lieu des icônes"],
-    "en": ["CPF screen on phone: text tabs instead of icons"]
+    "fr": ["Tableaux : en-tête plus marqué et lignes alternées", "Téléphone : cartes de liste plus compactes"],
+    "en": ["Tables: stronger header and alternating rows", "Phone: more compact list cards"]
   }
 }
