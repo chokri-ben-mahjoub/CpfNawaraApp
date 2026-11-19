@@ -1,7 +1,7 @@
 {
-  "version": "0.32.6",
+  "version": "0.32.7",
   "notes": {
-    "fr": ["Écran CPF : onglet « Tendances » et titre complet de chaque vue"],
-    "en": ["CPF screen: \"Trends\" tab and full title for each view"]
+    "fr": ["Écran CPF : titres complets dans les onglets"],
+    "en": ["CPF screen: full titles in the tabs"]
   }
 }
