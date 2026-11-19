@@ -1,7 +1,7 @@
 {
-  "version": "0.32.5",
+  "version": "0.32.6",
   "notes": {
-    "fr": ["Menu : « Usine » devient « CPF »"],
-    "en": ["Menu: \"Plant\" is now \"CPF\""]
+    "fr": ["Écran CPF : onglet « Tendances » et titre complet de chaque vue"],
+    "en": ["CPF screen: \"Trends\" tab and full title for each view"]
   }
 }
