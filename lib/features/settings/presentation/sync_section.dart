@@ -212,6 +212,11 @@ class SyncSettingsContent extends ConsumerWidget {
                       Text('${s('syncLast')} : $when', style: const TextStyle(fontSize: 12)),
                       if (sync.errorKey != null && sync.phase != SyncPhase.idle)
                         Text(s(sync.errorKey!), style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
+                      if (sync.errorDetail != null && sync.phase == SyncPhase.error)
+                        SelectableText(
+                          sync.errorDetail!.length > 300 ? sync.errorDetail!.substring(0, 300) : sync.errorDetail!,
+                          style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
+                        ),
                     ],
                   ),
                 ),
