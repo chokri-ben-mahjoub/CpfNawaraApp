@@ -1,7 +1,7 @@
 {
-  "version": "0.32.4",
+  "version": "0.32.6",
   "notes": {
-    "fr": ["Menu : « Tournées » devient « Relevé puits »"],
-    "en": ["Menu: \"Rounds\" is now \"Well Reading\""]
+    "fr": ["Écran CPF : onglet « Tendances » et titre complet de chaque vue"],
+    "en": ["CPF screen: \"Trends\" tab and full title for each view"]
   }
 }

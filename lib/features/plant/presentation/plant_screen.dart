@@ -306,7 +306,7 @@ class PlantScreen extends ConsumerWidget {
                   label: constraints.maxWidth >= 560
                       ? Text(s('plantViewDiagram'))
                       : null,
-                  tooltip: s('plantViewDiagram'),
+                  tooltip: s('plantTitleDiagram'),
                 ),
                 ButtonSegment(
                   value: PlantView.list,
@@ -314,7 +314,7 @@ class PlantScreen extends ConsumerWidget {
                   label: constraints.maxWidth >= 560
                       ? Text(s('plantViewList'))
                       : null,
-                  tooltip: s('plantViewList'),
+                  tooltip: s('plantTitleList'),
                 ),
                 ButtonSegment(
                   value: PlantView.trends,
@@ -322,7 +322,7 @@ class PlantScreen extends ConsumerWidget {
                   label: constraints.maxWidth >= 560
                       ? Text(s('plantViewTrends'))
                       : null,
-                  tooltip: s('plantViewTrends'),
+                  tooltip: s('plantTitleTrends'),
                 ),
                 ButtonSegment(
                   value: PlantView.heatmap,
@@ -358,6 +358,18 @@ class PlantScreen extends ConsumerWidget {
           },
         ),
         const SizedBox(height: 14),
+        // Titre complet de la vue (les onglets restent courts).
+        if (view != PlantView.heatmap) ...[
+          Text(
+            s(switch (view) {
+              PlantView.diagram => 'plantTitleDiagram',
+              PlantView.trends => 'plantTitleTrends',
+              _ => 'plantTitleList',
+            }),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 10),
+        ],
         if (view == PlantView.diagram)
           _DiagramSection(day: day)
         else if (view == PlantView.trends)

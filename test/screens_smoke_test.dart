@@ -617,7 +617,7 @@ void main() {
     final drawerList = find.descendant(of: find.byType(NavigationDrawer), matching: find.byType(ListView));
     await t.dragUntilVisible(find.text('Administration'), drawerList, const Offset(0, -200));
     expect(find.text('Administration'), findsWidgets);
-    await t.tap(find.text('Usine').last);
+    await t.tap(find.text('CPF').last);
     await t.pumpAndSettle();
     expect(find.text('Outils'), findsNothing, reason: 'menu refermé');
     expect(t.takeException(), isNull);
