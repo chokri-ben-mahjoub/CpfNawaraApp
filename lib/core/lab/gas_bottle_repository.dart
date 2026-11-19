@@ -19,6 +19,9 @@ class GasBottle {
   final String name;
   final String status;
   final double pressure;
+
+  /// Seuil de pression basse (bars) : en dessous, la bouteille est signalée.
+  final double minPressure;
   final String location;
   final int sortOrder;
 
@@ -27,9 +30,13 @@ class GasBottle {
     required this.name,
     this.status = '',
     required this.pressure,
+    this.minPressure = 20,
     this.location = '',
     this.sortOrder = 0,
   });
+
+  /// Pression sous le seuil (seuil à 0 = alerte désactivée).
+  bool get isLow => minPressure > 0 && pressure < minPressure;
 
   /// « Helium bottle (In service) », comme dans le modèle de rapport.
   String get label => status.trim().isEmpty ? name : '$name (${status.trim()})';
@@ -38,12 +45,14 @@ class GasBottle {
     String? name,
     String? status,
     double? pressure,
+    double? minPressure,
     String? location,
   }) => GasBottle(
     id: id,
     name: name ?? this.name,
     status: status ?? this.status,
     pressure: pressure ?? this.pressure,
+    minPressure: minPressure ?? this.minPressure,
     location: location ?? this.location,
     sortOrder: sortOrder,
   );
@@ -70,6 +79,7 @@ class GasBottleController extends StateNotifier<List<GasBottle>> {
     required String name,
     String status = '',
     required double pressure,
+    double minPressure = 20,
     String location = '',
   }) async {
     final db = await LocalDatabase.instance.database;
@@ -81,6 +91,7 @@ class GasBottleController extends StateNotifier<List<GasBottle>> {
         'name': name,
         'status': status,
         'pressure': pressure,
+        'min_pressure': minPressure,
         'location': location,
         'sort_order': sortOrder,
       }),
@@ -96,12 +107,33 @@ class GasBottleController extends StateNotifier<List<GasBottle>> {
         'name': bottle.name,
         'status': bottle.status,
         'pressure': bottle.pressure,
+        'min_pressure': bottle.minPressure,
         'location': bottle.location,
       }),
       where: 'id = ?',
       whereArgs: [bottle.id],
     );
     await _load();
+  }
+
+  /// Relevé en série : met à jour d'un coup la pression des bouteilles
+  /// modifiées (id → nouvelle pression). Renvoie le nombre mis à jour.
+  Future<int> setPressures(Map<String, double> pressures) async {
+    final db = await LocalDatabase.instance.database;
+    var count = 0;
+    for (final entry in pressures.entries) {
+      final current = state.where((b) => b.id == entry.key).firstOrNull;
+      if (current == null || current.pressure == entry.value) continue;
+      await db.update(
+        'gas_bottles',
+        LocalDatabase.stamp({'pressure': entry.value}),
+        where: 'id = ?',
+        whereArgs: [entry.key],
+      );
+      count++;
+    }
+    await _load();
+    return count;
   }
 
   Future<void> delete(String id) async {
@@ -117,6 +149,7 @@ class GasBottleController extends StateNotifier<List<GasBottle>> {
     name: row['name'] as String? ?? '',
     status: row['status'] as String? ?? '',
     pressure: (row['pressure'] as num?)?.toDouble() ?? 0,
+    minPressure: (row['min_pressure'] as num?)?.toDouble() ?? 20,
     location: row['location'] as String? ?? '',
     sortOrder: (row['sort_order'] as num?)?.toInt() ?? 0,
   );

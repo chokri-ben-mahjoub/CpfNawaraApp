@@ -9,6 +9,40 @@ import '../../../core/widgets/responsive.dart';
 import '../../admin/presentation/widgets/admin_widgets.dart';
 import '../../plant/presentation/plant_screen.dart' show plantDayLabel;
 
+Color _sampleStatusColor(String status) {
+  switch (status) {
+    case 'sent':
+      return const Color(0xFF2F6FDE);
+    case 'received':
+      return const Color(0xFF2E9E5B);
+    default:
+      return const Color(0xFFE08A00);
+  }
+}
+
+/// Pastille de statut : un tap passe au statut suivant (préparé → envoyé → reçu).
+class _SampleStatusPill extends StatelessWidget {
+  final String status;
+  final String Function(String) s;
+  final VoidCallback onTap;
+  const _SampleStatusPill({required this.status, required this.s, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final key = status.isEmpty ? 'prepared' : status;
+    final color = _sampleStatusColor(key);
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(color: color.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(20)),
+        child: Text(s('sampleStatus_$key'), style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 12)),
+      ),
+    );
+  }
+}
+
 /// Échantillons envoyés au labo pour le jour sélectionné (même jour que
 /// l'écran Usine) : type, conditionnement, label, code OMV CPF — repris en
 /// page « Scope of Work » en début de rapport usine (voir Réglages ›
@@ -25,8 +59,30 @@ class SampleManifestScreen extends ConsumerWidget {
     final today = DateTime.now();
     final todayOnly = DateTime(today.year, today.month, today.day);
 
+    final controller = ref.read(sampleManifestControllerProvider(day).notifier);
+    Future<void> copyPreviousDay() async {
+      final messenger = ScaffoldMessenger.of(context);
+      final n = await controller.copyFromDay(day.subtract(const Duration(days: 1)));
+      messenger.showSnackBar(SnackBar(content: Text(n == 0 ? s('sampleCopyNone') : '$n ${s('sampleCopyDone')}')));
+    }
+
+    Widget pill(SampleManifestEntry e) => _SampleStatusPill(
+      status: e.status,
+      s: s,
+      onTap: () => controller.update(e.copyWith(status: nextSampleStatus(e.status))),
+    );
+
     return Scaffold(
-      appBar: AppBar(title: Text(s('sampleManifestTitle'))),
+      appBar: AppBar(
+        title: Text(s('sampleManifestTitle')),
+        actions: [
+          IconButton(
+            tooltip: s('sampleCopyYesterday'),
+            onPressed: copyPreviousDay,
+            icon: const Icon(Icons.content_copy_outlined),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => showAdminSheet<void>(context, builder: (_) => _SampleFormSheet(day: day)),
         icon: const Icon(Icons.add),
@@ -85,6 +141,12 @@ class SampleManifestScreen extends ConsumerWidget {
                           Icon(Icons.biotech_outlined, size: 56, color: Theme.of(context).colorScheme.onSurfaceVariant),
                           const SizedBox(height: 12),
                           Text(s('sampleManifestEmpty'), textAlign: TextAlign.center),
+                          const SizedBox(height: 16),
+                          OutlinedButton.icon(
+                            onPressed: copyPreviousDay,
+                            icon: const Icon(Icons.content_copy_outlined),
+                            label: Text(s('sampleCopyYesterday')),
+                          ),
                         ],
                       ),
                     ),
@@ -104,11 +166,13 @@ class SampleManifestScreen extends ConsumerWidget {
                           AdminColumn(s('sampleManifestColLabel'), (e) => Text(e.label.isEmpty ? '—' : e.label)),
                           AdminColumn(s('sampleManifestColCpfCode'), (e) => Text(e.cpfCode.isEmpty ? '—' : e.cpfCode)),
                           AdminColumn(s('sampleManifestColSamplingTime'), (e) => Text(e.samplingTime.isEmpty ? '—' : e.samplingTime)),
+                          AdminColumn(s('sampleStatusTitle'), pill),
                         ],
                         card: (context, e) => AdminCard(
                           leading: const IconBadge(Icons.biotech_outlined, color: accentColor),
                           title: e.testItem,
                           subtitle: '${e.conditioning} · ${e.label.isEmpty ? '—' : e.label} · ${e.cpfCode.isEmpty ? '—' : e.cpfCode}',
+                          trailing: pill(e),
                           onTap: () => showAdminSheet<void>(context, builder: (_) => _SampleFormSheet(day: day, existing: e)),
                         ),
                       ),

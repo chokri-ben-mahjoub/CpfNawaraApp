@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/config/shared_config.dart';
 import '../../../core/l10n/app_strings.dart';
@@ -9,6 +10,46 @@ import '../../../core/widgets/responsive.dart';
 import '../../admin/presentation/widgets/admin_widgets.dart';
 
 String _fmtPressure(double v) => v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(1);
+
+const _lowColor = Color(0xFFD32F2F);
+
+/// Couleur de la pastille de statut (en service / veille / hors service).
+Color _statusColor(String status) {
+  switch (status.trim().toLowerCase()) {
+    case 'in service':
+      return const Color(0xFF2E9E5B);
+    case 'stand by':
+      return const Color(0xFFE08A00);
+    case 'out of service':
+      return const Color(0xFF8A8F98);
+    default:
+      return const Color(0xFF5B6B7A);
+  }
+}
+
+class _StatusPill extends StatelessWidget {
+  final String text;
+  final Color color;
+  const _StatusPill(this.text, this.color);
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+    decoration: BoxDecoration(color: color.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(20)),
+    child: Text(text, style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 12)),
+  );
+}
+
+Widget _pressureText(GasBottle b) => Row(
+  mainAxisSize: MainAxisSize.min,
+  children: [
+    if (b.isLow) const Padding(padding: EdgeInsets.only(right: 4), child: Icon(Icons.warning_amber_rounded, size: 16, color: _lowColor)),
+    Text(
+      '${_fmtPressure(b.pressure)} bars',
+      style: TextStyle(fontWeight: b.isLow ? FontWeight.w800 : null, color: b.isLow ? _lowColor : null),
+    ),
+  ],
+);
 
 /// Bouteilles de gaz pressurisées du laboratoire : relevé manuel (pression,
 /// statut, emplacement) repris en fin de rapport usine (« Laboratory
@@ -49,7 +90,17 @@ class GasBottlesScreen extends ConsumerWidget {
         '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 
     return Scaffold(
-      appBar: AppBar(title: Text(s('gasBottlesTitle'))),
+      appBar: AppBar(
+        title: Text(s('gasBottlesTitle')),
+        actions: [
+          if (bottles.isNotEmpty)
+            TextButton.icon(
+              onPressed: () => context.push('/gas-bottles/batch'),
+              icon: const Icon(Icons.playlist_add_check),
+              label: Text(s('gasBatchBtn')),
+            ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => showAdminSheet<void>(context, builder: (_) => const _GasBottleFormSheet()),
         icon: const Icon(Icons.add),
@@ -74,6 +125,30 @@ class GasBottlesScreen extends ConsumerWidget {
               children: [
                 Text(s('gasBottlesHint'), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12.5)),
                 const SizedBox(height: 14),
+                if (bottles.any((b) => b.isLow)) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: _lowColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: _lowColor.withValues(alpha: 0.5)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.warning_amber_rounded, color: _lowColor),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            '${bottles.where((b) => b.isLow).length} ${s('gasLowBanner')} : '
+                            '${bottles.where((b) => b.isLow).map((b) => b.name).join(', ')}',
+                            style: const TextStyle(fontWeight: FontWeight.w700, color: _lowColor),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                ],
                 ResponsiveWrapGrid(
                   minItemWidth: 220,
                   spacing: 12,
@@ -107,14 +182,16 @@ class GasBottlesScreen extends ConsumerWidget {
                   items: bottles,
                   onTap: (b) => showAdminSheet<void>(context, builder: (_) => _GasBottleFormSheet(existing: b)),
                   columns: [
-                    AdminColumn(s('gasBottlesColCylinder'), (b) => Text(b.label, style: const TextStyle(fontWeight: FontWeight.w700))),
-                    AdminColumn(s('gasBottlesColPressure'), (b) => Text('${_fmtPressure(b.pressure)} bars'), numeric: true),
+                    AdminColumn(s('gasBottlesColCylinder'), (b) => Text(b.name, style: const TextStyle(fontWeight: FontWeight.w700))),
+                    AdminColumn(s('gasBottlesStatus'), (b) => b.status.trim().isEmpty ? const Text('—') : _StatusPill(b.status.trim(), _statusColor(b.status))),
+                    AdminColumn(s('gasBottlesColPressure'), _pressureText, numeric: true),
                     AdminColumn(s('gasBottlesColLocation'), (b) => Text(b.location.isEmpty ? '—' : b.location)),
                   ],
                   card: (context, b) => AdminCard(
                     leading: const IconBadge(Icons.propane_tank_outlined, color: accentColor),
                     title: b.label,
-                    subtitle: '${_fmtPressure(b.pressure)} bars · ${b.location.isEmpty ? '—' : b.location}',
+                    subtitle: '${_fmtPressure(b.pressure)} bars${b.isLow ? ' · ${s('gasLowBadge')}' : ''} · ${b.location.isEmpty ? '—' : b.location}',
+                    trailing: b.status.trim().isEmpty ? null : _StatusPill(b.status.trim(), _statusColor(b.status)),
                     onTap: () => showAdminSheet<void>(context, builder: (_) => _GasBottleFormSheet(existing: b)),
                   ),
                 ),
@@ -137,6 +214,7 @@ class _GasBottleFormSheetState extends ConsumerState<_GasBottleFormSheet> {
   late final TextEditingController _name;
   late final TextEditingController _pressure;
   late final TextEditingController _location;
+  late final TextEditingController _minPressure;
   late String _status;
 
   bool get _isNew => widget.existing == null;
@@ -148,6 +226,7 @@ class _GasBottleFormSheetState extends ConsumerState<_GasBottleFormSheet> {
     _name = TextEditingController(text: e?.name ?? '');
     _pressure = TextEditingController(text: e == null ? '' : _fmtPressure(e.pressure));
     _location = TextEditingController(text: e?.location ?? '');
+    _minPressure = TextEditingController(text: _fmtPressure(e?.minPressure ?? 20));
     _status = e?.status ?? '';
   }
 
@@ -156,6 +235,7 @@ class _GasBottleFormSheetState extends ConsumerState<_GasBottleFormSheet> {
     _name.dispose();
     _pressure.dispose();
     _location.dispose();
+    _minPressure.dispose();
     super.dispose();
   }
 
@@ -166,12 +246,14 @@ class _GasBottleFormSheetState extends ConsumerState<_GasBottleFormSheet> {
     String s(String key) => tr(locale, key);
     final messenger = ScaffoldMessenger.of(context);
     final pressure = double.tryParse(_pressure.text.trim().replaceAll(',', '.')) ?? 0;
+    final minPressure = double.tryParse(_minPressure.text.trim().replaceAll(',', '.')) ?? 0;
 
     if (_isNew) {
       await controller.add(
         name: _name.text.trim(),
         status: _status.trim(),
         pressure: pressure,
+        minPressure: minPressure,
         location: _location.text.trim(),
       );
       messenger.showSnackBar(SnackBar(content: Text(s('gasBottlesAdded'))));
@@ -181,6 +263,7 @@ class _GasBottleFormSheetState extends ConsumerState<_GasBottleFormSheet> {
           name: _name.text.trim(),
           status: _status.trim(),
           pressure: pressure,
+          minPressure: minPressure,
           location: _location.text.trim(),
         ),
       );
@@ -249,6 +332,15 @@ class _GasBottleFormSheetState extends ConsumerState<_GasBottleFormSheet> {
                 controller: _pressure,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(labelText: s('gasBottlesColPressure'), suffixText: 'bars'),
+                validator: (v) {
+                  final value = double.tryParse((v ?? '').trim().replaceAll(',', '.'));
+                  return value == null || value < 0 ? s('gasBottlesInvalidPressure') : null;
+                },
+              ),
+              TextFormField(
+                controller: _minPressure,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(labelText: s('gasMinPressure'), helperText: s('gasMinPressureHint'), suffixText: 'bars'),
                 validator: (v) {
                   final value = double.tryParse((v ?? '').trim().replaceAll(',', '.'));
                   return value == null || value < 0 ? s('gasBottlesInvalidPressure') : null;

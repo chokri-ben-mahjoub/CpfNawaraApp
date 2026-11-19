@@ -27,6 +27,15 @@ const sampleTestItemSuggestions = [
 /// Conditionnements suggérés (idem, texte libre).
 const sampleConditioningSuggestions = ['01 glass bottle', '01 Cylinder bottle', '01 Plastic bottle'];
 
+/// Avancement d'un échantillon : préparé (défaut) → envoyé → résultat reçu.
+const sampleStatuses = ['prepared', 'sent', 'received'];
+
+/// Statut suivant dans le cycle préparé → envoyé → reçu → préparé.
+String nextSampleStatus(String status) {
+  final i = sampleStatuses.indexOf(status.isEmpty ? 'prepared' : status);
+  return sampleStatuses[(i + 1) % sampleStatuses.length];
+}
+
 /// Un échantillon envoyé au labo un jour donné (table `sample_manifest`),
 /// pour la page « Scope of Work » ajoutée en début de rapport usine.
 class SampleManifestEntry {
@@ -42,6 +51,9 @@ class SampleManifestEntry {
 
   /// Heure de prélèvement (« HH:mm »), vide si non renseignée.
   final String samplingTime;
+
+  /// Un de [sampleStatuses] (vide = préparé).
+  final String status;
   final int sortOrder;
 
   const SampleManifestEntry({
@@ -53,6 +65,7 @@ class SampleManifestEntry {
     this.label = '',
     this.cpfCode = '',
     this.samplingTime = '',
+    this.status = '',
     this.sortOrder = 0,
   });
 
@@ -63,6 +76,7 @@ class SampleManifestEntry {
     String? label,
     String? cpfCode,
     String? samplingTime,
+    String? status,
   }) => SampleManifestEntry(
     id: id,
     date: date,
@@ -72,6 +86,7 @@ class SampleManifestEntry {
     label: label ?? this.label,
     cpfCode: cpfCode ?? this.cpfCode,
     samplingTime: samplingTime ?? this.samplingTime,
+    status: status ?? this.status,
     sortOrder: sortOrder,
   );
 }
@@ -138,11 +153,44 @@ class SampleManifestController extends StateNotifier<List<SampleManifestEntry>> 
         'label': entry.label,
         'cpf_code': entry.cpfCode,
         'sampling_time': entry.samplingTime,
+        'status': entry.status,
       }),
       where: 'id = ?',
       whereArgs: [entry.id],
     );
     await _load();
+  }
+
+  /// Reprend la liste d'un autre jour (sans l'heure ni le statut, remis à
+  /// « préparé ») ; ignore les lignes déjà présentes. Renvoie le nombre
+  /// d'échantillons ajoutés.
+  Future<int> copyFromDay(DateTime from) async {
+    final db = await LocalDatabase.instance.database;
+    final rows = await db.query('sample_manifest', where: 'date = ?', whereArgs: [plantDateKey(from)], orderBy: 'sort_order');
+    final existing = {for (final e in state) '${e.testItem}|${e.label}|${e.cpfCode}'};
+    var sortOrder = state.isEmpty ? 0 : state.map((e) => e.sortOrder).reduce((a, b) => a > b ? a : b) + 1;
+    var count = 0;
+    for (final e in rows.map(_fromRow)) {
+      if (!existing.add('${e.testItem}|${e.label}|${e.cpfCode}')) continue;
+      await db.insert(
+        'sample_manifest',
+        LocalDatabase.stamp({
+          'id': 'sm_${_uuid.v4()}',
+          'date': _dateKey,
+          'test_item': e.testItem,
+          'conditioning': e.conditioning,
+          'quantity': e.quantity,
+          'label': e.label,
+          'cpf_code': e.cpfCode,
+          'sampling_time': '',
+          'status': '',
+          'sort_order': sortOrder++,
+        }),
+      );
+      count++;
+    }
+    await _load();
+    return count;
   }
 
   Future<void> delete(String id) async {
@@ -162,6 +210,7 @@ class SampleManifestController extends StateNotifier<List<SampleManifestEntry>> 
     label: row['label'] as String? ?? '',
     cpfCode: row['cpf_code'] as String? ?? '',
     samplingTime: row['sampling_time'] as String? ?? '',
+    status: row['status'] as String? ?? '',
     sortOrder: (row['sort_order'] as num?)?.toInt() ?? 0,
   );
 }
