@@ -47,6 +47,14 @@ class AppTheme {
       fontFamily: 'Manrope',
       pageTransitionsTheme: appPageTransitionsTheme,
       splashFactory: InkSparkle.splashFactory,
+      scrollbarTheme: ScrollbarThemeData(
+        thickness: const WidgetStatePropertyAll(10),
+        radius: const Radius.circular(8),
+        thumbColor: WidgetStatePropertyAll(colorScheme.onSurface.withValues(alpha: 0.38)),
+        trackColor: WidgetStatePropertyAll(colorScheme.onSurface.withValues(alpha: 0.06)),
+        trackVisibility: const WidgetStatePropertyAll(true),
+        crossAxisMargin: 2,
+      ),
       dividerTheme: DividerThemeData(color: colorScheme.outlineVariant.withValues(alpha: 0.6), space: 1),
       bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: colorScheme.surfaceContainerLow,
