@@ -156,8 +156,10 @@ class _ZoneTable extends StatelessWidget {
                     ),
                   ),
                 ),
-                for (final r in rows)
-                  InkWell(
+                for (final (i, r) in rows.indexed)
+                  ColoredBox(
+                    color: i.isOdd ? scheme.onSurface.withValues(alpha: 0.045) : Colors.transparent,
+                    child: InkWell(
                     onTap: () => context.push('/stock/${r.item.id}'),
                     child: IntrinsicHeight(
                       child: Row(
@@ -200,6 +202,7 @@ class _ZoneTable extends StatelessWidget {
                         ],
                       ),
                     ),
+                  ),
                   ),
               ],
             ),

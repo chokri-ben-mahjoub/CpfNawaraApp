@@ -34,7 +34,7 @@ class AdminTable<T> extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               for (var i = 0; i < items.length; i++) ...[
-                if (i > 0) const SizedBox(height: 10),
+                if (i > 0) const SizedBox(height: 6),
                 card(context, items[i]),
               ],
             ],
@@ -48,12 +48,21 @@ class AdminTable<T> extends StatelessWidget {
               constraints: BoxConstraints(minWidth: constraints.maxWidth),
               child: DataTable(
                 showCheckboxColumn: false,
-                headingRowColor: WidgetStatePropertyAll(scheme.surfaceContainerHigh),
+                headingRowColor: WidgetStatePropertyAll(scheme.surfaceContainerHighest),
+                headingRowHeight: 46,
+                dataRowMinHeight: 42,
+                dataRowMaxHeight: 60,
+                columnSpacing: 20,
+                horizontalMargin: 16,
+                dividerThickness: 0.6,
                 headingTextStyle: TextStyle(fontWeight: FontWeight.w800, color: scheme.onSurface, fontSize: 13),
                 columns: [for (final c in columns) DataColumn(label: Text(c.label), numeric: c.numeric)],
                 rows: [
-                  for (final item in items)
+                  for (final (i, item) in items.indexed)
                     DataRow(
+                      color: WidgetStatePropertyAll(
+                        i.isOdd ? scheme.onSurface.withValues(alpha: 0.045) : Colors.transparent,
+                      ),
                       onSelectChanged: onTap == null ? null : (_) => onTap!(item),
                       cells: [for (final c in columns) DataCell(c.cell(item))],
                     ),
@@ -82,7 +91,9 @@ class AdminCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Card(
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        dense: true,
+        visualDensity: VisualDensity.compact,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
         leading: leading,
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
         subtitle: subtitle == null ? null : Text(subtitle!, style: TextStyle(color: scheme.onSurfaceVariant)),

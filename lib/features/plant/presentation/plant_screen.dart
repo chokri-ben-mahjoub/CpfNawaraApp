@@ -299,47 +299,48 @@ class PlantScreen extends ConsumerWidget {
           builder: (context, constraints) {
             // Titres complets sur 2 lignes au besoin (« CPF Sampling Points &
             // Analyses » est long pour 4 onglets).
+            // Téléphone : texte seul (sans icône), police plus petite, jusqu'à
+            // 3 lignes ; grand écran : icône + texte sur 2 lignes.
+            final narrow = constraints.maxWidth < 560;
             Widget tabLabel(String text) => Text(
               text,
-              maxLines: 2,
+              maxLines: narrow ? 3 : 2,
               textAlign: TextAlign.center,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 13, height: 1.15),
+              style: TextStyle(fontSize: narrow ? 11 : 13, height: 1.15),
             );
             final viewSelector = SegmentedButton<PlantView>(
               showSelectedIcon: false,
-              style: const ButtonStyle(padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 8, vertical: 8))),
+              style: ButtonStyle(
+                padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: narrow ? 4 : 8, vertical: 8)),
+              ),
               segments: [
                 ButtonSegment(
                   value: PlantView.diagram,
-                  icon: const Icon(Icons.account_tree_outlined),
-                  label: constraints.maxWidth >= 560
-                      ? tabLabel(s('plantTitleDiagram'))
-                      : null,
+                  icon: narrow ? null : const Icon(Icons.account_tree_outlined),
+                  label: tabLabel(s('plantTitleDiagram')),
+
                   tooltip: s('plantTitleDiagram'),
                 ),
                 ButtonSegment(
                   value: PlantView.list,
-                  icon: const Icon(Icons.view_list_outlined),
-                  label: constraints.maxWidth >= 560
-                      ? tabLabel(s('plantTitleList'))
-                      : null,
+                  icon: narrow ? null : const Icon(Icons.view_list_outlined),
+                  label: tabLabel(s('plantTitleList')),
+
                   tooltip: s('plantTitleList'),
                 ),
                 ButtonSegment(
                   value: PlantView.trends,
-                  icon: const Icon(Icons.show_chart),
-                  label: constraints.maxWidth >= 560
-                      ? tabLabel(s('plantTitleTrends'))
-                      : null,
+                  icon: narrow ? null : const Icon(Icons.show_chart),
+                  label: tabLabel(s('plantTitleTrends')),
+
                   tooltip: s('plantTitleTrends'),
                 ),
                 ButtonSegment(
                   value: PlantView.heatmap,
-                  icon: const Icon(Icons.grid_view_rounded),
-                  label: constraints.maxWidth >= 560
-                      ? tabLabel(s('plantViewHeatmap'))
-                      : null,
+                  icon: narrow ? null : const Icon(Icons.grid_view_rounded),
+                  label: tabLabel(s('plantViewHeatmap')),
+
                   tooltip: s('plantViewHeatmap'),
                 ),
               ],
