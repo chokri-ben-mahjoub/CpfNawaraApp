@@ -1,7 +1,7 @@
 {
-  "version": "0.32.3",
+  "version": "0.32.4",
   "notes": {
-    "fr": ["Défilement amélioré : glisser à la souris, barre de défilement visible sur PC", "Texte du système borné pour éviter les débordements sur téléphone"],
-    "en": ["Better scrolling: mouse drag, visible scrollbar on desktop", "System text size capped to avoid overflow on phones"]
+    "fr": ["Menu : « Tournées » devient « Relevé puits »"],
+    "en": ["Menu: \"Rounds\" is now \"Well Reading\""]
   }
 }
