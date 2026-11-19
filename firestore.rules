@@ -6,7 +6,8 @@ rules_version = '2';
 // (companies/{cid}/members/{uid}.role) :
 //   admin     : tout, y compris les utilisateurs et le paramétrage ;
 //   ingenieur : analyses (puits + usine) et interventions ;
-//   operateur : analyses (puits + usine) ;
+//   operateur : analyses (puits + usine), stock, tournées, gaz, échantillons ;
+//   analyste  : analyses (puits + usine) uniquement ;
 //   lecteur   : lecture seule.
 // Un membre inactif (actif == false) n'a accès à rien.
 // Publication : tool\deploy.ps1 (ou console Firebase › Firestore › Règles).
@@ -62,7 +63,7 @@ service cloud.firestore {
       return hasRole(cid, ['admin']);
     }
     function roles() {
-      return ['admin', 'ingenieur', 'operateur', 'lecteur'];
+      return ['admin', 'ingenieur', 'operateur', 'analyste', 'lecteur'];
     }
     function dataTables() {
       return ['wells', 'analysis_types', 'analysis_records', 'interventions', 'sample_points',
@@ -75,7 +76,9 @@ service cloud.firestore {
         || (hasRole(cid, ['ingenieur']) && table in
             ['analysis_records', 'plant_analyses', 'interventions', 'stock_movements', 'well_rounds', 'gas_bottles', 'sample_manifest'])
         || (hasRole(cid, ['operateur']) && table in
-            ['analysis_records', 'plant_analyses', 'stock_movements', 'well_rounds', 'gas_bottles', 'sample_manifest']);
+            ['analysis_records', 'plant_analyses', 'stock_movements', 'well_rounds', 'gas_bottles', 'sample_manifest'])
+        || (hasRole(cid, ['analyste']) && table in
+            ['analysis_records', 'plant_analyses']);
     }
     // Invitation valide pour l'adhésion écrite (code non utilisé, non expiré,
     // même rôle, e-mail imposé respecté), marquée utilisée dans la même
@@ -188,7 +191,7 @@ service cloud.firestore {
       // tables quand rien n'a changé.
       match /meta/sync {
         allow get: if active(cid);
-        allow write: if hasRole(cid, ['admin', 'ingenieur', 'operateur']);
+        allow write: if hasRole(cid, ['admin', 'ingenieur', 'operateur', 'analyste']);
       }
 
       // Journal d'audit : ajout seulement, lu par les administrateurs.

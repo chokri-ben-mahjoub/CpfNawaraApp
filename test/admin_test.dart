@@ -231,6 +231,10 @@ const firebaseConfig = {
       'sample_manifest',
     });
     expect(UserRole.reader.writableTables, isEmpty);
+    expect(UserRole.analyst.canEnterData, isTrue);
+    expect(UserRole.analyst.canManageOps, isFalse);
+    expect(UserRole.operator.canManageOps, isTrue);
+    expect(UserRole.analyst.writableTables, {'analysis_records', 'plant_analyses'});
     for (final role in UserRole.values) {
       expect(UserRoleX.fromStorageKey(role.storageKey), role);
     }

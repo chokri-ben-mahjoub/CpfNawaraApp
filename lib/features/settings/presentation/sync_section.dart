@@ -61,6 +61,7 @@ class RoleChip extends ConsumerWidget {
             UserRole.admin => accentColor,
             UserRole.engineer => const Color(0xFF1E88E5),
             UserRole.operator => const Color(0xFF2E9E5B),
+            UserRole.analyst => const Color(0xFF8E5BD6),
             UserRole.reader => scheme.onSurfaceVariant,
           };
     return Container(

@@ -1835,7 +1835,15 @@ final _strings = <String, Map<String, String>>{
     'en': 'Everything: users, wells, points, thresholds, import, project.',
   },
   'roleEngineerHint': {'fr': 'Saisie des analyses et des interventions.', 'en': 'Enters analyses and interventions.'},
-  'roleOperatorHint': {'fr': 'Saisie des analyses (puits et usine).', 'en': 'Enters analyses (wells and plant).'},
+  'roleOperatorHint': {
+    'fr': 'Saisie des analyses, du stock, des tournées, du gaz et des échantillons.',
+    'en': 'Enters analyses, stock, rounds, gas bottles and samples.',
+  },
+  'roleAnalyst': {'fr': 'Analyste', 'en': 'Analyst'},
+  'roleAnalystHint': {
+    'fr': 'Saisie des analyses uniquement (puits et usine), rien d\u2019autre.',
+    'en': 'Enters analyses only (wells and plant), nothing else.',
+  },
   'roleReaderHint': {'fr': 'Consultation uniquement.', 'en': 'Read only.'},
   'settingsTeam': {'fr': 'Équipe et synchronisation', 'en': 'Team & sync'},
   'syncConnectProject': {'fr': 'Connecter un projet Firebase', 'en': 'Connect a Firebase project'},

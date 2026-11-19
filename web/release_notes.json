@@ -1,7 +1,7 @@
 {
-  "version": "0.33.1",
+  "version": "0.34.0",
   "notes": {
-    "fr": ["Stock : ajout du Certificat d\u2019analyse (COA) en plus de la fiche SDS"],
-    "en": ["Stock: Certificate of Analysis (COA) added next to the SDS"]
+    "fr": ["Nouveau rôle « Analyste » : saisie des analyses uniquement"],
+    "en": ["New \"Analyst\" role: enters analyses only"]
   }
 }
