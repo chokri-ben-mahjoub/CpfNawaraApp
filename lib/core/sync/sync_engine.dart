@@ -308,9 +308,9 @@ class SyncEngine {
     final data = Map<String, Object?>.from(row)..remove('dirty');
     // Firestore refuse une propriété de plus de ~1 Mo : une pièce jointe trop
     // lourde reste sur cet appareil mais ne bloque plus toute la synchronisation.
-    final attachment = data['attachment'];
-    if (attachment is String && attachment.length > maxSyncedAttachmentChars) {
-      data['attachment'] = null;
+    for (final key in const ['attachment', 'coa']) {
+      final file = data[key];
+      if (file is String && file.length > maxSyncedAttachmentChars) data[key] = null;
     }
     data['deleted'] = false;
     return _write(scope, table, row['id'] as String, data);

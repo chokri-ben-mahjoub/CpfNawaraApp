@@ -21,7 +21,7 @@ class LocalDatabase {
   static final LocalDatabase instance = LocalDatabase._();
 
   /// Version du schéma (voir `onUpgrade`), enregistrée dans les sauvegardes.
-  static const schemaVersion = 34;
+  static const schemaVersion = 35;
 
   /// Tables sauvegardées / restaurées / synchronisées.
   static const dataTables = [
@@ -375,6 +375,11 @@ class LocalDatabase {
             // Titre (légende) de la photo jointe à une analyse.
             await db.execute('alter table plant_analyses add column photo_title text');
           }
+          if (oldVersion >= 13 && oldVersion < 35) {
+            // Certificat d'analyse (COA) joint à un article de stock.
+            await db.execute('alter table stock_items add column coa text');
+            await db.execute('alter table stock_items add column coa_name text');
+          }
           if (oldVersion >= 29 && oldVersion < 34) {
             // Seuil de pression basse par bouteille de gaz.
             await db.execute('alter table gas_bottles add column min_pressure real not null default 20');
@@ -575,6 +580,8 @@ class LocalDatabase {
         pending_order real not null default 0,
         attachment text,
         attachment_name text,
+        coa text,
+        coa_name text,
         consumption_override real,
         expiry_date text,
         zone text not null default '',

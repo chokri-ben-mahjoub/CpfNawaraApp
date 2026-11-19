@@ -75,7 +75,11 @@ class StockItemDetailScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 14),
           if (item.attachment != null && item.attachmentName != null) ...[
-            _AttachmentCard(item: item, s: s),
+            _AttachmentCard(data: item.attachment!, name: item.attachmentName!, label: s('stockAttachmentLabel'), s: s),
+            const SizedBox(height: 14),
+          ],
+          if (item.coa != null && item.coaName != null) ...[
+            _AttachmentCard(data: item.coa!, name: item.coaName!, label: s('stockCoaLabel'), s: s),
             const SizedBox(height: 14),
           ],
           _ForecastCard(item: item, stock: stock, s: s),
@@ -173,17 +177,19 @@ class _MovementTile extends ConsumerWidget {
   }
 }
 
-/// Pièce jointe d'un article (certificat, fiche de données de sécurité...) :
-/// ouvre le volet de partage natif, qui propose de l'afficher dans une
-/// visionneuse PDF/image installée sur l'appareil.
+/// Pièce jointe d'un article (fiche de données de sécurité, certificat
+/// d'analyse...) : ouvre le volet de partage natif, qui propose de l'afficher
+/// dans une visionneuse PDF/image installée sur l'appareil.
 class _AttachmentCard extends StatelessWidget {
-  final StockItem item;
+  final String data;
+  final String name;
+  final String label;
   final String Function(String) s;
-  const _AttachmentCard({required this.item, required this.s});
+  const _AttachmentCard({required this.data, required this.name, required this.label, required this.s});
 
   Future<void> _open() async {
-    final bytes = base64Decode(item.attachment!);
-    await shareFiles([ShareableFile(item.attachmentName!, _mimeOf(item.attachmentName!), bytes)]);
+    final bytes = base64Decode(data);
+    await shareFiles([ShareableFile(name, _mimeOf(name), bytes)]);
   }
 
   static String _mimeOf(String name) {
@@ -196,12 +202,12 @@ class _AttachmentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final isPdf = item.attachmentName!.toLowerCase().endsWith('.pdf');
+    final isPdf = name.toLowerCase().endsWith('.pdf');
     return Card(
       child: ListTile(
         leading: IconBadge(isPdf ? Icons.picture_as_pdf_outlined : Icons.image_outlined, color: scheme.primary),
-        title: Text(s('stockAttachmentLabel'), style: const TextStyle(fontWeight: FontWeight.w700)),
-        subtitle: Text(item.attachmentName!, overflow: TextOverflow.ellipsis),
+        title: Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
+        subtitle: Text(name, overflow: TextOverflow.ellipsis),
         trailing: IconButton(
           tooltip: s('stockAttachmentOpen'),
           icon: const Icon(Icons.open_in_new),
