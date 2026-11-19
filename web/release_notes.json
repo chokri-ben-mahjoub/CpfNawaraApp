@@ -1,7 +1,7 @@
 {
-  "version": "0.32.7",
+  "version": "0.32.8",
   "notes": {
-    "fr": ["Écran CPF : titres complets dans les onglets"],
-    "en": ["CPF screen: full titles in the tabs"]
+    "fr": ["Écran CPF sur téléphone : onglets avec texte au lieu des icônes"],
+    "en": ["CPF screen on phone: text tabs instead of icons"]
   }
 }
