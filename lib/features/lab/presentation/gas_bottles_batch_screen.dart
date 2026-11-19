@@ -6,9 +6,10 @@ import '../../../core/l10n/app_strings.dart';
 import '../../../core/lab/gas_bottle_repository.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/responsive.dart';
+import '../../../core/theme/status_colors.dart';
 
-const _red = Color(0xFFD32F2F);
-const _green = Color(0xFF2E9E5B);
+const _red = statusBad;
+const _green = statusOk;
 
 double? _parse(String text) => double.tryParse(text.trim().replaceAll(',', '.'));
 

@@ -15,6 +15,7 @@ import '../../../core/widgets/responsive.dart';
 import 'plant_schema_screens.dart' show pickSchemaImage;
 import '../../../core/voice/spoken_number.dart';
 import '../../../core/voice/voice_number_button.dart';
+import '../../../core/theme/status_colors.dart';
 
 /// Saisie d'une nouvelle analyse d'un point pour un jour (plusieurs
 /// prélèvements possibles le même jour), ou correction d'une analyse
@@ -326,6 +327,32 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
             ),
         ],
       ),
+      bottomNavigationBar: SafeArea(
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          decoration: BoxDecoration(
+            color: scheme.surface,
+            border: Border(top: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.6))),
+          ),
+          child: Align(
+            heightFactor: 1,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 700),
+              child: SizedBox(
+                height: 52,
+                width: double.infinity,
+                child: FilledButton(
+                  style: FilledButton.styleFrom(backgroundColor: accentColor, foregroundColor: Colors.white),
+                  onPressed: _saving ? null : _save,
+                  child: _saving
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                      : Text(s('wellsManageSave'), style: const TextStyle(fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -484,7 +511,7 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
                     ChoiceChip(
                       label: Text(s(choice)),
                       selected: _choices[param.key] == choice,
-                      selectedColor: (param.okChoices.contains(choice) ? Colors.green : scheme.error).withValues(
+                      selectedColor: (param.okChoices.contains(choice) ? statusOk : scheme.error).withValues(
                         alpha: 0.18,
                       ),
                       onSelected: (selected) => setState(() => _choices[param.key] = selected ? choice : null),
@@ -542,17 +569,6 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
                 ),
               ),
             ],
-            const SizedBox(height: 20),
-            SizedBox(
-              height: 52,
-              child: FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: accentColor, foregroundColor: Colors.white),
-                onPressed: _saving ? null : _save,
-                child: _saving
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                    : Text(s('wellsManageSave'), style: const TextStyle(fontWeight: FontWeight.w700)),
-              ),
-            ),
           ],
         ),
       ),

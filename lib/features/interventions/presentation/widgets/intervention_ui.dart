@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/analysis/series.dart';
 import '../../../../core/models/intervention.dart';
 import '../../../../core/widgets/series_chart.dart';
+import '../../../../core/theme/status_colors.dart';
 
 IconData interventionIcon(String typeKey) {
   switch (typeKey) {
@@ -34,11 +35,11 @@ IconData interventionIcon(String typeKey) {
 Color interventionResultColor(String resultKey) {
   switch (resultKey) {
     case 'interventionResultSuccess':
-      return Colors.green.shade600;
+      return statusOk;
     case 'interventionResultPartial':
-      return Colors.orange.shade700;
+      return statusWarn;
     case 'interventionResultFailure':
-      return Colors.red.shade600;
+      return statusBad;
     default:
       return Colors.blueGrey.shade400;
   }

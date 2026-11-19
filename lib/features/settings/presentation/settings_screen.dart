@@ -36,6 +36,7 @@ import '../../../core/widgets/filter_pills.dart';
 import 'sync_section.dart';
 import '../../../core/widgets/responsive.dart';
 import '../../../core/widgets/profile_avatar.dart';
+import '../../../core/theme/status_colors.dart';
 
 /// Réglages de l'app : profil, apparence, sécurité, sauvegarde, rappels,
 /// saisie & export, paramétrage, données et à propos.
@@ -614,14 +615,14 @@ class _BackupSectionState extends ConsumerState<_BackupSection> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: (stale ? scheme.error : Colors.green.shade600).withValues(alpha: 0.08),
+            color: (stale ? scheme.error : statusOk).withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(14),
           ),
           child: Row(
             children: [
               Icon(
                 stale ? Icons.warning_amber_rounded : Icons.verified_outlined,
-                color: stale ? scheme.error : Colors.green.shade600,
+                color: stale ? scheme.error : statusOk,
                 size: 20,
               ),
               const SizedBox(width: 10),

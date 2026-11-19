@@ -16,6 +16,7 @@ import '../../../../core/team/team_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../qr_scan_screen.dart';
 import 'firebase_project_picker.dart';
+import '../../../../core/theme/status_colors.dart';
 
 /// Problème de configuration du projet que seule la console Firebase peut
 /// régler (une seule fois, par l'éditeur de l'app) : l'app indique quoi
@@ -444,12 +445,12 @@ class _TeamAccountFormState extends ConsumerState<TeamAccountForm> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.green.shade600.withValues(alpha: 0.1),
+                  color: statusOk.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.verified_outlined, color: Colors.green.shade700),
+                    Icon(Icons.verified_outlined, color: statusOk),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(

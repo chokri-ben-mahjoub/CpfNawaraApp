@@ -8,15 +8,16 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/responsive.dart';
 import '../../admin/presentation/widgets/admin_widgets.dart';
 import '../../plant/presentation/plant_screen.dart' show plantDayLabel;
+import '../../../core/theme/status_colors.dart';
 
 Color _sampleStatusColor(String status) {
   switch (status) {
     case 'sent':
       return const Color(0xFF2F6FDE);
     case 'received':
-      return const Color(0xFF2E9E5B);
+      return statusOk;
     default:
-      return const Color(0xFFE08A00);
+      return statusWarn;
   }
 }
 

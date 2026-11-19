@@ -10,6 +10,7 @@ import '../../core/team/team_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/responsive.dart';
 import '../setup/presentation/widgets/team_account_form.dart';
+import '../../core/theme/status_colors.dart';
 
 /// Écran du propriétaire de PuitsTrack (Réglages › Clients) : codes
 /// d'activation vendus aux clients et entreprises créées.
@@ -281,7 +282,7 @@ class _OwnerScreenState extends ConsumerState<OwnerScreen> {
                 child: ListTile(
                   leading: Icon(
                     code.used ? Icons.check_circle : Icons.vpn_key_outlined,
-                    color: code.used ? Colors.green.shade600 : accentColor,
+                    color: code.used ? statusOk : accentColor,
                   ),
                   title: Text(code.label, style: const TextStyle(fontWeight: FontWeight.w700)),
                   subtitle: Text(

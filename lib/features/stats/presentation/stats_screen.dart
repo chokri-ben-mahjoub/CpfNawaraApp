@@ -14,6 +14,7 @@ import '../../../core/widgets/filter_pills.dart';
 import '../../../core/widgets/responsive.dart';
 import 'widgets/stats_extras.dart';
 import 'widgets/threshold_gauge.dart';
+import '../../../core/theme/status_colors.dart';
 
 enum StatsViewMode { compliance, thresholds, overlay }
 
@@ -23,9 +24,9 @@ final statsViewModeProvider = StateProvider<StatsViewMode>((ref) => StatsViewMod
 final statsFilterProvider = StateProvider<WellFilter>((ref) => const WellFilter(period: PeriodSelection.days7));
 
 Color _complianceColor(double rate) {
-  if (rate >= 0.95) return Colors.green.shade600;
-  if (rate >= 0.8) return Colors.orange.shade700;
-  return Colors.red.shade600;
+  if (rate >= 0.95) return statusOk;
+  if (rate >= 0.8) return statusWarn;
+  return statusBad;
 }
 
 class StatsScreen extends ConsumerWidget {

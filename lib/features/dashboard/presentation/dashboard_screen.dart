@@ -23,6 +23,7 @@ import '../../../core/widgets/responsive.dart';
 import '../../../core/widgets/sparkline.dart';
 import 'widgets/aggregate_trend_chart.dart';
 import '../../../core/widgets/profile_avatar.dart';
+import '../../../core/theme/status_colors.dart';
 
 enum DashboardPeriod { day, week, month }
 
@@ -471,7 +472,7 @@ class _PeriodWellCard extends ConsumerWidget {
     String s(String key) => tr(locale, key);
     final dateFormat = DateFormat('d MMM', locale.languageCode);
     final ratio = progress.total == 0 ? 1.0 : progress.done / progress.total;
-    final color = progress.missing.isEmpty ? Colors.green.shade600 : accentColor;
+    final color = progress.missing.isEmpty ? statusOk : accentColor;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
@@ -614,7 +615,7 @@ class _WellDashboardSection extends ConsumerWidget {
     }
     final open = [...overdue, ...pending];
     final allDone = open.isEmpty;
-    final green = Colors.green.shade600;
+    final green = statusOk;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),

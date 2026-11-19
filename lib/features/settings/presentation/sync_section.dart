@@ -10,6 +10,7 @@ import '../../../core/sync/sync_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../setup/presentation/widgets/firebase_project_picker.dart';
 import '../../setup/presentation/widgets/team_account_form.dart';
+import '../../../core/theme/status_colors.dart';
 
 /// Icône d'état de la synchronisation (barre du haut), affichée seulement
 /// quand un compte est connecté.
@@ -27,7 +28,7 @@ class SyncStatusIcon extends ConsumerWidget {
       SyncPhase.syncing => (Icons.cloud_sync_outlined, accentColor),
       SyncPhase.offline => (Icons.cloud_off_outlined, scheme.onSurfaceVariant),
       SyncPhase.error => (Icons.sync_problem_outlined, scheme.error),
-      _ => (Icons.cloud_done_outlined, Colors.green.shade600),
+      _ => (Icons.cloud_done_outlined, statusOk),
     };
     return IconButton(
       tooltip: tr(locale, syncPhaseLabelKey(sync.phase)),
@@ -149,7 +150,7 @@ class SyncSettingsContent extends ConsumerWidget {
     final statusColor = switch (sync.phase) {
       SyncPhase.error => scheme.error,
       SyncPhase.offline => scheme.onSurfaceVariant,
-      _ => Colors.green.shade700,
+      _ => statusOk,
     };
     final member = sync.member;
 

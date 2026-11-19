@@ -14,6 +14,7 @@ import '../../../core/models/well.dart';
 import '../../../core/models/well_round.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/responsive.dart';
+import '../../../core/theme/status_colors.dart';
 
 /// Jour affiché dans l'onglet Tournées.
 final roundsDayProvider = StateProvider<DateTime>((ref) {
@@ -132,7 +133,7 @@ class RoundsScreen extends ConsumerWidget {
 }
 
 Color _statusColor(String? status, ColorScheme scheme) => switch (status) {
-  'roundOpen' => Colors.green.shade600,
+  'roundOpen' => statusOk,
   'roundClosed' => scheme.error,
   _ => scheme.outline,
 };

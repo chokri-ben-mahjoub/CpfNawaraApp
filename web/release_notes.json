@@ -1,7 +1,7 @@
 {
-  "version": "0.34.1",
+  "version": "0.35.0",
   "notes": {
-    "fr": ["Analyses : l\u2019heure de prélèvement est libellée « Sampling time » en anglais"],
-    "en": ["Analyses: the sampling time field is now labelled \"Sampling time\""]
+    "fr": ["Couleurs d\u2019état unifiées : vert, orange, rouge", "Valeur hors seuil mise en évidence dans les analyses", "Bouton Enregistrer fixé en bas des formulaires de saisie"],
+    "en": ["Unified status colours: green, orange, red", "Out-of-threshold values highlighted in analyses", "Save button pinned at the bottom of entry forms"]
   }
 }

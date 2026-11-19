@@ -21,6 +21,7 @@ import '../../../core/widgets/responsive.dart';
 import '../../settings/presentation/sync_section.dart';
 import '../../setup/presentation/widgets/team_account_form.dart';
 import 'widgets/admin_widgets.dart';
+import '../../../core/theme/status_colors.dart';
 
 /// Mot de passe provisoire lisible (sans caractères ambigus).
 String generateTempPassword([int length = 10]) {
@@ -305,7 +306,7 @@ class _StatusText extends ConsumerWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.circle, size: 9, color: active ? Colors.green.shade600 : scheme.outline),
+        Icon(Icons.circle, size: 9, color: active ? statusOk : scheme.outline),
         const SizedBox(width: 6),
         Text(tr(locale, active ? 'usersActive' : 'usersInactive')),
       ],

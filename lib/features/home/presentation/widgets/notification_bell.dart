@@ -7,6 +7,7 @@ import '../../../../core/l10n/app_strings.dart';
 import '../../../../core/models/stock_item.dart';
 import '../../../admin/presentation/widgets/admin_widgets.dart';
 import '../../../stock/presentation/stock_screen.dart' show stockForecastText, stockStatusColor;
+import '../../../../core/theme/status_colors.dart';
 
 /// Cloche de notifications (AppBar) : articles de stock en alerte. Tant
 /// qu'il y en a au moins un, une pastille rouge clignotante attire l'œil ;
@@ -121,7 +122,7 @@ class _NotificationBellState extends ConsumerState<NotificationBell> with Single
                         itemBuilder: (itemContext, i) {
                           if (i >= items.length) {
                             final (soonItem, f) = soon[i - items.length];
-                            const orange = Color(0xFFE08A1E);
+                            const orange = statusWarn;
                             return Material(
                               color: orange.withValues(alpha: 0.08),
                               borderRadius: BorderRadius.circular(16),

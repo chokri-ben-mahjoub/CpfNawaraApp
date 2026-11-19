@@ -12,6 +12,7 @@ import '../../../core/models/well_round.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/responsive.dart';
 import '../../plant/presentation/plant_schema_screens.dart' show pickSchemaImage;
+import '../../../core/theme/status_colors.dart';
 
 /// Saisie d'une tournée de l'opérateur pour un puits (ou pour le site si
 /// [wellId] est vide) : un champ par paramètre, regroupés par section, avec
@@ -186,6 +187,32 @@ class _RoundEntryScreenState extends ConsumerState<RoundEntryScreen> {
             ),
         ],
       ),
+      bottomNavigationBar: SafeArea(
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          decoration: BoxDecoration(
+            color: scheme.surface,
+            border: Border(top: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.6))),
+          ),
+          child: Align(
+            heightFactor: 1,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 700),
+              child: SizedBox(
+                height: 52,
+                width: double.infinity,
+                child: FilledButton(
+                  style: FilledButton.styleFrom(backgroundColor: accentColor, foregroundColor: Colors.white),
+                  onPressed: _saving ? null : _save,
+                  child: _saving
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                      : Text(s('wellsManageSave'), style: const TextStyle(fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -231,7 +258,7 @@ class _RoundEntryScreenState extends ConsumerState<RoundEntryScreen> {
                         selected: _choices[f.key] == c,
                         selectedColor: (c == 'roundClosed' || c == 'roundNotOk' || c == 'roundStopped'
                                 ? scheme.error
-                                : Colors.green)
+                                : statusOk)
                             .withValues(alpha: 0.18),
                         onSelected: (sel) => setState(() => _choices[f.key] = sel ? c : null),
                       ),
@@ -283,17 +310,6 @@ class _RoundEntryScreenState extends ConsumerState<RoundEntryScreen> {
                   ],
                 ),
               ),
-            const SizedBox(height: 20),
-            SizedBox(
-              height: 52,
-              child: FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: accentColor, foregroundColor: Colors.white),
-                onPressed: _saving ? null : _save,
-                child: _saving
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                    : Text(s('wellsManageSave'), style: const TextStyle(fontWeight: FontWeight.w700)),
-              ),
-            ),
           ],
         ),
       ),
