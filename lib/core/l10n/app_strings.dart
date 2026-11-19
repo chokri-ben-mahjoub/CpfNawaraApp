@@ -1485,7 +1485,7 @@ final _strings = <String, Map<String, String>>{
   'plantParamsTitle': {'fr': "Paramètres à exporter", 'en': "Parameters to export"},
   'plantParamsHint': {'fr': "Ex: seulement TPH. Tout décocher = tous les paramètres.", 'en': "E.g. only TPH. Untick everything = all parameters."},
   'plantNoValuesForParams': {'fr': "Aucune valeur pour les paramètres choisis.", 'en': "No value for the selected parameters."},
-  'navRounds': {'fr': "Tournées", 'en': "Rounds"},
+  'navRounds': {'fr': "Relevé puits", 'en': "Well Reading"},
   'roundsTitle': {'fr': "Tournées opérateur", 'en': "Operator rounds"},
   'roundsToday': {'fr': "Aujourd'hui", 'en': "Today"},
   'roundsPrevDay': {'fr': "Jour précédent", 'en': "Previous day"},
