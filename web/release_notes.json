@@ -1,7 +1,7 @@
 {
-  "version": "0.32.1",
+  "version": "0.32.2",
   "notes": {
-    "fr": ["Synchronisation : le détail technique de l\u2019erreur est affiché pour faciliter le diagnostic"],
-    "en": ["Sync: the technical error detail is now shown to help diagnosis"]
+    "fr": ["Synchronisation débloquée : une pièce jointe de stock trop lourde ne bloque plus l\u2019envoi", "Stock : pièce jointe limitée à 700 Ko"],
+    "en": ["Sync unblocked: an oversized stock attachment no longer blocks uploads", "Stock: attachment limited to 700 KB"]
   }
 }
