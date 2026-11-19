@@ -1,7 +1,7 @@
 {
-  "version": "0.32.2",
+  "version": "0.32.3",
   "notes": {
-    "fr": ["Synchronisation débloquée : une pièce jointe de stock trop lourde ne bloque plus l\u2019envoi", "Stock : pièce jointe limitée à 700 Ko"],
-    "en": ["Sync unblocked: an oversized stock attachment no longer blocks uploads", "Stock: attachment limited to 700 KB"]
+    "fr": ["Défilement amélioré : glisser à la souris, barre de défilement visible sur PC", "Texte du système borné pour éviter les débordements sur téléphone"],
+    "en": ["Better scrolling: mouse drag, visible scrollbar on desktop", "System text size capped to avoid overflow on phones"]
   }
 }

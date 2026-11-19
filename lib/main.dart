@@ -15,6 +15,7 @@ import 'core/settings/startup_tasks.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/page_transitions.dart';
 import 'core/update/app_update_banner.dart';
+import 'core/widgets/app_scroll_behavior.dart';
 import 'features/splash/splash_screen.dart';
 
 Future<void> main() async {
@@ -122,9 +123,14 @@ class _SuiviPuitsAppState extends ConsumerState<SuiviPuitsApp> with WidgetsBindi
         GlobalCupertinoLocalizations.delegate,
       ],
       routerConfig: router,
-      // Entrée en fondu après l'écran de démarrage.
-      builder: (context, child) =>
-          AppUpdateBanner(child: FadeInOnce(child: child ?? const SizedBox.shrink())),
+      scrollBehavior: const AppScrollBehavior(),
+      // Entrée en fondu après l'écran de démarrage. La taille du texte du
+      // système est bornée : au-delà, les écrans débordent sur téléphone.
+      builder: (context, child) => MediaQuery.withClampedTextScaling(
+        minScaleFactor: 0.9,
+        maxScaleFactor: 1.25,
+        child: AppUpdateBanner(child: FadeInOnce(child: child ?? const SizedBox.shrink())),
+      ),
     );
   }
 }
