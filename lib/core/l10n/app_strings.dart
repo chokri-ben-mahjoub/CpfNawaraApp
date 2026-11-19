@@ -469,6 +469,10 @@ final _strings = <String, Map<String, String>>{
   'gasBatchSaved': {'fr': 'bouteille(s) mise(s) à jour', 'en': 'bottle(s) updated'},
   'gasBatchNone': {'fr': 'Aucune pression modifiée.', 'en': 'No pressure changed.'},
   'gasBatchSave': {'fr': 'Enregistrer le relevé', 'en': 'Save reading'},
+  'stockAttachmentTooBig': {
+    'fr': 'Fichier trop lourd (700 Ko maximum). Réduisez-le ou prenez une photo plus légère.',
+    'en': 'File too large (700 KB maximum). Shrink it or use a lighter photo.',
+  },
   'gasBottlesTitle': {'fr': 'Bouteilles de gaz', 'en': 'Gas bottles'},
   'gasBottlesAdd': {'fr': 'Ajouter', 'en': 'Add'},
   'gasBottlesEmpty': {
