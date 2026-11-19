@@ -3,12 +3,14 @@
 /// - **admin** : tout, y compris l'Administration (utilisateurs, puits,
 ///   points, seuils, import, projet Firebase, journal d'audit) ;
 /// - **ingénieur** : saisie des analyses et des interventions ;
-/// - **opérateur** : saisie des analyses ;
+/// - **opérateur** : saisie des analyses, du stock, des tournées, des
+///   bouteilles de gaz et des échantillons ;
+/// - **analyste** : saisie des analyses (puits et usine) uniquement ;
 /// - **lecteur** : consultation uniquement.
 ///
 /// Sans compte d'équipe (mode personnel, données locales), l'utilisateur
 /// de l'appareil est administrateur.
-enum UserRole { admin, engineer, operator, reader }
+enum UserRole { admin, engineer, operator, analyst, reader }
 
 extension UserRoleX on UserRole {
   /// Clé de traduction associée (voir `app_strings.dart`).
@@ -16,6 +18,7 @@ extension UserRoleX on UserRole {
     UserRole.admin => 'roleAdmin',
     UserRole.engineer => 'roleEngineer',
     UserRole.operator => 'roleOperator',
+    UserRole.analyst => 'roleAnalyst',
     UserRole.reader => 'roleReader',
   };
 
@@ -23,11 +26,16 @@ extension UserRoleX on UserRole {
     UserRole.admin => 'roleAdminHint',
     UserRole.engineer => 'roleEngineerHint',
     UserRole.operator => 'roleOperatorHint',
+    UserRole.analyst => 'roleAnalystHint',
     UserRole.reader => 'roleReaderHint',
   };
 
   /// Saisie et correction des analyses (puits et usine).
   bool get canEnterData => this != UserRole.reader;
+
+  /// Stock, tournées des puits, bouteilles de gaz et échantillons du jour
+  /// (tout sauf les analyses : l'analyste et le lecteur n'y ont pas accès).
+  bool get canManageOps => this == UserRole.admin || this == UserRole.engineer || this == UserRole.operator;
 
   /// Journal des interventions (coûts, résultats).
   bool get canManageInterventions => this == UserRole.admin || this == UserRole.engineer;
@@ -73,6 +81,7 @@ extension UserRoleX on UserRole {
       'gas_bottles',
       'sample_manifest',
     },
+    UserRole.analyst => const {'analysis_records', 'plant_analyses'},
     UserRole.reader => const <String>{},
   };
 
@@ -81,6 +90,7 @@ extension UserRoleX on UserRole {
     UserRole.admin => 'admin',
     UserRole.engineer => 'ingenieur',
     UserRole.operator => 'operateur',
+    UserRole.analyst => 'analyste',
     UserRole.reader => 'lecteur',
   };
 
@@ -88,6 +98,7 @@ extension UserRoleX on UserRole {
     'admin' => UserRole.admin,
     'ingenieur' || 'engineer' => UserRole.engineer,
     'operateur' || 'operator' || 'user' => UserRole.operator,
+    'analyste' || 'analyst' => UserRole.analyst,
     _ => UserRole.reader,
   };
 }

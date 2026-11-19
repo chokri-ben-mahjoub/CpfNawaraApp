@@ -45,7 +45,7 @@ class StockItemDetailScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(item.name),
         actions: [
-          if (role.canEnterData)
+          if (role.canManageOps)
             IconButton(
               tooltip: s('stockEditItem'),
               icon: const Icon(Icons.edit_outlined),
@@ -83,7 +83,7 @@ class StockItemDetailScreen extends ConsumerWidget {
             const SizedBox(height: 14),
           ],
           _ForecastCard(item: item, stock: stock, s: s),
-          if (role.canEnterData) ...[
+          if (role.canManageOps) ...[
             const SizedBox(height: 16),
             ResponsiveWrapGrid(
               minItemWidth: 200,

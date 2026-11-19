@@ -175,7 +175,7 @@ class StockScreen extends ConsumerWidget {
             ),
         ],
       ),
-      floatingActionButton: role.canEnterData
+      floatingActionButton: role.canManageOps
           ? FloatingActionButton.extended(
               onPressed: () => showAdminSheet<void>(context, builder: (_) => const StockItemFormSheet()),
               icon: const Icon(Icons.add),

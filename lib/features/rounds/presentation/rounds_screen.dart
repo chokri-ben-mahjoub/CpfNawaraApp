@@ -123,8 +123,8 @@ class RoundsScreen extends ConsumerWidget {
         if (tableView)
           _RoundsTable(wells: wells, day: day)
         else ...[
-          for (final w in wells) _WellRoundCard(well: w, day: day, canEnter: role.canEnterData),
-          _SiteRoundCard(day: day, canEnter: role.canEnterData),
+          for (final w in wells) _WellRoundCard(well: w, day: day, canEnter: role.canManageOps),
+          _SiteRoundCard(day: day, canEnter: role.canManageOps),
         ],
       ],
     );

@@ -94,7 +94,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (loc == '/entry' && !role.canEnterData) return '/home';
       if (loc == '/entry/batch' && !role.canEnterData) return '/home';
       if ((loc.startsWith('/plant/entry') || loc.startsWith('/plant/batch')) && !role.canEnterData) return '/home';
-      if (loc.startsWith('/rounds/entry') && !role.canEnterData) return '/home';
+      if (loc.startsWith('/rounds/entry') && !role.canManageOps) return '/home';
+      if ((loc.startsWith('/gas-bottles') || loc.startsWith('/sample-manifest')) && !role.canManageOps) return '/home';
       if (loc.startsWith('/plant/schema') && !role.canConfigure) return '/home';
       // Clients (codes d'activation) : propriétaire de PuitsTrack seulement.
       if (loc == '/owner' && !ref.read(syncControllerProvider.notifier).isOwner) return '/home';
