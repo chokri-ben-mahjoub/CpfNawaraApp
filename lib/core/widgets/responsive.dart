@@ -9,10 +9,16 @@ const wideBreakpoint = 900.0;
 /// Largeur maximale du contenu : au-delà, il est centré plutôt qu'étiré.
 const contentMaxWidth = 1120.0;
 
+/// En dessous de cette largeur maximale demandée, une page est un formulaire
+/// étroit : elle reste centrée au lieu de s'étendre sur tout l'écran.
+const narrowFormMaxWidth = 700.0;
+
 bool isWideLayout(BuildContext context) => MediaQuery.sizeOf(context).width >= wideBreakpoint;
 
-/// Marges d'une page défilante : 16 px sur téléphone, contenu centré dans
-/// [maxWidth] sur grand écran.
+/// Marges d'une page défilante : 16 px sur téléphone ; sur grand écran (PC,
+/// web) les pages de contenu (listes, détails, tableaux) occupent toute la
+/// largeur avec 24 px de marge. Seuls les formulaires étroits (maxWidth de
+/// 700 ou moins) restent centrés pour garder des champs lisibles.
 EdgeInsets pagePadding(
   BuildContext context, {
   double top = 8,
@@ -20,7 +26,9 @@ EdgeInsets pagePadding(
   double maxWidth = contentMaxWidth,
 }) {
   final width = MediaQuery.sizeOf(context).width;
-  final side = math.max(16.0, (width - maxWidth) / 2);
+  final side = maxWidth > narrowFormMaxWidth
+      ? (width >= wideBreakpoint ? 24.0 : 16.0)
+      : math.max(16.0, (width - maxWidth) / 2);
   return EdgeInsets.fromLTRB(side, top, side, bottom);
 }
 
@@ -50,7 +58,7 @@ class ResponsiveWrapGrid extends StatelessWidget {
     this.spacing = 12,
     this.runSpacing,
     this.minItemWidth = 360,
-    this.maxColumns = 3,
+    this.maxColumns = 4,
   });
 
   @override
