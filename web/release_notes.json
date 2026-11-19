@@ -1,19 +1,7 @@
 {
-  "version": "0.32.0",
+  "version": "0.32.1",
   "notes": {
-    "fr": [
-      "Bouteilles de gaz : seuil de pression basse par bouteille, alerte rouge et bandeau",
-      "Bouteilles de gaz : statut affiché en pastille colorée",
-      "Bouteilles de gaz : relevé rapide de toutes les bouteilles en une fois",
-      "Échantillons : reprise de la liste de la veille en un tap",
-      "Échantillons : statut préparé / envoyé / résultat reçu"
-    ],
-    "en": [
-      "Gas bottles: low-pressure threshold per bottle, red alert and banner",
-      "Gas bottles: status shown as a coloured pill",
-      "Gas bottles: quick reading of all bottles at once",
-      "Samples: copy the previous day list in one tap",
-      "Samples: prepared / sent / result received status"
-    ]
+    "fr": ["Synchronisation : le détail technique de l\u2019erreur est affiché pour faciliter le diagnostic"],
+    "en": ["Sync: the technical error detail is now shown to help diagnosis"]
   }
 }

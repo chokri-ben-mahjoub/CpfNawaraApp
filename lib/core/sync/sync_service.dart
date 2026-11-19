@@ -78,6 +78,9 @@ class SyncState {
   /// Clé de traduction de la dernière erreur (voir `app_strings.dart`).
   final String? errorKey;
 
+  /// Détail technique de la dernière erreur (code HTTP, message), pour le diagnostic.
+  final String? errorDetail;
+
   /// Entreprise et fiche du compte, gardées en cache pour fonctionner hors
   /// ligne.
   final Company? company;
@@ -89,6 +92,7 @@ class SyncState {
     this.email,
     this.lastSyncAt,
     this.errorKey,
+    this.errorDetail,
     this.company,
     this.member,
     this.memberStatus = MemberStatus.unknown,
@@ -102,6 +106,7 @@ class SyncState {
     SyncPhase? phase,
     DateTime? lastSyncAt,
     String? Function()? errorKey,
+    String? Function()? errorDetail,
     Company? Function()? company,
     TeamMember? Function()? member,
     MemberStatus? memberStatus,
@@ -110,6 +115,7 @@ class SyncState {
     email: email,
     lastSyncAt: lastSyncAt ?? this.lastSyncAt,
     errorKey: errorKey != null ? errorKey() : this.errorKey,
+    errorDetail: errorDetail != null ? errorDetail() : this.errorDetail,
     company: company != null ? company() : this.company,
     member: member != null ? member() : this.member,
     memberStatus: memberStatus ?? this.memberStatus,
@@ -614,11 +620,18 @@ class SyncController extends StateNotifier<SyncState> {
               : e.statusCode == 403
               ? 'syncErrorRules'
               : 'syncErrorServer',
+          errorDetail: () => e.toString(),
         );
       }
-    } catch (_) {
+    } catch (e) {
       _lastSyncWorthRetryingSoon = true;
-      if (mounted) state = state.copyWith(phase: SyncPhase.error, errorKey: () => 'syncErrorServer');
+      if (mounted) {
+        state = state.copyWith(
+          phase: SyncPhase.error,
+          errorKey: () => 'syncErrorServer',
+          errorDetail: () => e.toString(),
+        );
+      }
     } finally {
       _running = false;
     }
