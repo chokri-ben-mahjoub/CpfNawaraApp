@@ -51,6 +51,11 @@ class StockItem {
   final String? attachment;
   final String? attachmentName;
 
+  /// Certificat d'analyse (COA), même format que [attachment] (qui sert à la
+  /// fiche de données de sécurité, FDS / SDS).
+  final String? coa;
+  final String? coaName;
+
   /// Consommation de l'année en cours saisie à la main (ex: relevé d'un
   /// totalisateur sur une période), au lieu de celle calculée depuis les
   /// sorties de stock enregistrées ; nul = garder le calcul automatique.
@@ -74,6 +79,8 @@ class StockItem {
     this.pendingOrder = 0,
     this.attachment,
     this.attachmentName,
+    this.coa,
+    this.coaName,
     this.consumptionOverride,
     this.expiryDate,
   });
@@ -97,6 +104,9 @@ class StockItem {
     String? attachment,
     String? attachmentName,
     bool clearAttachment = false,
+    String? coa,
+    String? coaName,
+    bool clearCoa = false,
     double? consumptionOverride,
     bool clearConsumptionOverride = false,
     DateTime? expiryDate,
@@ -116,6 +126,8 @@ class StockItem {
     pendingOrder: pendingOrder ?? this.pendingOrder,
     attachment: clearAttachment ? null : (attachment ?? this.attachment),
     attachmentName: clearAttachment ? null : (attachmentName ?? this.attachmentName),
+    coa: clearCoa ? null : (coa ?? this.coa),
+    coaName: clearCoa ? null : (coaName ?? this.coaName),
     consumptionOverride: clearConsumptionOverride ? null : (consumptionOverride ?? this.consumptionOverride),
     expiryDate: clearExpiryDate ? null : (expiryDate ?? this.expiryDate),
   );

@@ -192,7 +192,7 @@ void main() {
     // v33 : titre (légende) de la photo jointe à une analyse.
     final plantAnalysesColumns3 = await db.rawQuery('pragma table_info(plant_analyses)');
     expect(plantAnalysesColumns3.map((r) => r['name']), contains('photo_title'));
-    expect(LocalDatabase.schemaVersion, 34);
+    expect(LocalDatabase.schemaVersion, 35);
 
     // Première connexion : tout ce qui a été saisi/modifié part au serveur.
     final engine = SyncEngine(

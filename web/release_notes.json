@@ -1,7 +1,7 @@
 {
-  "version": "0.33.0",
+  "version": "0.33.1",
   "notes": {
-    "fr": ["PC et web : les pages occupent toute la largeur de l\u2019écran"],
-    "en": ["Desktop and web: pages now use the full screen width"]
+    "fr": ["Stock : ajout du Certificat d\u2019analyse (COA) en plus de la fiche SDS"],
+    "en": ["Stock: Certificate of Analysis (COA) added next to the SDS"]
   }
 }

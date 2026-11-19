@@ -39,6 +39,8 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
   late final TextEditingController _consumptionController;
   String? _attachment;
   String? _attachmentName;
+  String? _coa;
+  String? _coaName;
   DateTime? _expiryDate;
 
   bool get _isNew => widget.existing == null;
@@ -49,6 +51,8 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
     final e = widget.existing;
     _attachment = e?.attachment;
     _attachmentName = e?.attachmentName;
+    _coa = e?.coa;
+    _coaName = e?.coaName;
     _expiryDate = e?.expiryDate;
     _nameController = TextEditingController(text: e?.name ?? '');
     _unitController = TextEditingController(text: e?.unit ?? '');
@@ -83,7 +87,7 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
     super.dispose();
   }
 
-  Future<void> _pickAttachment() async {
+  Future<void> _pickAttachment({bool coa = false}) async {
     FilePickerResult? picked;
     try {
       picked = await LockGuard.run(
@@ -108,8 +112,13 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
       return;
     }
     setState(() {
-      _attachment = base64Encode(bytes);
-      _attachmentName = file.name;
+      if (coa) {
+        _coa = base64Encode(bytes);
+        _coaName = file.name;
+      } else {
+        _attachment = base64Encode(bytes);
+        _attachmentName = file.name;
+      }
     });
   }
 
@@ -127,6 +136,11 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
   void _removeAttachment() => setState(() {
     _attachment = null;
     _attachmentName = null;
+  });
+
+  void _removeCoa() => setState(() {
+    _coa = null;
+    _coaName = null;
   });
 
   Future<void> _submit() async {
@@ -155,6 +169,8 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
         pendingOrder: pending,
         attachment: _attachment,
         attachmentName: _attachmentName,
+        coa: _coa,
+        coaName: _coaName,
         consumptionOverride: consumption,
         expiryDate: _expiryDate,
       );
@@ -176,6 +192,9 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
           attachment: _attachment,
           attachmentName: _attachmentName,
           clearAttachment: _attachment == null,
+          coa: _coa,
+          coaName: _coaName,
+          clearCoa: _coa == null,
           consumptionOverride: consumption,
           clearConsumptionOverride: consumption == null,
           expiryDate: _expiryDate,
@@ -355,6 +374,24 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
               ),
               label: Text(_attachmentName!, overflow: TextOverflow.ellipsis),
               onDeleted: _removeAttachment,
+            ),
+          const SizedBox(height: 12),
+          Text(s('stockCoaLabel'), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+          const SizedBox(height: 6),
+          if (_coaName == null)
+            OutlinedButton.icon(
+              onPressed: () => _pickAttachment(coa: true),
+              icon: const Icon(Icons.attach_file_outlined),
+              label: Text(s('stockAttachmentAdd')),
+            )
+          else
+            InputChip(
+              avatar: Icon(
+                _coaName!.toLowerCase().endsWith('.pdf') ? Icons.picture_as_pdf_outlined : Icons.image_outlined,
+                size: 18,
+              ),
+              label: Text(_coaName!, overflow: TextOverflow.ellipsis),
+              onDeleted: _removeCoa,
             ),
           const SizedBox(height: 20),
           SizedBox(
