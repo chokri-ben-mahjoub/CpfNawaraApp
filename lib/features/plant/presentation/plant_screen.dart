@@ -297,14 +297,24 @@ class PlantScreen extends ConsumerWidget {
         const SizedBox(height: 14),
         LayoutBuilder(
           builder: (context, constraints) {
+            // Titres complets sur 2 lignes au besoin (« CPF Sampling Points &
+            // Analyses » est long pour 4 onglets).
+            Widget tabLabel(String text) => Text(
+              text,
+              maxLines: 2,
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 13, height: 1.15),
+            );
             final viewSelector = SegmentedButton<PlantView>(
               showSelectedIcon: false,
+              style: const ButtonStyle(padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 8, vertical: 8))),
               segments: [
                 ButtonSegment(
                   value: PlantView.diagram,
                   icon: const Icon(Icons.account_tree_outlined),
                   label: constraints.maxWidth >= 560
-                      ? Text(s('plantViewDiagram'))
+                      ? tabLabel(s('plantTitleDiagram'))
                       : null,
                   tooltip: s('plantTitleDiagram'),
                 ),
@@ -312,7 +322,7 @@ class PlantScreen extends ConsumerWidget {
                   value: PlantView.list,
                   icon: const Icon(Icons.view_list_outlined),
                   label: constraints.maxWidth >= 560
-                      ? Text(s('plantViewList'))
+                      ? tabLabel(s('plantTitleList'))
                       : null,
                   tooltip: s('plantTitleList'),
                 ),
@@ -320,7 +330,7 @@ class PlantScreen extends ConsumerWidget {
                   value: PlantView.trends,
                   icon: const Icon(Icons.show_chart),
                   label: constraints.maxWidth >= 560
-                      ? Text(s('plantViewTrends'))
+                      ? tabLabel(s('plantTitleTrends'))
                       : null,
                   tooltip: s('plantTitleTrends'),
                 ),
@@ -328,7 +338,7 @@ class PlantScreen extends ConsumerWidget {
                   value: PlantView.heatmap,
                   icon: const Icon(Icons.grid_view_rounded),
                   label: constraints.maxWidth >= 560
-                      ? Text(s('plantViewHeatmap'))
+                      ? tabLabel(s('plantViewHeatmap'))
                       : null,
                   tooltip: s('plantViewHeatmap'),
                 ),
@@ -358,18 +368,6 @@ class PlantScreen extends ConsumerWidget {
           },
         ),
         const SizedBox(height: 14),
-        // Titre complet de la vue (les onglets restent courts).
-        if (view != PlantView.heatmap) ...[
-          Text(
-            s(switch (view) {
-              PlantView.diagram => 'plantTitleDiagram',
-              PlantView.trends => 'plantTitleTrends',
-              _ => 'plantTitleList',
-            }),
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 10),
-        ],
         if (view == PlantView.diagram)
           _DiagramSection(day: day)
         else if (view == PlantView.trends)
