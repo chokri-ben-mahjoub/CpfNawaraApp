@@ -1,7 +1,7 @@
 {
-  "version": "0.32.4",
+  "version": "0.32.5",
   "notes": {
-    "fr": ["Menu : « Tournées » devient « Relevé puits »"],
-    "en": ["Menu: \"Rounds\" is now \"Well Reading\""]
+    "fr": ["Menu : « Usine » devient « CPF »"],
+    "en": ["Menu: \"Plant\" is now \"CPF\""]
   }
 }

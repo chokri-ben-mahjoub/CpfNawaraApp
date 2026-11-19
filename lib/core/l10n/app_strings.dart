@@ -1244,7 +1244,7 @@ final _strings = <String, Map<String, String>>{
     'en': 'Stored locally on this PC (offline mode, no account).',
   },
   // Module Usine CPF
-  'navPlant': {'fr': 'Usine', 'en': 'Plant'},
+  'navPlant': {'fr': 'CPF', 'en': 'CPF'},
   'plantTitle': {'fr': 'Usine CPF', 'en': 'CPF plant'},
   'plantCircuitCondensate': {'fr': 'Condensat', 'en': 'Condensate'},
   'plantCircuitWater': {'fr': 'Eau produite', 'en': 'Produced water'},
