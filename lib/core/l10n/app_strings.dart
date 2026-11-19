@@ -456,6 +456,19 @@ final _strings = <String, Map<String, String>>{
 
   // Stock (articles, mouvements, alerte de seuil bas)
   'stockTitle': {'fr': 'Stock', 'en': 'Stock'},
+  'gasMinPressure': {'fr': 'Seuil pression basse', 'en': 'Low pressure threshold'},
+  'gasMinPressureHint': {'fr': '0 = pas d\u2019alerte', 'en': '0 = no alert'},
+  'gasLowBadge': {'fr': 'Pression basse', 'en': 'Low pressure'},
+  'gasLowBanner': {'fr': 'bouteille(s) sous le seuil de pression', 'en': 'bottle(s) below the pressure threshold'},
+  'gasBatchBtn': {'fr': 'Relevé rapide', 'en': 'Quick reading'},
+  'gasBatchTitle': {'fr': 'Relevé des bouteilles', 'en': 'Bottles reading'},
+  'gasBatchIntro': {
+    'fr': 'Saisissez la pression de chaque bouteille puis enregistrez une seule fois. Rouge = sous le seuil.',
+    'en': 'Enter each bottle pressure then save once. Red = below threshold.',
+  },
+  'gasBatchSaved': {'fr': 'bouteille(s) mise(s) à jour', 'en': 'bottle(s) updated'},
+  'gasBatchNone': {'fr': 'Aucune pression modifiée.', 'en': 'No pressure changed.'},
+  'gasBatchSave': {'fr': 'Enregistrer le relevé', 'en': 'Save reading'},
   'gasBottlesTitle': {'fr': 'Bouteilles de gaz', 'en': 'Gas bottles'},
   'gasBottlesAdd': {'fr': 'Ajouter', 'en': 'Add'},
   'gasBottlesEmpty': {
@@ -523,6 +536,13 @@ final _strings = <String, Map<String, String>>{
   'sampleManifestTestItemHint': {'fr': 'Ex: Lean Amine', 'en': 'e.g. Lean Amine'},
   'sampleManifestInvalidTestItem': {'fr': 'Type requis', 'en': 'Test item required'},
   'sampleManifestInvalidQuantity': {'fr': 'Quantité invalide', 'en': 'Invalid quantity'},
+  'sampleStatusTitle': {'fr': 'Statut', 'en': 'Status'},
+  'sampleStatus_prepared': {'fr': 'Préparé', 'en': 'Prepared'},
+  'sampleStatus_sent': {'fr': 'Envoyé', 'en': 'Sent'},
+  'sampleStatus_received': {'fr': 'Résultat reçu', 'en': 'Result received'},
+  'sampleCopyYesterday': {'fr': 'Reprendre la liste de la veille', 'en': 'Copy the previous day list'},
+  'sampleCopyDone': {'fr': 'échantillon(s) repris de la veille', 'en': 'sample(s) copied from the previous day'},
+  'sampleCopyNone': {'fr': 'Rien à reprendre : la veille est vide ou déjà copiée.', 'en': 'Nothing to copy: previous day is empty or already copied.'},
   'sampleManifestSave': {'fr': 'Enregistrer', 'en': 'Save'},
   'plantScopeOfWorkTitle': {'fr': 'Portée des travaux (échantillons)', 'en': 'Scope of Work'},
   'plantScopeColTestItem': {'fr': 'Type', 'en': 'Test item'},

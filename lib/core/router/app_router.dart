@@ -37,6 +37,7 @@ import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/setup/presentation/setup_screen.dart';
 import '../../features/stock/presentation/stock_item_detail_screen.dart';
 import '../../features/stock/presentation/stock_screen.dart';
+import '../../features/lab/presentation/gas_bottles_batch_screen.dart';
 import '../../features/lab/presentation/gas_bottles_screen.dart';
 import '../../features/lab/presentation/sample_manifest_screen.dart';
 import '../../features/wells/presentation/trend_screen.dart';
@@ -163,6 +164,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/settings/pdf', builder: (context, state) => const PdfExportSettingsScreen()),
       GoRoute(path: '/stock', builder: (context, state) => const StockScreen()),
       GoRoute(path: '/gas-bottles', builder: (context, state) => const GasBottlesScreen()),
+      GoRoute(path: '/gas-bottles/batch', builder: (context, state) => const GasBottlesBatchScreen()),
       GoRoute(path: '/sample-manifest', builder: (context, state) => const SampleManifestScreen()),
       GoRoute(path: '/qr', builder: (context, state) => const QrScreen()),
       GoRoute(

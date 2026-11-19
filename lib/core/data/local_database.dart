@@ -21,7 +21,7 @@ class LocalDatabase {
   static final LocalDatabase instance = LocalDatabase._();
 
   /// Version du schéma (voir `onUpgrade`), enregistrée dans les sauvegardes.
-  static const schemaVersion = 33;
+  static const schemaVersion = 34;
 
   /// Tables sauvegardées / restaurées / synchronisées.
   static const dataTables = [
@@ -375,6 +375,14 @@ class LocalDatabase {
             // Titre (légende) de la photo jointe à une analyse.
             await db.execute('alter table plant_analyses add column photo_title text');
           }
+          if (oldVersion >= 29 && oldVersion < 34) {
+            // Seuil de pression basse par bouteille de gaz.
+            await db.execute('alter table gas_bottles add column min_pressure real not null default 20');
+          }
+          if (oldVersion >= 30 && oldVersion < 34) {
+            // Statut d'un échantillon (préparé / envoyé / reçu).
+            await db.execute("alter table sample_manifest add column status text not null default ''");
+          }
           if (oldVersion >= 30 && oldVersion < 32) {
             // Heure de prélèvement de chaque échantillon (« HH:mm »).
             await db.execute("alter table sample_manifest add column sampling_time text not null default ''");
@@ -623,6 +631,7 @@ class LocalDatabase {
         label text not null default '',
         cpf_code text not null default '',
         sampling_time text not null default '',
+        status text not null default '',
         sort_order integer not null default 0,
         updated_at integer not null default 0,
         dirty integer not null default 0
@@ -640,6 +649,7 @@ class LocalDatabase {
         name text not null,
         status text not null default '',
         pressure real not null default 0,
+        min_pressure real not null default 20,
         location text not null default '',
         sort_order integer not null default 0,
         updated_at integer not null default 0,

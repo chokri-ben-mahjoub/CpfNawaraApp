@@ -1,13 +1,19 @@
 {
-  "version": "0.31.2",
+  "version": "0.32.0",
   "notes": {
     "fr": [
-      "Saisie en série : bouton « Reprendre la dernière analyse »",
-      "Nouveau « Rapport hors seuil » du jour (PDF ou Excel) dans l'écran Usine"
+      "Bouteilles de gaz : seuil de pression basse par bouteille, alerte rouge et bandeau",
+      "Bouteilles de gaz : statut affiché en pastille colorée",
+      "Bouteilles de gaz : relevé rapide de toutes les bouteilles en une fois",
+      "Échantillons : reprise de la liste de la veille en un tap",
+      "Échantillons : statut préparé / envoyé / résultat reçu"
     ],
     "en": [
-      "Batch entry: new « Copy last analysis » button",
-      "New daily « Out-of-range report » (PDF or Excel) in the Plant screen"
+      "Gas bottles: low-pressure threshold per bottle, red alert and banner",
+      "Gas bottles: status shown as a coloured pill",
+      "Gas bottles: quick reading of all bottles at once",
+      "Samples: copy the previous day list in one tap",
+      "Samples: prepared / sent / result received status"
     ]
   }
 }
