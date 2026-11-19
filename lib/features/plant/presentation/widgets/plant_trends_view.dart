@@ -11,6 +11,7 @@ import '../../../../core/plant/plant_repository.dart';
 import '../../../../core/widgets/filter_pills.dart';
 import '../../../../core/widgets/series_chart.dart';
 import '../plant_screen.dart';
+import '../../../../core/theme/status_colors.dart';
 
 /// Couleurs des courbes d'un groupe (la première = couleur du circuit).
 const _curveColors = [
@@ -27,7 +28,7 @@ const _curveColors = [
 ];
 
 Color variationColor(int direction, ColorScheme scheme) => switch (direction) {
-  > 0 => Colors.orange.shade800,
+  > 0 => statusWarn,
   < 0 => Colors.blue.shade600,
   _ => scheme.onSurfaceVariant,
 };

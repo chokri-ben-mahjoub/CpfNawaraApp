@@ -9,9 +9,10 @@ import '../../../core/units/unit_system.dart';
 import '../../../core/widgets/responsive.dart';
 import '../../setup/presentation/widgets/firebase_project_picker.dart';
 import 'widgets/admin_widgets.dart';
+import '../../../core/theme/status_colors.dart';
 
 Color wellStatusColor(WellStatus status, ColorScheme scheme) => switch (status) {
-  WellStatus.producing => Colors.green.shade600,
+  WellStatus.producing => statusOk,
   WellStatus.testing => const Color(0xFF1E88E5),
   WellStatus.injecting => const Color(0xFF7E57C2),
   WellStatus.shutIn => scheme.outline,

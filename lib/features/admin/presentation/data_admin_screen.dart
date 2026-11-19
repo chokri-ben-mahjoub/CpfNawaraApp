@@ -22,6 +22,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/responsive.dart';
 import '../../../core/widgets/app_loader.dart';
 import '../../settings/presentation/settings_screen.dart' show SectionCard;
+import '../../../core/theme/status_colors.dart';
 
 const _xlsxMime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
@@ -337,7 +338,7 @@ class _DataAdminScreenState extends ConsumerState<DataAdminScreen> {
                   children: [
                     _CountChip(
                       icon: Icons.check_circle_outline,
-                      color: Colors.green.shade600,
+                      color: statusOk,
                       text: fill(t('importReady'), {'n': '${plan.total}'}),
                     ),
                     if (plan.duplicates > 0)

@@ -7,6 +7,7 @@ import '../../../../core/l10n/app_strings.dart';
 import '../../../../core/plant/plant_catalog.dart';
 import '../../../../core/plant/plant_repository.dart';
 import '../../../../core/theme/status_style.dart';
+import '../../../../core/theme/status_colors.dart';
 
 /// Diamètre des points de prélèvement (unités du schéma, largeur 1000).
 const _markerSize = 40.0;
@@ -544,7 +545,7 @@ class PlantDiagramLegend extends ConsumerWidget {
       children: [
         for (final c in circuits) line(c.color, s(c.labelKey)),
         if (pfd) line(const Color(0xFF8E24AA), s('plantEqRichAmine')),
-        dot(Colors.green.shade600, s('plantStatusOk')),
+        dot(statusOk, s('plantStatusOk')),
         dot(scheme.error, s('plantStatusOut')),
         dot(scheme.outline, s('plantStatusMissing')),
       ],

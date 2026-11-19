@@ -8,18 +8,19 @@ import '../../../core/lab/gas_bottle_repository.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/responsive.dart';
 import '../../admin/presentation/widgets/admin_widgets.dart';
+import '../../../core/theme/status_colors.dart';
 
 String _fmtPressure(double v) => v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(1);
 
-const _lowColor = Color(0xFFD32F2F);
+const _lowColor = statusBad;
 
 /// Couleur de la pastille de statut (en service / veille / hors service).
 Color _statusColor(String status) {
   switch (status.trim().toLowerCase()) {
     case 'in service':
-      return const Color(0xFF2E9E5B);
+      return statusOk;
     case 'stand by':
-      return const Color(0xFFE08A00);
+      return statusWarn;
     case 'out of service':
       return const Color(0xFF8A8F98);
     default:

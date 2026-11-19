@@ -7,6 +7,7 @@ import '../../../core/plant/plant_repository.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/responsive.dart';
 import 'widgets/admin_widgets.dart';
+import '../../../core/theme/status_colors.dart';
 
 /// Ouvre le formulaire d'un paramètre (nouveau si [existing] est nul ;
 /// modification — y compris d'un paramètre intégré au code — sinon) ;
@@ -376,7 +377,7 @@ class _ParamFormState extends ConsumerState<_ParamForm> {
                     FilterChip(
                       label: Text(c),
                       selected: _ok.contains(c),
-                      selectedColor: Colors.green.withValues(alpha: 0.18),
+                      selectedColor: statusOk.withValues(alpha: 0.18),
                       onSelected: (on) => setState(() => on ? _ok.add(c) : _ok.remove(c)),
                     ),
                 ],

@@ -29,6 +29,7 @@ import 'widgets/plant_diagram.dart';
 import 'widgets/plant_heatmap_view.dart';
 import 'widgets/plant_trends_view.dart';
 import '../../../core/widgets/app_loader.dart';
+import '../../../core/theme/status_colors.dart';
 
 enum PlantView { diagram, list, trends, heatmap }
 
@@ -1411,7 +1412,7 @@ class PlantValuesTable extends ConsumerWidget {
           : null;
       final color = out == true
           ? scheme.error
-          : (out == false ? Colors.green.shade700 : scheme.onSurface);
+          : (out == false ? statusOk : scheme.onSurface);
       final text = value == null
           ? '—'
           : param.isNumeric
@@ -1424,8 +1425,15 @@ class PlantValuesTable extends ConsumerWidget {
               ? () =>
                     context.push('/plant/point/${point.id}/trend/${param.key}')
               : null,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 4),
+          child: Container(
+            decoration: out == true
+                ? BoxDecoration(
+                    color: statusBad.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: statusBad.withValues(alpha: 0.35)),
+                  )
+                : null,
+            padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 6),
             child: Row(
               children: [
                 if (out == true)

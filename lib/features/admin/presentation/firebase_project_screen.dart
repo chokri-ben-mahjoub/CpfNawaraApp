@@ -18,6 +18,7 @@ import '../../settings/presentation/sync_section.dart';
 import '../../setup/presentation/widgets/firebase_project_picker.dart';
 import '../../setup/presentation/widgets/team_account_form.dart';
 import 'widgets/admin_widgets.dart';
+import '../../../core/theme/status_colors.dart';
 
 enum _Check { pending, ok, failed }
 
@@ -333,7 +334,7 @@ class _CheckRow extends StatelessWidget {
     final icon = switch (state) {
       null => Icon(Icons.radio_button_unchecked, size: 20, color: scheme.outline),
       _Check.pending => const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
-      _Check.ok => Icon(Icons.check_circle_rounded, size: 20, color: Colors.green.shade600),
+      _Check.ok => Icon(Icons.check_circle_rounded, size: 20, color: statusOk),
       _Check.failed => Icon(Icons.cancel_rounded, size: 20, color: scheme.error),
     };
     return Padding(

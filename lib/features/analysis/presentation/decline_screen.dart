@@ -17,6 +17,7 @@ import '../../../core/widgets/filter_pills.dart';
 import '../../../core/widgets/series_chart.dart';
 import '../../../core/widgets/responsive.dart';
 import '../../interventions/presentation/widgets/intervention_ui.dart';
+import '../../../core/theme/status_colors.dart';
 
 const oilColor = Color(0xFF2E7D32);
 const gasColor = Color(0xFFE53935);
@@ -376,7 +377,7 @@ class _DeclineSummary extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final declining = fit.isDeclining;
-    final mainColor = declining ? scheme.error : Colors.green.shade700;
+    final mainColor = declining ? scheme.error : statusOk;
     final quality = fit.r2 >= 0.8
         ? s('declineFitGood')
         : fit.r2 >= 0.5

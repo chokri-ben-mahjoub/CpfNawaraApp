@@ -9,6 +9,7 @@ import '../../../core/plant/plant_catalog.dart';
 import '../../../core/plant/plant_repository.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/responsive.dart';
+import '../../../core/theme/status_colors.dart';
 
 /// Saisie en série : plusieurs points d'un même circuit (ex. MEMBRANE N° 1 à
 /// 6) à la suite, sur un seul écran, avec la couleur rouge/verte selon les
@@ -413,7 +414,7 @@ class _ValueFieldState extends State<_ValueField> {
     final out = widget.isOut(widget.controller.text);
     final color = out == null
         ? null
-        : (out ? const Color(0xFFD32F2F) : const Color(0xFF2E9E5B));
+        : (out ? statusBad : statusOk);
     return TextField(
       controller: widget.controller,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),

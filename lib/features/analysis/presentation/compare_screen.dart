@@ -19,6 +19,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/filter_pills.dart';
 import '../../../core/widgets/series_chart.dart';
 import '../../../core/widgets/responsive.dart';
+import '../../../core/theme/status_colors.dart';
 
 enum CompareMode { wells, periods }
 
@@ -624,7 +625,7 @@ class _StatsTable extends StatelessWidget {
                     final d = percentChange(f(a), f(b));
                     if (d == null) return cell('—');
                     final color = d > 0.5
-                        ? Colors.green.shade700
+                        ? statusOk
                         : d < -0.5
                             ? scheme.error
                             : scheme.onSurfaceVariant;

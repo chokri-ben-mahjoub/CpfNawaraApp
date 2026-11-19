@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/status_colors.dart';
 
 /// Jauge horizontale montrant où se situe [value] par rapport au seuil
 /// [min]–[max] : bande claire = plage attendue, point coloré = valeur
@@ -24,7 +25,7 @@ class ThresholdGauge extends StatelessWidget {
     final safeEnd = ((max - trackMin) / trackSpan).clamp(0.0, 1.0);
     final valuePos = ((value - trackMin) / trackSpan).clamp(0.0, 1.0);
     final inRange = value >= min && value <= max;
-    final markerColor = inRange ? Colors.green.shade600 : scheme.error;
+    final markerColor = inRange ? statusOk : scheme.error;
 
     return SizedBox(
       height: 22,
@@ -51,7 +52,7 @@ class ThresholdGauge extends StatelessWidget {
                 child: Container(
                   height: 6,
                   decoration: BoxDecoration(
-                    color: Colors.green.withValues(alpha: 0.35),
+                    color: statusOk.withValues(alpha: 0.35),
                     borderRadius: BorderRadius.circular(3),
                   ),
                 ),
