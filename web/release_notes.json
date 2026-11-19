@@ -1,7 +1,7 @@
 {
-  "version": "0.35.0",
+  "version": "0.35.1",
   "notes": {
-    "fr": ["Couleurs d\u2019état unifiées : vert, orange, rouge", "Valeur hors seuil mise en évidence dans les analyses", "Bouton Enregistrer fixé en bas des formulaires de saisie"],
-    "en": ["Unified status colours: green, orange, red", "Out-of-threshold values highlighted in analyses", "Save button pinned at the bottom of entry forms"]
+    "fr": ["La proposition de mise à jour s\u2019affiche maintenant au centre de l\u2019écran"],
+    "en": ["The update prompt is now centred on screen"]
   }
 }
