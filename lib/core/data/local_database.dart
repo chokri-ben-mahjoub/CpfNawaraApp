@@ -21,7 +21,7 @@ class LocalDatabase {
   static final LocalDatabase instance = LocalDatabase._();
 
   /// Version du schéma (voir `onUpgrade`), enregistrée dans les sauvegardes.
-  static const schemaVersion = 35;
+  static const schemaVersion = 36;
 
   /// Tables sauvegardées / restaurées / synchronisées.
   static const dataTables = [
@@ -51,6 +51,8 @@ class LocalDatabase {
     'gas_bottles',
     // Échantillons envoyés au labo, par jour (page "Scope of Work"), v30.
     'sample_manifest',
+    // Procédures d'analyse (SOP, PDF joints), v36.
+    'sops',
   ];
 
   /// Tables qui ont reçu les colonnes de synchronisation par migration (v6) ;
@@ -171,6 +173,7 @@ class LocalDatabase {
           await _createRoundsTable(db);
           await _createGasBottlesTable(db);
           await _createSampleManifestTable(db);
+          await _createSopsTable(db);
           await _seed(db);
         },
         onUpgrade: (db, oldVersion, newVersion) async {
@@ -374,6 +377,10 @@ class LocalDatabase {
           if (oldVersion >= 7 && oldVersion < 33) {
             // Titre (légende) de la photo jointe à une analyse.
             await db.execute('alter table plant_analyses add column photo_title text');
+          }
+          if (oldVersion < 36) {
+            // Procédures d'analyse (SOP).
+            await _createSopsTable(db);
           }
           if (oldVersion >= 13 && oldVersion < 35) {
             // Certificat d'analyse (COA) joint à un article de stock.
@@ -665,6 +672,21 @@ class LocalDatabase {
     ''');
   }
 
+  /// Procédures d'analyse (SOP) : PDF en base64 + titre + catégorie.
+  static Future<void> _createSopsTable(DatabaseExecutor db) async {
+    await db.execute('''
+      create table if not exists sops (
+        id text primary key,
+        title text not null,
+        category text not null default '',
+        file_name text not null default '',
+        file text,
+        updated_at integer not null default 0,
+        dirty integer not null default 0
+      )
+    ''');
+  }
+
   static Future<void> _seedPlantSchemas(DatabaseExecutor db) async {
     await db.insert('plant_schemas', {
       'id': 'pfd',
@@ -741,6 +763,9 @@ class LocalDatabase {
     }
     if (fromVersion < 30) {
       await _createSampleManifestTable(db);
+    }
+    if (fromVersion < 36) {
+      await _createSopsTable(db);
     }
     if (fromVersion < 20) {
       for (final type in _wellTestTypes) {

@@ -63,6 +63,7 @@ extension UserRoleX on UserRole {
       'well_rounds',
       'gas_bottles',
       'sample_manifest',
+      'sops',
     },
     UserRole.engineer => const {
       'analysis_records',
@@ -72,6 +73,7 @@ extension UserRoleX on UserRole {
       'well_rounds',
       'gas_bottles',
       'sample_manifest',
+      'sops',
     },
     UserRole.operator => const {
       'analysis_records',
@@ -80,6 +82,7 @@ extension UserRoleX on UserRole {
       'well_rounds',
       'gas_bottles',
       'sample_manifest',
+      'sops',
     },
     UserRole.analyst => const {'analysis_records', 'plant_analyses'},
     UserRole.reader => const <String>{},

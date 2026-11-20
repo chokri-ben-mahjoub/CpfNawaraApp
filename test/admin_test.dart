@@ -229,6 +229,7 @@ const firebaseConfig = {
       'well_rounds',
       'gas_bottles',
       'sample_manifest',
+      'sops',
     });
     expect(UserRole.reader.writableTables, isEmpty);
     expect(UserRole.analyst.canEnterData, isTrue);

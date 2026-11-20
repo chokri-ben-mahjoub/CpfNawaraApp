@@ -1,7 +1,7 @@
 {
-  "version": "0.36.0",
+  "version": "0.37.0",
   "notes": {
-    "fr": ["Rapports PDF : bandeaux jaune et bleu comme la feuille Excel", "Analyses PDF : valeurs hors seuil surlignées en rouge", "Noms de fichiers plus lisibles (ex. Well_Reading_06-Oct-2026.pdf)"],
-    "en": ["PDF reports: yellow and blue banners like the Excel sheet", "Analyses PDF: out-of-range values highlighted in red", "More readable file names (e.g. Well_Reading_06-Oct-2026.pdf)"]
+    "fr": ["Nouveau menu « SOP for analysis » : joindre et consulter les procédures d’analyse en PDF"],
+    "en": ["New “SOP for analysis” menu: attach and view analysis procedures as PDFs"]
   }
 }
