@@ -192,7 +192,10 @@ void main() {
     // v33 : titre (légende) de la photo jointe à une analyse.
     final plantAnalysesColumns3 = await db.rawQuery('pragma table_info(plant_analyses)');
     expect(plantAnalysesColumns3.map((r) => r['name']), contains('photo_title'));
-    expect(LocalDatabase.schemaVersion, 35);
+    // v36 : conditionnement d'un article de stock (suivi mensuel).
+    final stockItemsColumns4 = await db.rawQuery('pragma table_info(stock_items)');
+    expect(stockItemsColumns4.map((r) => r['name']), contains('packaging'));
+    expect(LocalDatabase.schemaVersion, 36);
 
     // Première connexion : tout ce qui a été saisi/modifié part au serveur.
     final engine = SyncEngine(

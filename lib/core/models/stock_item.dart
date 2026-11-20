@@ -39,6 +39,10 @@ class StockItem {
   final String reference;
   final String mmn;
 
+  /// Conditionnement (ex: "5L", "100 bag"), distinct de [unit] : la taille
+  /// du contenant plutôt que l'unité de mesure.
+  final String packaging;
+
   /// Consommation de l'année précédente ; nul = nouveau produit.
   final double? prevConsumption;
 
@@ -75,6 +79,7 @@ class StockItem {
     this.notes = '',
     this.reference = '',
     this.mmn = '',
+    this.packaging = '',
     this.prevConsumption,
     this.pendingOrder = 0,
     this.attachment,
@@ -98,6 +103,7 @@ class StockItem {
     String? notes,
     String? reference,
     String? mmn,
+    String? packaging,
     double? prevConsumption,
     bool clearPrevConsumption = false,
     double? pendingOrder,
@@ -122,6 +128,7 @@ class StockItem {
     notes: notes ?? this.notes,
     reference: reference ?? this.reference,
     mmn: mmn ?? this.mmn,
+    packaging: packaging ?? this.packaging,
     prevConsumption: clearPrevConsumption ? null : (prevConsumption ?? this.prevConsumption),
     pendingOrder: pendingOrder ?? this.pendingOrder,
     attachment: clearAttachment ? null : (attachment ?? this.attachment),

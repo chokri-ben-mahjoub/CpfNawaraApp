@@ -5,8 +5,10 @@ import 'package:intl/intl.dart';
 
 import '../../../core/auth/auth_providers.dart';
 import '../../../core/data/stock_repository.dart';
+import '../../../core/export/export_format_sheet.dart';
 import '../../../core/export/export_service.dart';
 import '../../../core/export/export_table.dart';
+import '../../../core/export/stock_monthly_excel.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/stock_item.dart';
 import '../../../core/models/user_role.dart';
@@ -29,9 +31,21 @@ class StockTableRow {
   final List<double> monthly;
   final double consumption;
   final StockForecast forecast;
-  const StockTableRow(this.item, this.monthly, this.consumption, this.forecast);
+
+  /// Stock au 1er janvier de l'année affichée (voir [StockState.openingStockAt]).
+  final double opening;
+
+  /// Quantité achetée (entrées) durant l'année affichée.
+  final double purchased;
+
+  const StockTableRow(this.item, this.monthly, this.consumption, this.forecast, this.opening, this.purchased);
 
   double get toOrder => item.toOrder(consumption);
+
+  /// Stock restant = stock de départ − consommé + acheté, comme la colonne
+  /// « Remaining Quantity in Stock » du classeur de suivi (équivaut à la
+  /// quantité actuelle de l'article pour l'année en cours).
+  double get remaining => opening - consumption + purchased;
 }
 
 List<StockTableRow> stockTableRows(StockState stock, int year) {
@@ -51,6 +65,8 @@ List<StockTableRow> stockTableRows(StockState stock, int year) {
           monthly,
           (isCurrentYear ? i.consumptionOverride : null) ?? total,
           stock.forecastOf(i),
+          stock.openingStockAt(i, year),
+          stock.purchasedOf(i.id, year),
         );
       }(),
   ];
@@ -96,6 +112,7 @@ List<String> stockTableHeaders(String Function(String) s, int year) => [
   s('stockColDescription'),
   s('stockColReference'),
   s('stockMmnLabel'),
+  s('stockPackagingLabel'),
   fill(s('stockColPrev'), {'y': '${year - 1}'}),
   for (final key in _monthHeaderKeys) s(key),
   fill(s('stockColMonthTotal'), {'y': '$year'}),
@@ -116,10 +133,17 @@ Future<void> exportStock(WidgetRef ref, BuildContext context) async {
   final sections = stockTableSections(ref.read(stockControllerProvider), year);
   final headers = stockTableHeaders(s, year);
 
-  await runExport(
+  final choice = await chooseExport(context, locale);
+  if (choice == null || !context.mounted) return;
+  await exportWithChoice(
     context: context,
     locale: locale,
+    choice: choice,
     baseName: 'stock_$year',
+    // Classeur Excel sur mesure (mise en page du classeur de suivi du
+    // laboratoire : bandeau, titre, colonnes mensuelles, statut coloré) —
+    // CSV/PDF restent le tableau générique ci-dessous.
+    xlsxBuilder: () => StockMonthlyExcel.encode(sections: sections, year: year, s: s),
     tables: [
       for (final section in sections)
         ExportTable(
@@ -131,6 +155,7 @@ Future<void> exportStock(WidgetRef ref, BuildContext context) async {
                 r.item.name,
                 r.item.reference,
                 r.item.mmn,
+                r.item.packaging,
                 r.item.prevConsumption ?? s('stockNewProduct'),
                 ...r.monthly,
                 r.consumption,

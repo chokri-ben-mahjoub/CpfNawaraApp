@@ -46,6 +46,30 @@ class StockState {
     return months;
   }
 
+  /// Quantité achetée (entrées) durant l'année [year] pour l'article
+  /// [itemId] — somme des mouvements d'entrée (delta positif) de cette
+  /// année-là, comme la colonne « Quantité achetée » du classeur de suivi.
+  double purchasedOf(String itemId, int year) {
+    var total = 0.0;
+    for (final m in movements) {
+      if (m.itemId == itemId && m.delta > 0 && m.dateTime.year == year) total += m.delta;
+    }
+    return total;
+  }
+
+  /// Stock au 1er janvier [year] pour [item] : sa quantité actuelle moins
+  /// tous les mouvements survenus depuis cette date (entrées comme
+  /// sorties) — déduit de l'historique plutôt que stocké, la quantité
+  /// actuelle étant toujours tenue à jour à chaque mouvement.
+  double openingStockAt(StockItem item, int year) {
+    var sinceThen = 0.0;
+    final from = DateTime(year);
+    for (final m in movements) {
+      if (m.itemId == item.id && !m.dateTime.isBefore(from)) sinceThen += m.delta;
+    }
+    return item.quantity - sinceThen;
+  }
+
   /// Prévision de rupture de [item] (voir [stockForecast]).
   StockForecast forecastOf(StockItem item, {DateTime? now}) => stockForecast(item, movements, now: now);
 
@@ -182,6 +206,7 @@ class StockController extends StateNotifier<StockState> {
     String? notes,
     String reference = '',
     String mmn = '',
+    String packaging = '',
     double? prevConsumption,
     double pendingOrder = 0,
     String? attachment,
@@ -205,6 +230,7 @@ class StockController extends StateNotifier<StockState> {
         'notes': notes,
         'reference': reference,
         'mmn': mmn,
+        'packaging': packaging,
         'prev_consumption': prevConsumption,
         'pending_order': pendingOrder,
         'attachment': attachment,
@@ -233,6 +259,7 @@ class StockController extends StateNotifier<StockState> {
         'notes': item.notes,
         'reference': item.reference,
         'mmn': item.mmn,
+        'packaging': item.packaging,
         'prev_consumption': item.prevConsumption,
         'pending_order': item.pendingOrder,
         'attachment': item.attachment,
@@ -328,6 +355,7 @@ class StockController extends StateNotifier<StockState> {
     notes: row['notes'] as String? ?? '',
     reference: row['reference'] as String? ?? '',
     mmn: row['mmn'] as String? ?? '',
+    packaging: row['packaging'] as String? ?? '',
     prevConsumption: (row['prev_consumption'] as num?)?.toDouble(),
     pendingOrder: (row['pending_order'] as num?)?.toDouble() ?? 0,
     attachment: row['attachment'] as String?,
