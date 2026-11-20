@@ -1,7 +1,7 @@
 {
-  "version": "0.35.1",
+  "version": "0.35.2",
   "notes": {
-    "fr": ["La proposition de mise à jour s\u2019affiche maintenant au centre de l\u2019écran"],
-    "en": ["The update prompt is now centred on screen"]
+    "fr": ["Rapport des relevés puits (PDF) : nouvelle présentation avec titres fixes, comme la feuille Excel"],
+    "en": ["Well Reading report (PDF): new layout with fixed titles, like the Excel sheet"]
   }
 }
