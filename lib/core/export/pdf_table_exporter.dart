@@ -31,6 +31,9 @@ class PdfTableExporter {
     String operatorName = '',
     List<PdfReportChart> charts = const [],
 
+    /// Remplace le nom de l'app dans l'en-tête des pages (ex: rapport des relevés puits).
+    String? headerName,
+
     /// Réglages à utiliser à la place de ceux enregistrés (aperçu en direct
     /// pendant l'édition, avant enregistrement).
     PdfExportSettings? settings,
@@ -107,7 +110,7 @@ class PdfTableExporter {
                 if (logoImage != null) ...[pw.Image(logoImage, height: 20), pw.SizedBox(width: 8)],
                 if (cfg.showAppName)
                   pw.Text(
-                    currentAppName,
+                    _safe(headerName ?? currentAppName),
                     style: look.note(cfg.style.pageHeader, size: 12 * k, color: look.accent, bold: true),
                   ),
                 pw.Spacer(),

@@ -14,6 +14,8 @@ import '../../../core/models/well.dart';
 import '../../../core/models/well_round.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/responsive.dart';
+import '../../../core/export/export_format_sheet.dart';
+import '../rounds_report.dart';
 import '../../../core/theme/status_colors.dart';
 
 /// Jour affiché dans l'onglet Tournées.
@@ -369,13 +371,18 @@ Future<void> exportRounds(WidgetRef ref, BuildContext context) async {
   final wells = {for (final w in ref.read(wellsControllerProvider).wells) w.id: w.name};
   final all = state.allOn(day);
 
-  await runExport(
+  final choice = await chooseExport(context, locale);
+  if (choice == null || !context.mounted) return;
+  await exportWithChoice(
     context: context,
     locale: locale,
+    choice: choice,
     baseName: 'tournee_${_key(day)}',
+    pdfHeaderName: 'Well Operator Parameters Reading',
+    pdfBuilder: () => buildRoundsPdf(day: day, wells: wells, rounds: all, s: s),
     tables: [
       ExportTable(
-        name: '${s('roundsTitle')} ${DateFormat('dd/MM/yyyy').format(day)}',
+        name: 'Daily Operator Readings | ${DateFormat('dd-MMM-yyyy', 'en').format(day)}',
         headers: [
           s('roundsColWell'),
           s('roundsColTime'),

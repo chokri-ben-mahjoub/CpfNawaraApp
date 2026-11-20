@@ -40,6 +40,7 @@ Future<void> runExport({
   required List<ExportTable> tables,
   List<PdfReportChart> charts = const [],
   String? shareSubject,
+  String? pdfHeaderName,
 }) async {
   String s(String key) => tr(locale, key);
   final messenger = ScaffoldMessenger.of(context);
@@ -60,6 +61,7 @@ Future<void> runExport({
     tables: nonEmpty,
     charts: charts,
     shareSubject: shareSubject,
+    pdfHeaderName: pdfHeaderName,
   );
 }
 
@@ -74,6 +76,10 @@ Future<void> exportWithChoice({
   required List<ExportTable> tables,
   List<PdfReportChart> charts = const [],
   String? shareSubject,
+  String? pdfHeaderName,
+
+  /// PDF sur mesure à la place du tableau générique.
+  Future<Uint8List> Function()? pdfBuilder,
 }) async {
   String s(String key) => tr(locale, key);
   final messenger = ScaffoldMessenger.of(context);
@@ -102,7 +108,9 @@ Future<void> exportWithChoice({
           files.add(_GeneratedFile(name, _csvMime, CsvExporter.encode(table)));
         }
       case ExportFormat.pdf:
-        final bytes = await PdfTableExporter.encode(nonEmpty, title: baseName, charts: charts);
+        final bytes = pdfBuilder != null
+            ? await pdfBuilder()
+            : await PdfTableExporter.encode(nonEmpty, title: baseName, charts: charts, headerName: pdfHeaderName);
         files.add(_GeneratedFile('${safeBase}_$suffix.pdf', _pdfMime, bytes));
     }
 
