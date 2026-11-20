@@ -104,7 +104,7 @@ Future<Uint8List> buildRoundsPdf({
     return pw.Row(children: [
       pw.Expanded(
         flex: wellFlex,
-        child: _cell(wells[r.wellId] ?? r.wellId, bg: _greyCell, bold: true, size: 7.5, align: pw.Alignment.centerLeft),
+        child: _cell(wells[r.wellId] ?? r.wellId, bg: _greyCell, bold: true, size: 7.5, align: pw.Alignment.centerLeft, height: 20),
       ),
       for (final c in _cols)
         for (final key in c.keys)
@@ -119,10 +119,11 @@ Future<Uint8List> buildRoundsPdf({
                 return _cell(
                   open ? 'Open' : (closed ? 'Closed' : ''),
                   bold: true,
+                  height: 20,
                   fg: open ? const PdfColor.fromInt(0xFF1E8E3E) : (closed ? const PdfColor.fromInt(0xFFD32F2F) : null),
                 );
               }
-              return _cell(_num(r.number(key)));
+              return _cell(_num(r.number(key)), height: 20);
             }(),
           ),
     ]);
@@ -130,6 +131,10 @@ Future<Uint8List> buildRoundsPdf({
 
   final wellRounds = rounds.where((r) => !r.isSite).toList();
   final siteRounds = rounds.where((r) => r.isSite).toList();
+  final operators = <String>{
+    for (final r in rounds)
+      if (r.operatorName.trim().isNotEmpty) r.operatorName.trim(),
+  }.toList();
 
   doc.addPage(
     pw.MultiPage(
@@ -153,6 +158,10 @@ Future<Uint8List> buildRoundsPdf({
         pw.SizedBox(height: 8),
         header(),
         for (final r in wellRounds) wellRow(r),
+        if (operators.isNotEmpty) ...[
+          pw.SizedBox(height: 10),
+          pw.Text('Operator: ${operators.join(', ')}', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
+        ],
         if (siteRounds.isNotEmpty) ...[
           pw.SizedBox(height: 14),
           pw.Row(children: [
