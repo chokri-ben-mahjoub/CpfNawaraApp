@@ -377,7 +377,8 @@ Future<void> exportRounds(WidgetRef ref, BuildContext context) async {
     context: context,
     locale: locale,
     choice: choice,
-    baseName: 'tournee_${_key(day)}',
+    baseName: 'Well_Reading_${DateFormat('dd-MMM-yyyy', 'en').format(day)}',
+    timestamp: false,
     pdfHeaderName: 'Well Operator Parameters Reading',
     pdfBuilder: () => buildRoundsPdf(day: day, wells: wells, rounds: all, s: s),
     tables: [

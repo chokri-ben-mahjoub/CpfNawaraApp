@@ -17,6 +17,17 @@ const _xlsxMime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.s
 const _csvMime = 'text/csv';
 const _pdfMime = 'application/pdf';
 
+/// Nom lisible d'un export : dates AAAA-MM-JJ écrites 06-Oct-2026, première
+/// lettre en majuscule.
+String prettyExportName(String name) {
+  var out = name.replaceAllMapped(RegExp(r'(\d{4})-(\d{2})-(\d{2})'), (m) {
+    final d = DateTime.tryParse('${m[1]}-${m[2]}-${m[3]}');
+    return d == null ? m[0]! : DateFormat('dd-MMM-yyyy', 'en').format(d);
+  });
+  if (out.isNotEmpty) out = out[0].toUpperCase() + out.substring(1);
+  return out;
+}
+
 class _GeneratedFile {
   final String name;
   final String mime;
@@ -78,6 +89,9 @@ Future<void> exportWithChoice({
   String? shareSubject,
   String? pdfHeaderName,
 
+  /// Ajoute l'heure d'export au nom du fichier (désactivé : nom stable).
+  bool timestamp = true,
+
   /// PDF sur mesure à la place du tableau générique.
   Future<Uint8List> Function()? pdfBuilder,
 }) async {
@@ -90,8 +104,9 @@ Future<void> exportWithChoice({
   }
 
   messenger.showSnackBar(SnackBar(content: Text(s('exportStarted')), duration: const Duration(seconds: 1)));
-  final safeBase = _safeFileName(baseName);
-  final suffix = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
+  final pretty = prettyExportName(baseName);
+  final safeBase = _safeFileName(pretty);
+  final suffix = timestamp ? '_${DateFormat('yyyyMMdd_HHmm').format(DateTime.now())}' : '';
 
   try {
     final files = <_GeneratedFile>[];
@@ -99,19 +114,19 @@ Future<void> exportWithChoice({
       case ExportFormat.excel:
         final bytes = ExcelExporter.encode(nonEmpty);
         if (bytes == null) throw StateError('excel encode failed');
-        files.add(_GeneratedFile('${safeBase}_$suffix.xlsx', _xlsxMime, bytes));
+        files.add(_GeneratedFile('${safeBase}$suffix.xlsx', _xlsxMime, bytes));
       case ExportFormat.csv:
         for (final table in nonEmpty) {
           final name = nonEmpty.length == 1
-              ? '${safeBase}_$suffix.csv'
-              : '${safeBase}_${_safeFileName(table.name)}_$suffix.csv';
+              ? '${safeBase}$suffix.csv'
+              : '${safeBase}_${_safeFileName(table.name)}$suffix.csv';
           files.add(_GeneratedFile(name, _csvMime, CsvExporter.encode(table)));
         }
       case ExportFormat.pdf:
         final bytes = pdfBuilder != null
             ? await pdfBuilder()
-            : await PdfTableExporter.encode(nonEmpty, title: baseName, charts: charts, headerName: pdfHeaderName);
-        files.add(_GeneratedFile('${safeBase}_$suffix.pdf', _pdfMime, bytes));
+            : await PdfTableExporter.encode(nonEmpty, title: pretty, charts: charts, headerName: pdfHeaderName);
+        files.add(_GeneratedFile('${safeBase}$suffix.pdf', _pdfMime, bytes));
     }
 
     if (choice.action == ExportAction.download && DownloadSaver.isSupported) {

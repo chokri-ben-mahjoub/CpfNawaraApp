@@ -75,6 +75,11 @@ class PdfTableExporter {
           data: [for (final row in table.rows) row.map(_cell).toList()],
           fontSize: fontSize,
           cellPadding: cellPadding,
+          highlight: {
+            for (var r = 0; r < table.rows.length; r++)
+              for (var c = 0; c < table.rows[r].length; c++)
+                if (table.rows[r][c] is AlertCell) (r, c),
+          },
         ),
       );
     }
@@ -141,8 +146,21 @@ class PdfTableExporter {
           ],
         ),
         build: (context) => [
+          // Bandeaux : jaune (nom du rapport / de l'app) puis bleu (titre).
+          pw.Container(
+            width: double.infinity,
+            color: const PdfColor.fromInt(0xFFFFFF00),
+            padding: const pw.EdgeInsets.symmetric(vertical: 4),
+            alignment: pw.Alignment.center,
+            child: pw.Text(_safe(headerName ?? currentAppName), style: pw.TextStyle(fontSize: 11 * k)),
+          ),
+          pw.SizedBox(height: 6),
           if (cfg.showTitle)
-            look.title(safeTitle, cfg.style.reportTitle, size: 16, color: _navy, scale: k),
+            pw.Container(
+              color: const PdfColor.fromInt(0xFF5B9BD5),
+              padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+              child: pw.Text(safeTitle.replaceAll('_', ' '), style: pw.TextStyle(fontSize: 11 * k, fontWeight: pw.FontWeight.bold)),
+            ),
           if (cfg.datePlacement == PdfDatePlacement.top)
             pw.Padding(
               padding: const pw.EdgeInsets.only(top: 3),
@@ -156,6 +174,7 @@ class PdfTableExporter {
   }
 
   static String _cell(Object? value) {
+    if (value is AlertCell) return _cell(value.value);
     if (value == null) return '';
     if (value is DateOnly) return _dateFormat.format(value.date);
     if (value is DateTime) return _dateTimeFormat.format(value);

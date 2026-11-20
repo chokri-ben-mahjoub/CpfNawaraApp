@@ -6,6 +6,15 @@ class DateOnly {
   const DateOnly(this.date);
 }
 
+/// Valeur à mettre en évidence (hors seuil...) : surlignée en rouge dans le
+/// PDF, simple valeur en Excel et CSV.
+class AlertCell {
+  final Object? value;
+  const AlertCell(this.value);
+  @override
+  String toString() => '$value';
+}
+
 /// Un tableau à exporter : une feuille Excel, ou un fichier CSV.
 ///
 /// Les cellules de [rows] peuvent être des `String`, des nombres (`num`,

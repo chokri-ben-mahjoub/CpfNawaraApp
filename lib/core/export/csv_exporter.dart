@@ -31,6 +31,7 @@ class CsvExporter {
   }
 
   static String _format(Object? cell) {
+    if (cell is AlertCell) cell = cell.value;
     if (cell == null) return '';
     if (cell is DateOnly) return _dateFormat.format(cell.date);
     if (cell is DateTime) return _dateTimeFormat.format(cell);
