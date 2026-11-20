@@ -42,7 +42,7 @@ ExportTable analysesTable(
             r.dateTime,
             if (includeWell) _wellLabel(wellsById[r.wellId]),
             typesById[r.typeId]!.label,
-            r.value,
+            typesById[r.typeId]!.isOutOfRange(r.value) ? AlertCell(r.value) : r.value,
             typesById[r.typeId]!.unit,
             typesById[r.typeId]!.min,
             typesById[r.typeId]!.max,

@@ -1,7 +1,7 @@
 {
-  "version": "0.35.3",
+  "version": "0.36.0",
   "notes": {
-    "fr": ["Rapport des relevés puits (PDF) : le nom de l’opérateur est affiché sous le tableau"],
-    "en": ["Well Reading report (PDF): the operator’s name is shown below the table"]
+    "fr": ["Rapports PDF : bandeaux jaune et bleu comme la feuille Excel", "Analyses PDF : valeurs hors seuil surlignées en rouge", "Noms de fichiers plus lisibles (ex. Well_Reading_06-Oct-2026.pdf)"],
+    "en": ["PDF reports: yellow and blue banners like the Excel sheet", "Analyses PDF: out-of-range values highlighted in red", "More readable file names (e.g. Well_Reading_06-Oct-2026.pdf)"]
   }
 }

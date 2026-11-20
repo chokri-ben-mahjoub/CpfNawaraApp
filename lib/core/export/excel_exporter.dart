@@ -51,6 +51,7 @@ class ExcelExporter {
   }
 
   static CellValue? _cellValue(Object? cell) {
+    if (cell is AlertCell) cell = cell.value;
     if (cell == null) return null;
     if (cell is DateOnly) {
       return DateCellValue(year: cell.date.year, month: cell.date.month, day: cell.date.day);

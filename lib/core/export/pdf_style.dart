@@ -127,6 +127,7 @@ class PdfLook {
     pw.Alignment cellAlignment = pw.Alignment.centerLeft,
     Map<int, pw.Alignment>? cellAlignments,
     Map<int, pw.TableColumnWidth>? columnWidths,
+    Set<(int, int)> highlight = const {},
   }) {
     // 0 en-tête plein, 1 filets (lignes horizontales, sans quadrillage), 2
     // lignes alternées, 3 officiel (quadrillage complet, en-tête sans fond,
@@ -171,6 +172,11 @@ class PdfLook {
           : cellAlignment,
       cellAlignments: cellAlignments,
       columnWidths: columnWidths,
+      cellDecoration: highlight.isEmpty
+          ? null
+          : (index, data, rowNum) => highlight.contains((rowNum, index))
+              ? const pw.BoxDecoration(color: PdfColor.fromInt(0xFFFFC7C7))
+              : const pw.BoxDecoration(),
       border: cfg.tableStyle == 1
           ? pw.TableBorder(
               horizontalInside: pw.BorderSide(color: line, width: lineWidth),
