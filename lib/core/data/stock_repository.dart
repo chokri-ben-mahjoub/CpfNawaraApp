@@ -33,6 +33,19 @@ class StockState {
     return total;
   }
 
+  /// Consommation mensuelle de l'année [year] pour l'article [itemId],
+  /// comme le classeur de suivi (une colonne par mois) : 12 valeurs,
+  /// index 0 = janvier ... 11 = décembre.
+  List<double> monthlyConsumptionOf(String itemId, int year) {
+    final months = List<double>.filled(12, 0);
+    for (final m in movements) {
+      if (m.itemId == itemId && m.delta < 0 && m.dateTime.year == year) {
+        months[m.dateTime.month - 1] -= m.delta;
+      }
+    }
+    return months;
+  }
+
   /// Prévision de rupture de [item] (voir [stockForecast]).
   StockForecast forecastOf(StockItem item, {DateTime? now}) => stockForecast(item, movements, now: now);
 

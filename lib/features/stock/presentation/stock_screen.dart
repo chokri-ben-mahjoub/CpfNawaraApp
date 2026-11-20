@@ -19,12 +19,17 @@ import 'stock_table_screen.dart';
 import 'widgets/stock_item_form_sheet.dart';
 
 /// Une ligne du tableau de suivi annuel (reproduit le classeur de suivi des
-/// produits : consommations, stock disponible, commande, quantité à commander).
+/// produits : consommations par mois, stock disponible, commande, quantité
+/// à commander).
 class StockTableRow {
   final StockItem item;
+
+  /// Consommation par mois de l'année affichée (index 0 = janvier ... 11 =
+  /// décembre), comme les colonnes mensuelles du classeur de suivi.
+  final List<double> monthly;
   final double consumption;
   final StockForecast forecast;
-  const StockTableRow(this.item, this.consumption, this.forecast);
+  const StockTableRow(this.item, this.monthly, this.consumption, this.forecast);
 
   double get toOrder => item.toOrder(consumption);
 }
@@ -38,13 +43,25 @@ List<StockTableRow> stockTableRows(StockState stock, int year) {
   final isCurrentYear = year == DateTime.now().year;
   return [
     for (final i in items)
-      StockTableRow(
-        i,
-        (isCurrentYear ? i.consumptionOverride : null) ?? stock.consumptionOf(i.id, year),
-        stock.forecastOf(i),
-      ),
+      () {
+        final monthly = stock.monthlyConsumptionOf(i.id, year);
+        final total = monthly.fold<double>(0, (a, b) => a + b);
+        return StockTableRow(
+          i,
+          monthly,
+          (isCurrentYear ? i.consumptionOverride : null) ?? total,
+          stock.forecastOf(i),
+        );
+      }(),
   ];
 }
+
+/// Clés des 12 en-têtes de mois (index 0 = janvier ... 11 = décembre).
+const _monthHeaderKeys = [
+  'stockMonthJan', 'stockMonthFeb', 'stockMonthMar', 'stockMonthApr',
+  'stockMonthMay', 'stockMonthJun', 'stockMonthJul', 'stockMonthAug',
+  'stockMonthSep', 'stockMonthOct', 'stockMonthNov', 'stockMonthDec',
+];
 
 /// Le suivi annuel d'une zone (Chimique, ARO, Wells, CPF, Laboratoire...) :
 /// ses lignes, triées par catégorie puis par nom, et le total à commander
@@ -73,13 +90,15 @@ List<StockTableSection> stockTableSections(StockState stock, int year) {
   return [for (final z in order) StockTableSection(z, byZone[z]!)];
 }
 
-/// En-têtes du tableau de suivi annuel pour l'année [year].
+/// En-têtes du tableau de suivi annuel pour l'année [year] : une colonne par
+/// mois (comme le classeur de suivi), suivie du total de l'année.
 List<String> stockTableHeaders(String Function(String) s, int year) => [
   s('stockColDescription'),
   s('stockColReference'),
   s('stockMmnLabel'),
   fill(s('stockColPrev'), {'y': '${year - 1}'}),
-  fill(s('stockColCurrent'), {'y': '$year'}),
+  for (final key in _monthHeaderKeys) s(key),
+  fill(s('stockColMonthTotal'), {'y': '$year'}),
   fill(s('stockColAvailable'), {'y': '$year'}),
   fill(s('stockColPending'), {'y': '$year'}),
   s('stockColToOrder'),
@@ -113,6 +132,7 @@ Future<void> exportStock(WidgetRef ref, BuildContext context) async {
                 r.item.reference,
                 r.item.mmn,
                 r.item.prevConsumption ?? s('stockNewProduct'),
+                ...r.monthly,
                 r.consumption,
                 r.item.quantity,
                 r.item.pendingOrder,
