@@ -1,7 +1,7 @@
 {
-  "version": "0.35.2",
+  "version": "0.35.3",
   "notes": {
-    "fr": ["Rapport des relevés puits (PDF) : nouvelle présentation avec titres fixes, comme la feuille Excel"],
-    "en": ["Well Reading report (PDF): new layout with fixed titles, like the Excel sheet"]
+    "fr": ["Rapport des relevés puits (PDF) : le nom de l’opérateur est affiché sous le tableau"],
+    "en": ["Well Reading report (PDF): the operator’s name is shown below the table"]
   }
 }
