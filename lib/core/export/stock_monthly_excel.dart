@@ -19,7 +19,11 @@ class StockMonthlyExcel {
     required List<StockTableSection> sections,
     required int year,
     required String Function(String) s,
+
+    /// `null` = les 12 mois ; sinon un seul mois (1 = janvier ... 12 = décembre).
+    int? month,
   }) {
+    final months = month == null ? List<int>.generate(12, (i) => i) : [month - 1];
     final excel = Excel.createExcel();
     final defaultSheet = excel.getDefaultSheet()!;
 
@@ -68,7 +72,13 @@ class StockMonthlyExcel {
       horizontalAlign: HorizontalAlign.Center,
     );
 
-    const colCount = 21; // A..U
+    // 4 colonnes fixes (zone, nom, conditionnement, stock de départ) + une
+    // par mois affiché + 5 colonnes fixes (total, acheté, unité, restant,
+    // statut) — 21 colonnes (A..U) pour l'année complète, 10 pour un mois.
+    final colCount = 9 + months.length;
+    final openingCol = 3;
+    final totalCol = 4 + months.length;
+    final purchasedCol = totalCol + 1;
     final updateLabel = fill(s('stockInventoryUpdateLabel'), {'date': DateFormat('dd/MM/yyyy').format(DateTime.now())});
     final workbookTitle = fill(s('stockMonthlyWorkbookTitle'), {'y': '$year'});
 
@@ -94,7 +104,7 @@ class StockMonthlyExcel {
 
       // Ligne 5 : titre « Suivi mensuel de consommation {year} » au-dessus
       // des colonnes mensuelles.
-      sheet.merge(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: 4), CellIndex.indexByColumnRow(columnIndex: 16, rowIndex: 4));
+      sheet.merge(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: 4), CellIndex.indexByColumnRow(columnIndex: totalCol - 1, rowIndex: 4));
       sheet.updateCell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: 4), TextCellValue(workbookTitle), cellStyle: sectionTitleStyle);
 
       // Ligne 6 : en-têtes de colonnes.
@@ -103,7 +113,7 @@ class StockMonthlyExcel {
         s('stockColDescription'),
         s('stockPackagingLabel'),
         fill(s('stockColOpening'), {'y': '$year'}),
-        for (final key in _monthHeaderKeys) '${s(key)}-${(year % 100).toString().padLeft(2, '0')}',
+        for (final m in months) '${s(_monthHeaderKeys[m])}-${(year % 100).toString().padLeft(2, '0')}',
         fill(s('stockColMonthTotal'), {'y': '$year'}),
         fill(s('stockColPurchased'), {'y': '$year'}),
         s('stockUnitLabel'),
@@ -111,7 +121,7 @@ class StockMonthlyExcel {
         s('stockColStatus'),
       ];
       for (var c = 0; c < headers.length; c++) {
-        final style = c == 3 ? openingHeaderStyle : (c == 17 ? purchasedHeaderStyle : headerStyle);
+        final style = c == openingCol ? openingHeaderStyle : (c == purchasedCol ? purchasedHeaderStyle : headerStyle);
         sheet.updateCell(CellIndex.indexByColumnRow(columnIndex: c, rowIndex: 5), TextCellValue(headers[c]), cellStyle: style);
       }
       sheet.setRowHeight(5, 32);
@@ -126,7 +136,7 @@ class StockMonthlyExcel {
           TextCellValue(item.name),
           TextCellValue(item.packaging),
           DoubleCellValue(row.opening),
-          for (final v in row.monthly) DoubleCellValue(v),
+          for (final m in months) DoubleCellValue(row.monthly[m]),
           DoubleCellValue(row.consumption),
           DoubleCellValue(row.purchased),
           TextCellValue(item.unit),
@@ -150,9 +160,9 @@ class StockMonthlyExcel {
         r++;
       }
 
-      const widths = [16.0, 28.0, 12.0, 14.0, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 14.0, 14.0, 8.0, 16.0, 10.0];
+      final widths = [16.0, 28.0, 12.0, 14.0, for (final _ in months) 9.0, 14.0, 14.0, 8.0, 16.0, 10.0];
       for (var c = 0; c < widths.length; c++) {
-        sheet.setColumnWidth(c, widths[c].toDouble());
+        sheet.setColumnWidth(c, widths[c]);
       }
     }
 

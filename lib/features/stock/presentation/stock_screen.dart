@@ -12,6 +12,7 @@ import '../../../core/export/stock_monthly_excel.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/stock_item.dart';
 import '../../../core/models/user_role.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/status_style.dart';
 import '../../../core/widgets/hero_header.dart';
 import '../../../core/widgets/modern_widgets.dart';
@@ -125,11 +126,15 @@ List<String> stockTableHeaders(String Function(String) s, int year) => [
 ];
 
 /// Exporte le suivi annuel du stock (PDF / Excel / CSV), un tableau par zone
-/// (Chimique, ARO, Wells, CPF, Laboratoire...), comme à l'écran.
+/// (Chimique, ARO, Wells, CPF, Laboratoire...), comme à l'écran. Demande
+/// d'abord la période (année complète, ou un seul mois) pour le classeur
+/// Excel — voir [StockMonthlyExcel].
 Future<void> exportStock(WidgetRef ref, BuildContext context) async {
   final locale = ref.read(localeProvider);
   String s(String key) => tr(locale, key);
-  final year = DateTime.now().year;
+  final period = await pickStockExportPeriod(context, locale, DateTime.now().year);
+  if (period == null || !context.mounted) return;
+  final year = period.year;
   final sections = stockTableSections(ref.read(stockControllerProvider), year);
   final headers = stockTableHeaders(s, year);
 
@@ -139,11 +144,12 @@ Future<void> exportStock(WidgetRef ref, BuildContext context) async {
     context: context,
     locale: locale,
     choice: choice,
-    baseName: 'stock_$year',
+    baseName: period.month == null ? 'stock_$year' : 'stock_${year}_${period.month!.toString().padLeft(2, '0')}',
     // Classeur Excel sur mesure (mise en page du classeur de suivi du
     // laboratoire : bandeau, titre, colonnes mensuelles, statut coloré) —
-    // CSV/PDF restent le tableau générique ci-dessous.
-    xlsxBuilder: () => StockMonthlyExcel.encode(sections: sections, year: year, s: s),
+    // CSV/PDF restent le tableau générique ci-dessous (toujours l'année
+    // complète, inchangé).
+    xlsxBuilder: () => StockMonthlyExcel.encode(sections: sections, year: year, month: period.month, s: s),
     tables: [
       for (final section in sections)
         ExportTable(
@@ -170,6 +176,123 @@ Future<void> exportStock(WidgetRef ref, BuildContext context) async {
         ),
     ],
   );
+}
+
+/// Période choisie pour l'export du classeur mensuel : [month] nul = année
+/// complète (12 colonnes), sinon un seul mois (1 = janvier ... 12 = décembre).
+class StockExportPeriod {
+  final int year;
+  final int? month;
+  const StockExportPeriod(this.year, this.month);
+}
+
+/// Demande la période à exporter (année complète ou un seul mois) avant de
+/// générer le classeur. `null` si l'utilisateur ferme la feuille.
+Future<StockExportPeriod?> pickStockExportPeriod(BuildContext context, Locale locale, int currentYear) =>
+    showModalBottomSheet<StockExportPeriod>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (sheetContext) => _StockExportPeriodSheet(locale: locale, currentYear: currentYear),
+    );
+
+class _StockExportPeriodSheet extends StatefulWidget {
+  final Locale locale;
+  final int currentYear;
+  const _StockExportPeriodSheet({required this.locale, required this.currentYear});
+
+  @override
+  State<_StockExportPeriodSheet> createState() => _StockExportPeriodSheetState();
+}
+
+class _StockExportPeriodSheetState extends State<_StockExportPeriodSheet> {
+  late bool _fullYear = true;
+  late int _year = widget.currentYear;
+  late int _month = DateTime.now().month;
+
+  @override
+  Widget build(BuildContext context) {
+    String s(String key) => tr(widget.locale, key);
+    final years = [for (var y = widget.currentYear; y >= widget.currentYear - 3; y--) y];
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              s('stockExportPeriodTitle'),
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: ChoiceChip(
+                    label: Text(s('stockExportFullYear')),
+                    selected: _fullYear,
+                    onSelected: (_) => setState(() => _fullYear = true),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ChoiceChip(
+                    label: Text(s('stockExportOneMonth')),
+                    selected: !_fullYear,
+                    onSelected: (_) => setState(() => _fullYear = false),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<int>(
+                    initialValue: _year,
+                    decoration: InputDecoration(labelText: s('stockExportYearLabel')),
+                    items: [for (final y in years) DropdownMenuItem(value: y, child: Text('$y'))],
+                    onChanged: (v) => setState(() => _year = v ?? _year),
+                  ),
+                ),
+                if (!_fullYear) ...[
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: DropdownButtonFormField<int>(
+                      initialValue: _month,
+                      decoration: InputDecoration(labelText: s('stockExportMonthLabel')),
+                      items: [
+                        for (var m = 1; m <= 12; m++)
+                          DropdownMenuItem(value: m, child: Text(s(_monthHeaderKeys[m - 1]))),
+                      ],
+                      onChanged: (v) => setState(() => _month = v ?? _month),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: FilledButton(
+                onPressed: () =>
+                    Navigator.of(context).pop(StockExportPeriod(_year, _fullYear ? null : _month)),
+                style: FilledButton.styleFrom(
+                  backgroundColor: accentColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                child: Text(s('stockExportContinue'), style: const TextStyle(fontWeight: FontWeight.w700)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 Color stockStatusColor(StockItem item, ColorScheme scheme) {
