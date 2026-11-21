@@ -94,10 +94,6 @@ Future<void> exportWithChoice({
 
   /// PDF sur mesure à la place du tableau générique.
   Future<Uint8List> Function()? pdfBuilder,
-
-  /// Excel sur mesure à la place du classeur générique (mise en page propre
-  /// à l'écran, ex: le suivi mensuel du stock).
-  List<int>? Function()? xlsxBuilder,
 }) async {
   String s(String key) => tr(locale, key);
   final messenger = ScaffoldMessenger.of(context);
@@ -116,7 +112,7 @@ Future<void> exportWithChoice({
     final files = <_GeneratedFile>[];
     switch (choice.format) {
       case ExportFormat.excel:
-        final bytes = xlsxBuilder != null ? xlsxBuilder() : ExcelExporter.encode(nonEmpty);
+        final bytes = ExcelExporter.encode(nonEmpty);
         if (bytes == null) throw StateError('excel encode failed');
         files.add(_GeneratedFile('${safeBase}$suffix.xlsx', _xlsxMime, bytes));
       case ExportFormat.csv:

@@ -34,7 +34,6 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
   late final TextEditingController _notesController;
   late final TextEditingController _referenceController;
   late final TextEditingController _mmnController;
-  late final TextEditingController _packagingController;
   late final TextEditingController _prevController;
   late final TextEditingController _pendingController;
   late final TextEditingController _consumptionController;
@@ -64,7 +63,6 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
     _notesController = TextEditingController(text: e?.notes ?? '');
     _referenceController = TextEditingController(text: e?.reference ?? '');
     _mmnController = TextEditingController(text: e?.mmn ?? '');
-    _packagingController = TextEditingController(text: e?.packaging ?? '');
     _prevController = TextEditingController(text: e?.prevConsumption == null ? '' : decimalText(e!.prevConsumption));
     _pendingController = TextEditingController(text: e == null || e.pendingOrder == 0 ? '' : decimalText(e.pendingOrder));
     _consumptionController = TextEditingController(
@@ -83,7 +81,6 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
     _notesController.dispose();
     _referenceController.dispose();
     _mmnController.dispose();
-    _packagingController.dispose();
     _prevController.dispose();
     _pendingController.dispose();
     _consumptionController.dispose();
@@ -168,7 +165,6 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
         notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
         reference: _referenceController.text.trim(),
         mmn: _mmnController.text.trim(),
-        packaging: _packagingController.text.trim(),
         prevConsumption: prev,
         pendingOrder: pending,
         attachment: _attachment,
@@ -190,7 +186,6 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
           notes: _notesController.text.trim(),
           reference: _referenceController.text.trim(),
           mmn: _mmnController.text.trim(),
-          packaging: _packagingController.text.trim(),
           prevConsumption: prev,
           clearPrevConsumption: prev == null,
           pendingOrder: pending,
@@ -244,10 +239,6 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
               TextFormField(
                 controller: _mmnController,
                 decoration: InputDecoration(labelText: s('stockMmnLabel')),
-              ),
-              TextFormField(
-                controller: _packagingController,
-                decoration: InputDecoration(labelText: s('stockPackagingLabel'), hintText: s('stockPackagingHint')),
               ),
               TextFormField(
                 controller: _prevController,

@@ -5,47 +5,28 @@ import 'package:intl/intl.dart';
 
 import '../../../core/auth/auth_providers.dart';
 import '../../../core/data/stock_repository.dart';
-import '../../../core/export/export_format_sheet.dart';
 import '../../../core/export/export_service.dart';
 import '../../../core/export/export_table.dart';
-import '../../../core/export/stock_monthly_excel.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/stock_item.dart';
 import '../../../core/models/user_role.dart';
-import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/status_style.dart';
 import '../../../core/widgets/hero_header.dart';
 import '../../../core/widgets/modern_widgets.dart';
 import '../../../core/widgets/responsive.dart';
 import '../../admin/presentation/widgets/admin_widgets.dart';
+import 'stock_table_screen.dart';
 import 'widgets/stock_item_form_sheet.dart';
 
 /// Une ligne du tableau de suivi annuel (reproduit le classeur de suivi des
-/// produits : consommations par mois, stock disponible, commande, quantité
-/// à commander).
+/// produits : consommations, stock disponible, commande, quantité à commander).
 class StockTableRow {
   final StockItem item;
-
-  /// Consommation par mois de l'année affichée (index 0 = janvier ... 11 =
-  /// décembre), comme les colonnes mensuelles du classeur de suivi.
-  final List<double> monthly;
   final double consumption;
   final StockForecast forecast;
-
-  /// Stock au 1er janvier de l'année affichée (voir [StockState.openingStockAt]).
-  final double opening;
-
-  /// Quantité achetée (entrées) durant l'année affichée.
-  final double purchased;
-
-  const StockTableRow(this.item, this.monthly, this.consumption, this.forecast, this.opening, this.purchased);
+  const StockTableRow(this.item, this.consumption, this.forecast);
 
   double get toOrder => item.toOrder(consumption);
-
-  /// Stock restant = stock de départ − consommé + acheté, comme la colonne
-  /// « Remaining Quantity in Stock » du classeur de suivi (équivaut à la
-  /// quantité actuelle de l'article pour l'année en cours).
-  double get remaining => opening - consumption + purchased;
 }
 
 List<StockTableRow> stockTableRows(StockState stock, int year) {
@@ -57,27 +38,13 @@ List<StockTableRow> stockTableRows(StockState stock, int year) {
   final isCurrentYear = year == DateTime.now().year;
   return [
     for (final i in items)
-      () {
-        final monthly = stock.monthlyConsumptionOf(i.id, year);
-        final total = monthly.fold<double>(0, (a, b) => a + b);
-        return StockTableRow(
-          i,
-          monthly,
-          (isCurrentYear ? i.consumptionOverride : null) ?? total,
-          stock.forecastOf(i),
-          stock.openingStockAt(i, year),
-          stock.purchasedOf(i.id, year),
-        );
-      }(),
+      StockTableRow(
+        i,
+        (isCurrentYear ? i.consumptionOverride : null) ?? stock.consumptionOf(i.id, year),
+        stock.forecastOf(i),
+      ),
   ];
 }
-
-/// Clés des 12 en-têtes de mois (index 0 = janvier ... 11 = décembre).
-const _monthHeaderKeys = [
-  'stockMonthJan', 'stockMonthFeb', 'stockMonthMar', 'stockMonthApr',
-  'stockMonthMay', 'stockMonthJun', 'stockMonthJul', 'stockMonthAug',
-  'stockMonthSep', 'stockMonthOct', 'stockMonthNov', 'stockMonthDec',
-];
 
 /// Le suivi annuel d'une zone (Chimique, ARO, Wells, CPF, Laboratoire...) :
 /// ses lignes, triées par catégorie puis par nom, et le total à commander
@@ -106,18 +73,13 @@ List<StockTableSection> stockTableSections(StockState stock, int year) {
   return [for (final z in order) StockTableSection(z, byZone[z]!)];
 }
 
-/// En-têtes du tableau de suivi annuel pour l'année [year] : une colonne par
-/// mois (comme le classeur de suivi), suivie du total de l'année — ou, si
-/// [month] est précisé (1 = janvier ... 12 = décembre), une seule colonne
-/// pour ce mois-là.
-List<String> stockTableHeaders(String Function(String) s, int year, {int? month}) => [
+/// En-têtes du tableau de suivi annuel pour l'année [year].
+List<String> stockTableHeaders(String Function(String) s, int year) => [
   s('stockColDescription'),
   s('stockColReference'),
   s('stockMmnLabel'),
-  s('stockPackagingLabel'),
   fill(s('stockColPrev'), {'y': '${year - 1}'}),
-  if (month == null) for (final key in _monthHeaderKeys) s(key) else s(_monthHeaderKeys[month - 1]),
-  fill(s('stockColMonthTotal'), {'y': '$year'}),
+  fill(s('stockColCurrent'), {'y': '$year'}),
   fill(s('stockColAvailable'), {'y': '$year'}),
   fill(s('stockColPending'), {'y': '$year'}),
   s('stockColToOrder'),
@@ -127,31 +89,18 @@ List<String> stockTableHeaders(String Function(String) s, int year, {int? month}
 ];
 
 /// Exporte le suivi annuel du stock (PDF / Excel / CSV), un tableau par zone
-/// (Chimique, ARO, Wells, CPF, Laboratoire...), comme à l'écran. Demande
-/// d'abord la période (année complète, ou un seul mois) pour le classeur
-/// Excel — voir [StockMonthlyExcel]. [monthOnly] : n'offre que le choix du
-/// mois (pas d'année complète), pour la page dédiée au suivi mensuel.
-Future<void> exportStock(WidgetRef ref, BuildContext context, {bool monthOnly = false}) async {
+/// (Chimique, ARO, Wells, CPF, Laboratoire...), comme à l'écran.
+Future<void> exportStock(WidgetRef ref, BuildContext context) async {
   final locale = ref.read(localeProvider);
   String s(String key) => tr(locale, key);
-  final period = await pickStockExportPeriod(context, locale, DateTime.now().year, monthOnly: monthOnly);
-  if (period == null || !context.mounted) return;
-  final year = period.year;
+  final year = DateTime.now().year;
   final sections = stockTableSections(ref.read(stockControllerProvider), year);
-  final headers = stockTableHeaders(s, year, month: period.month);
+  final headers = stockTableHeaders(s, year);
 
-  final choice = await chooseExport(context, locale);
-  if (choice == null || !context.mounted) return;
-  await exportWithChoice(
+  await runExport(
     context: context,
     locale: locale,
-    choice: choice,
-    baseName: period.month == null ? 'stock_$year' : 'stock_${year}_${period.month!.toString().padLeft(2, '0')}',
-    // Classeur Excel sur mesure (mise en page du classeur de suivi du
-    // laboratoire : bandeau, titre, colonnes mensuelles, statut coloré) —
-    // CSV/PDF restent le tableau générique ci-dessous (toujours l'année
-    // complète, inchangé).
-    xlsxBuilder: () => StockMonthlyExcel.encode(sections: sections, year: year, month: period.month, s: s),
+    baseName: 'stock_$year',
     tables: [
       for (final section in sections)
         ExportTable(
@@ -163,9 +112,7 @@ Future<void> exportStock(WidgetRef ref, BuildContext context, {bool monthOnly = 
                 r.item.name,
                 r.item.reference,
                 r.item.mmn,
-                r.item.packaging,
                 r.item.prevConsumption ?? s('stockNewProduct'),
-                if (period.month == null) ...r.monthly else r.monthly[period.month! - 1],
                 r.consumption,
                 r.item.quantity,
                 r.item.pendingOrder,
@@ -178,132 +125,6 @@ Future<void> exportStock(WidgetRef ref, BuildContext context, {bool monthOnly = 
         ),
     ],
   );
-}
-
-/// Période choisie pour l'export du classeur mensuel : [month] nul = année
-/// complète (12 colonnes), sinon un seul mois (1 = janvier ... 12 = décembre).
-class StockExportPeriod {
-  final int year;
-  final int? month;
-  const StockExportPeriod(this.year, this.month);
-}
-
-/// Demande la période à exporter avant de générer le classeur — année
-/// complète ou un seul mois, ou directement un mois si [monthOnly].
-/// `null` si l'utilisateur ferme la feuille.
-Future<StockExportPeriod?> pickStockExportPeriod(
-  BuildContext context,
-  Locale locale,
-  int currentYear, {
-  bool monthOnly = false,
-}) =>
-    showModalBottomSheet<StockExportPeriod>(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (sheetContext) =>
-          _StockExportPeriodSheet(locale: locale, currentYear: currentYear, monthOnly: monthOnly),
-    );
-
-class _StockExportPeriodSheet extends StatefulWidget {
-  final Locale locale;
-  final int currentYear;
-  final bool monthOnly;
-  const _StockExportPeriodSheet({required this.locale, required this.currentYear, required this.monthOnly});
-
-  @override
-  State<_StockExportPeriodSheet> createState() => _StockExportPeriodSheetState();
-}
-
-class _StockExportPeriodSheetState extends State<_StockExportPeriodSheet> {
-  late bool _fullYear = !widget.monthOnly;
-  late int _year = widget.currentYear;
-  late int _month = DateTime.now().month;
-
-  @override
-  Widget build(BuildContext context) {
-    String s(String key) => tr(widget.locale, key);
-    final years = [for (var y = widget.currentYear; y >= widget.currentYear - 3; y--) y];
-
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              s(widget.monthOnly ? 'stockExportMonthLabel' : 'stockExportPeriodTitle'),
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 16),
-            if (!widget.monthOnly)
-              Row(
-                children: [
-                  Expanded(
-                    child: ChoiceChip(
-                      label: Text(s('stockExportFullYear')),
-                      selected: _fullYear,
-                      onSelected: (_) => setState(() => _fullYear = true),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ChoiceChip(
-                      label: Text(s('stockExportOneMonth')),
-                      selected: !_fullYear,
-                      onSelected: (_) => setState(() => _fullYear = false),
-                    ),
-                  ),
-                ],
-              ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<int>(
-                    initialValue: _year,
-                    decoration: InputDecoration(labelText: s('stockExportYearLabel')),
-                    items: [for (final y in years) DropdownMenuItem(value: y, child: Text('$y'))],
-                    onChanged: (v) => setState(() => _year = v ?? _year),
-                  ),
-                ),
-                if (!_fullYear) ...[
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: DropdownButtonFormField<int>(
-                      initialValue: _month,
-                      decoration: InputDecoration(labelText: s('stockExportMonthLabel')),
-                      items: [
-                        for (var m = 1; m <= 12; m++)
-                          DropdownMenuItem(value: m, child: Text(s(_monthHeaderKeys[m - 1]))),
-                      ],
-                      onChanged: (v) => setState(() => _month = v ?? _month),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: FilledButton(
-                onPressed: () =>
-                    Navigator.of(context).pop(StockExportPeriod(_year, _fullYear ? null : _month)),
-                style: FilledButton.styleFrom(
-                  backgroundColor: accentColor,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                ),
-                child: Text(s('stockExportContinue'), style: const TextStyle(fontWeight: FontWeight.w700)),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 Color stockStatusColor(StockItem item, ColorScheme scheme) {
@@ -451,13 +272,7 @@ class StockScreen extends ConsumerWidget {
                   const SizedBox(height: 8),
                 ],
                 AdminSectionTitle(s('stockAnnualSection')),
-                AdminCard(
-                  leading: IconBadge(Icons.calendar_view_month_rounded, color: accentColor),
-                  title: s('stockMonthlyTitle'),
-                  subtitle: s('stockMonthlyHint'),
-                  trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => context.push('/stock/monthly'),
-                ),
+                const StockAnnualTable(),
               ],
             ),
     );

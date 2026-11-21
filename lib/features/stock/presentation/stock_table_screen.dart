@@ -120,19 +120,17 @@ class _ZoneTable extends StatelessWidget {
     // Largeurs de base ; sur un écran assez large (ou presque), elles sont
     // ajustées pour que TOUTES les colonnes tiennent sans défilement.
     const baseWidths = [
-      170.0, // désignation
-      120.0, // référence
-      80.0, // mmn
-      90.0, // conditionnement
-      100.0, // consommation année précédente
-      58.0, 58.0, 58.0, 58.0, 58.0, 58.0, 58.0, 58.0, 58.0, 58.0, 58.0, 58.0, // janv. .. déc.
-      95.0, // total consommé
-      110.0, // stock disponible
-      125.0, // commande
-      105.0, // à commander
-      150.0, // rupture prévue
-      110.0, // expiration
-      200.0, // observations
+      170.0,
+      120.0,
+      80.0,
+      110.0,
+      110.0,
+      110.0,
+      125.0,
+      105.0,
+      150.0,
+      110.0,
+      200.0,
     ];
     final baseTotal = baseWidths.fold<double>(0, (a, b) => a + b);
 
@@ -170,39 +168,37 @@ class _ZoneTable extends StatelessWidget {
                           cell(r.item.name, bold: true, width: widths[0]),
                           cell(r.item.reference, width: widths[1]),
                           cell(r.item.mmn, width: widths[2]),
-                          cell(r.item.packaging, width: widths[3]),
                           cell(
                             r.item.prevConsumption == null ? s('stockNewProduct') : _num(r.item.prevConsumption!),
-                            width: widths[4],
+                            width: widths[3],
                           ),
-                          for (var m = 0; m < 12; m++) cell(_num(r.monthly[m]), width: widths[5 + m]),
-                          cell(_num(r.consumption), bold: true, width: widths[17]),
+                          cell(_num(r.consumption), width: widths[4]),
                           cell(
                             _num(r.item.quantity),
                             bold: true,
-                            width: widths[18],
+                            width: widths[5],
                             color: stockStatusColor(r.item, scheme),
                           ),
-                          cell(_num(r.item.pendingOrder), width: widths[19]),
+                          cell(_num(r.item.pendingOrder), width: widths[6]),
                           cell(
                             _num(r.toOrder),
                             bold: true,
-                            width: widths[20],
+                            width: widths[7],
                             color: r.toOrder > 0 ? scheme.error : null,
                           ),
                           cell(
                             stockForecastText(r.forecast, s),
-                            width: widths[21],
+                            width: widths[8],
                             color: r.forecast.hasRate && r.forecast.within(30) ? const Color(0xFFE08A1E) : null,
                           ),
                           cell(
                             r.item.expiryDate == null ? '' : DateFormat('dd/MM/yyyy').format(r.item.expiryDate!),
-                            width: widths[22],
+                            width: widths[9],
                             color: r.item.expiryDate != null && r.item.expiryDate!.isBefore(DateTime.now())
                                 ? scheme.error
                                 : null,
                           ),
-                          cell(r.item.notes, width: widths[23]),
+                          cell(r.item.notes, width: widths[10]),
                         ],
                       ),
                     ),
