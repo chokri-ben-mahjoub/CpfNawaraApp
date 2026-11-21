@@ -45,18 +45,29 @@ class StockMonthlyExcel {
       fontSize: 13,
       backgroundColorHex: ExcelColor.amber,
       horizontalAlign: HorizontalAlign.Center,
+      verticalAlign: VerticalAlign.Center,
     );
-    final headerStyle = CellStyle(bold: true, backgroundColorHex: ExcelColor.grey200, textWrapping: TextWrapping.WrapText);
+    final headerStyle = CellStyle(
+      bold: true,
+      backgroundColorHex: ExcelColor.grey200,
+      textWrapping: TextWrapping.WrapText,
+      horizontalAlign: HorizontalAlign.Center,
+      verticalAlign: VerticalAlign.Center,
+    );
     final openingHeaderStyle = CellStyle(
       bold: true,
       backgroundColorHex: ExcelColor.fromHexString('#FBD9B5'),
       textWrapping: TextWrapping.WrapText,
+      horizontalAlign: HorizontalAlign.Center,
+      verticalAlign: VerticalAlign.Center,
     );
     final purchasedHeaderStyle = CellStyle(
       bold: true,
       backgroundColorHex: ExcelColor.fromHexString('#1E7D45'),
       fontColorHex: ExcelColor.white,
       textWrapping: TextWrapping.WrapText,
+      horizontalAlign: HorizontalAlign.Center,
+      verticalAlign: VerticalAlign.Center,
     );
     final numberStyle = CellStyle(numberFormat: NumFormat.standard_0);
     final goodStyle = CellStyle(
@@ -103,9 +114,12 @@ class StockMonthlyExcel {
       sheet.updateCell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 2), TextCellValue(updateLabel), cellStyle: updateBannerStyle);
 
       // Ligne 5 : titre « Suivi mensuel de consommation {year} » au-dessus
-      // des colonnes mensuelles.
-      sheet.merge(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: 4), CellIndex.indexByColumnRow(columnIndex: totalCol - 1, rowIndex: 4));
+      // des colonnes mensuelles (et de la colonne Total si un seul mois est
+      // affiché, pour que le bandeau ne soit pas trop étroit).
+      final titleMergeEnd = months.length > 1 ? totalCol - 1 : totalCol;
+      sheet.merge(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: 4), CellIndex.indexByColumnRow(columnIndex: titleMergeEnd, rowIndex: 4));
       sheet.updateCell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: 4), TextCellValue(workbookTitle), cellStyle: sectionTitleStyle);
+      sheet.setRowHeight(4, 22);
 
       // Ligne 6 : en-têtes de colonnes.
       final headers = [
@@ -124,7 +138,7 @@ class StockMonthlyExcel {
         final style = c == openingCol ? openingHeaderStyle : (c == purchasedCol ? purchasedHeaderStyle : headerStyle);
         sheet.updateCell(CellIndex.indexByColumnRow(columnIndex: c, rowIndex: 5), TextCellValue(headers[c]), cellStyle: style);
       }
-      sheet.setRowHeight(5, 32);
+      sheet.setRowHeight(5, 48);
 
       // Lignes 7+ : une ligne par article.
       var r = 6;
@@ -160,7 +174,7 @@ class StockMonthlyExcel {
         r++;
       }
 
-      final widths = [16.0, 28.0, 12.0, 14.0, for (final _ in months) 9.0, 14.0, 14.0, 8.0, 16.0, 10.0];
+      final widths = [18.0, 30.0, 13.0, 16.0, for (final _ in months) 10.0, 15.0, 15.0, 9.0, 17.0, 11.0];
       for (var c = 0; c < widths.length; c++) {
         sheet.setColumnWidth(c, widths[c]);
       }
