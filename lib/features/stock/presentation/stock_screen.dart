@@ -129,11 +129,12 @@ List<String> stockTableHeaders(String Function(String) s, int year, {int? month}
 /// Exporte le suivi annuel du stock (PDF / Excel / CSV), un tableau par zone
 /// (Chimique, ARO, Wells, CPF, Laboratoire...), comme à l'écran. Demande
 /// d'abord la période (année complète, ou un seul mois) pour le classeur
-/// Excel — voir [StockMonthlyExcel].
-Future<void> exportStock(WidgetRef ref, BuildContext context) async {
+/// Excel — voir [StockMonthlyExcel]. [monthOnly] : n'offre que le choix du
+/// mois (pas d'année complète), pour la page dédiée au suivi mensuel.
+Future<void> exportStock(WidgetRef ref, BuildContext context, {bool monthOnly = false}) async {
   final locale = ref.read(localeProvider);
   String s(String key) => tr(locale, key);
-  final period = await pickStockExportPeriod(context, locale, DateTime.now().year);
+  final period = await pickStockExportPeriod(context, locale, DateTime.now().year, monthOnly: monthOnly);
   if (period == null || !context.mounted) return;
   final year = period.year;
   final sections = stockTableSections(ref.read(stockControllerProvider), year);
@@ -187,27 +188,35 @@ class StockExportPeriod {
   const StockExportPeriod(this.year, this.month);
 }
 
-/// Demande la période à exporter (année complète ou un seul mois) avant de
-/// générer le classeur. `null` si l'utilisateur ferme la feuille.
-Future<StockExportPeriod?> pickStockExportPeriod(BuildContext context, Locale locale, int currentYear) =>
+/// Demande la période à exporter avant de générer le classeur — année
+/// complète ou un seul mois, ou directement un mois si [monthOnly].
+/// `null` si l'utilisateur ferme la feuille.
+Future<StockExportPeriod?> pickStockExportPeriod(
+  BuildContext context,
+  Locale locale,
+  int currentYear, {
+  bool monthOnly = false,
+}) =>
     showModalBottomSheet<StockExportPeriod>(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (sheetContext) => _StockExportPeriodSheet(locale: locale, currentYear: currentYear),
+      builder: (sheetContext) =>
+          _StockExportPeriodSheet(locale: locale, currentYear: currentYear, monthOnly: monthOnly),
     );
 
 class _StockExportPeriodSheet extends StatefulWidget {
   final Locale locale;
   final int currentYear;
-  const _StockExportPeriodSheet({required this.locale, required this.currentYear});
+  final bool monthOnly;
+  const _StockExportPeriodSheet({required this.locale, required this.currentYear, required this.monthOnly});
 
   @override
   State<_StockExportPeriodSheet> createState() => _StockExportPeriodSheetState();
 }
 
 class _StockExportPeriodSheetState extends State<_StockExportPeriodSheet> {
-  late bool _fullYear = true;
+  late bool _fullYear = !widget.monthOnly;
   late int _year = widget.currentYear;
   late int _month = DateTime.now().month;
 
@@ -224,29 +233,30 @@ class _StockExportPeriodSheetState extends State<_StockExportPeriodSheet> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              s('stockExportPeriodTitle'),
+              s(widget.monthOnly ? 'stockExportMonthLabel' : 'stockExportPeriodTitle'),
               style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: ChoiceChip(
-                    label: Text(s('stockExportFullYear')),
-                    selected: _fullYear,
-                    onSelected: (_) => setState(() => _fullYear = true),
+            if (!widget.monthOnly)
+              Row(
+                children: [
+                  Expanded(
+                    child: ChoiceChip(
+                      label: Text(s('stockExportFullYear')),
+                      selected: _fullYear,
+                      onSelected: (_) => setState(() => _fullYear = true),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ChoiceChip(
-                    label: Text(s('stockExportOneMonth')),
-                    selected: !_fullYear,
-                    onSelected: (_) => setState(() => _fullYear = false),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ChoiceChip(
+                      label: Text(s('stockExportOneMonth')),
+                      selected: !_fullYear,
+                      onSelected: (_) => setState(() => _fullYear = false),
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
             const SizedBox(height: 16),
             Row(
               children: [
