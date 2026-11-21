@@ -18,7 +18,6 @@ import '../../../core/widgets/hero_header.dart';
 import '../../../core/widgets/modern_widgets.dart';
 import '../../../core/widgets/responsive.dart';
 import '../../admin/presentation/widgets/admin_widgets.dart';
-import 'stock_table_screen.dart';
 import 'widgets/stock_item_form_sheet.dart';
 
 /// Une ligne du tableau de suivi annuel (reproduit le classeur de suivi des
@@ -108,14 +107,16 @@ List<StockTableSection> stockTableSections(StockState stock, int year) {
 }
 
 /// En-têtes du tableau de suivi annuel pour l'année [year] : une colonne par
-/// mois (comme le classeur de suivi), suivie du total de l'année.
-List<String> stockTableHeaders(String Function(String) s, int year) => [
+/// mois (comme le classeur de suivi), suivie du total de l'année — ou, si
+/// [month] est précisé (1 = janvier ... 12 = décembre), une seule colonne
+/// pour ce mois-là.
+List<String> stockTableHeaders(String Function(String) s, int year, {int? month}) => [
   s('stockColDescription'),
   s('stockColReference'),
   s('stockMmnLabel'),
   s('stockPackagingLabel'),
   fill(s('stockColPrev'), {'y': '${year - 1}'}),
-  for (final key in _monthHeaderKeys) s(key),
+  if (month == null) for (final key in _monthHeaderKeys) s(key) else s(_monthHeaderKeys[month - 1]),
   fill(s('stockColMonthTotal'), {'y': '$year'}),
   fill(s('stockColAvailable'), {'y': '$year'}),
   fill(s('stockColPending'), {'y': '$year'}),
@@ -136,7 +137,7 @@ Future<void> exportStock(WidgetRef ref, BuildContext context) async {
   if (period == null || !context.mounted) return;
   final year = period.year;
   final sections = stockTableSections(ref.read(stockControllerProvider), year);
-  final headers = stockTableHeaders(s, year);
+  final headers = stockTableHeaders(s, year, month: period.month);
 
   final choice = await chooseExport(context, locale);
   if (choice == null || !context.mounted) return;
@@ -163,7 +164,7 @@ Future<void> exportStock(WidgetRef ref, BuildContext context) async {
                 r.item.mmn,
                 r.item.packaging,
                 r.item.prevConsumption ?? s('stockNewProduct'),
-                ...r.monthly,
+                if (period.month == null) ...r.monthly else r.monthly[period.month! - 1],
                 r.consumption,
                 r.item.quantity,
                 r.item.pendingOrder,
@@ -440,7 +441,13 @@ class StockScreen extends ConsumerWidget {
                   const SizedBox(height: 8),
                 ],
                 AdminSectionTitle(s('stockAnnualSection')),
-                const StockAnnualTable(),
+                AdminCard(
+                  leading: IconBadge(Icons.calendar_view_month_rounded, color: accentColor),
+                  title: s('stockMonthlyTitle'),
+                  subtitle: s('stockMonthlyHint'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => context.push('/stock/monthly'),
+                ),
               ],
             ),
     );

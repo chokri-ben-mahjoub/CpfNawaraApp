@@ -630,6 +630,11 @@ final _strings = <String, Map<String, String>>{
   'stockExportMonthLabel': {'fr': 'Mois', 'en': 'Month'},
   'stockExportContinue': {'fr': 'Continuer', 'en': 'Continue'},
   'stockMonthlyWorkbookTitle': {'fr': 'Suivi mensuel de consommation {y}', 'en': '{y} Monthly Consumption'},
+  'stockMonthlyTitle': {'fr': 'Suivi mensuel du laboratoire', 'en': 'Monthly Laboratory Chemical Inventory'},
+  'stockMonthlyHint': {
+    'fr': 'Tableau détaillé mois par mois, par zone de stockage',
+    'en': 'Detailed month-by-month table, by storage area',
+  },
   'stockMonthJan': {'fr': 'Janv.', 'en': 'Jan'},
   'stockMonthFeb': {'fr': 'Févr.', 'en': 'Feb'},
   'stockMonthMar': {'fr': 'Mars', 'en': 'Mar'},
