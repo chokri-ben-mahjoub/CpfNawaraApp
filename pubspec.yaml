@@ -78,7 +78,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/icon/
-    - assets/plant/
+    - assets/plant/pfd/
   fonts:
     - family: Manrope
       fonts:

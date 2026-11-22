@@ -1,10 +1,11 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/l10n/app_strings.dart';
-import '../../../../core/plant/pfd_flow_arrows.dart';
+import '../../../../core/plant/pfd_slides.dart';
 import '../../../../core/plant/plant_repository.dart';
 import '../../../../core/theme/status_style.dart';
 import '../../../../core/theme/status_colors.dart';
@@ -22,7 +23,7 @@ Color plantStatusColor(PlantStatus status, ColorScheme scheme) => switch (status
 /// colorés selon leur état du jour (vert / rouge / gris). Sur téléphone, le
 /// schéma garde une taille lisible et défile horizontalement ; sur grand
 /// écran il remplit la largeur et se zoome au doigt / à la molette.
-class PlantDiagram extends StatelessWidget {
+class PlantDiagram extends StatefulWidget {
   final PlantSchema schema;
   final DateTime day;
   final ValueChanged<SamplePoint> onPointTap;
@@ -30,22 +31,129 @@ class PlantDiagram extends StatelessWidget {
   const PlantDiagram({super.key, required this.schema, required this.day, required this.onPointTap});
 
   @override
+  State<PlantDiagram> createState() => _PlantDiagramState();
+}
+
+class _PlantDiagramState extends State<PlantDiagram> {
+  final _focus = FocusNode();
+  final _history = <int>[];
+  int _slide = 1;
+
+  @override
+  void dispose() {
+    _focus.dispose();
+    super.dispose();
+  }
+
+  void _go(int to) {
+    if (to < 1 || to > pfdSlideCount || to == _slide) return;
+    setState(() {
+      _history.add(_slide);
+      _slide = to;
+    });
+  }
+
+  void _back() {
+    if (_history.isEmpty) return;
+    setState(() => _slide = _history.removeLast());
+  }
+
+  /// Comme le diaporama : Entrée / espace / flèche droite = suivant ;
+  /// Retour arrière / Échap / flèche gauche = retour.
+  KeyEventResult _onKey(FocusNode node, KeyEvent event) {
+    if (event is KeyUpEvent) return KeyEventResult.ignored;
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter ||
+        key == LogicalKeyboardKey.space ||
+        key == LogicalKeyboardKey.arrowRight ||
+        key == LogicalKeyboardKey.pageDown) {
+      _go(_slide + 1);
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.arrowLeft ||
+        key == LogicalKeyboardKey.backspace ||
+        key == LogicalKeyboardKey.escape ||
+        key == LogicalKeyboardKey.pageUp) {
+      if (_history.isNotEmpty) {
+        _back();
+      } else {
+        _go(_slide - 1);
+      }
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.home) {
+      _go(1);
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
+    final pfd = widget.schema.kind == PlantSchemaKind.pfd;
+    final diagram = LayoutBuilder(
       builder: (context, constraints) {
         final available = constraints.maxWidth;
         final narrow = available < 700;
         final canvas = PlantSchemaCanvas(
-          schema: schema,
-          day: day,
+          schema: widget.schema,
+          day: widget.day,
           width: narrow ? 900.0 : available,
-          onMarkerTap: onPointTap,
+          slide: _slide,
+          onSlideTap: pfd ? _go : null,
+          onMarkerTap: widget.onPointTap,
         );
         if (narrow) {
           return SingleChildScrollView(scrollDirection: Axis.horizontal, child: canvas);
         }
         return ClipRect(child: InteractiveViewer(minScale: 1, maxScale: 6, child: canvas));
       },
+    );
+    if (!pfd) return diagram;
+
+    final scheme = Theme.of(context).colorScheme;
+    return Focus(
+      focusNode: _focus,
+      onKeyEvent: _onKey,
+      child: Listener(
+        onPointerDown: (_) => _focus.requestFocus(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                IconButton(
+                  tooltip: 'Retour',
+                  onPressed: _history.isEmpty ? null : _back,
+                  icon: const Icon(Icons.arrow_back_rounded),
+                ),
+                IconButton(
+                  tooltip: 'Accueil',
+                  onPressed: _slide == 1 ? null : () => _go(1),
+                  icon: const Icon(Icons.home_outlined),
+                ),
+                const Spacer(),
+                IconButton(
+                  tooltip: 'Précédent',
+                  onPressed: _slide > 1 ? () => _go(_slide - 1) : null,
+                  icon: const Icon(Icons.chevron_left_rounded),
+                ),
+                Text(
+                  '$_slide / $pfdSlideCount',
+                  style: TextStyle(fontWeight: FontWeight.w700, color: scheme.onSurfaceVariant),
+                ),
+                IconButton(
+                  tooltip: 'Suivant (Entrée)',
+                  onPressed: _slide < pfdSlideCount ? () => _go(_slide + 1) : null,
+                  icon: const Icon(Icons.chevron_right_rounded),
+                ),
+              ],
+            ),
+            diagram,
+          ],
+        ),
+      ),
     );
   }
 }
@@ -65,6 +173,11 @@ class PlantSchemaCanvas extends ConsumerWidget {
   final void Function(SamplePoint point, Offset position)? onMarkerMoved;
   final ValueChanged<Offset>? onBackgroundTap;
 
+  /// Diapositive du PFD intégré affichée ; [onSlideTap] active les zones
+  /// cliquables du PowerPoint (absent : pas de navigation).
+  final int slide;
+  final ValueChanged<int>? onSlideTap;
+
   const PlantSchemaCanvas({
     super.key,
     required this.schema,
@@ -75,6 +188,8 @@ class PlantSchemaCanvas extends ConsumerWidget {
     this.onMarkerTap,
     this.onMarkerMoved,
     this.onBackgroundTap,
+    this.slide = 1,
+    this.onSlideTap,
   });
 
   @override
@@ -96,12 +211,28 @@ class PlantSchemaCanvas extends ConsumerWidget {
           fit: StackFit.expand,
           children: [
             Image.asset(
-              'assets/plant/pfd_nawara.jpg',
+              'assets/plant/pfd/s$slide.jpg',
               fit: BoxFit.fill,
               filterQuality: FilterQuality.high,
               isAntiAlias: true,
+              gaplessPlayback: true,
             ),
-            const _PfdFlow(),
+            _PfdFlow(slide: slide),
+            if (onSlideTap != null)
+              for (final h in pfdHotspots[slide] ?? const <PfdHotspot>[])
+                Positioned(
+                  left: h.l * width,
+                  top: h.t * height,
+                  width: h.w * width,
+                  height: h.h * height,
+                  child: Tooltip(
+                    message: h.label,
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: () => onSlideTap!(h.to)),
+                    ),
+                  ),
+                ),
           ],
         ),
       ),
@@ -130,7 +261,9 @@ class PlantSchemaCanvas extends ConsumerWidget {
               child: background,
             ),
           ),
-          for (final point in state.points.where((p) => p.active))
+          for (final point in state.points.where(
+            (p) => p.active && (schema.kind != PlantSchemaKind.pfd || (pfdPointSlide[p.code] ?? 1) == slide),
+          ))
             if (shown.positionOf(point) case final pos?)
               Positioned(
                 left: pos.dx * width - marker / 2,
@@ -315,7 +448,8 @@ class PlantDiagramLegend extends ConsumerWidget {
 /// flèche glisse le long de sa conduite, en boucle). Figées si l'utilisateur
 /// a demandé de réduire les animations.
 class _PfdFlow extends StatefulWidget {
-  const _PfdFlow();
+  final int slide;
+  const _PfdFlow({required this.slide});
 
   @override
   State<_PfdFlow> createState() => _PfdFlowState();
@@ -344,7 +478,7 @@ class _PfdFlowState extends State<_PfdFlow> with SingleTickerProviderStateMixin 
   Widget build(BuildContext context) {
     return IgnorePointer(
       child: RepaintBoundary(
-        child: CustomPaint(painter: _FlowPainter(_controller)),
+        child: CustomPaint(painter: _FlowPainter(_controller, pfdFlowArrows[widget.slide] ?? const [])),
       ),
     );
   }
@@ -352,7 +486,8 @@ class _PfdFlowState extends State<_PfdFlow> with SingleTickerProviderStateMixin 
 
 class _FlowPainter extends CustomPainter {
   final Animation<double> animation;
-  _FlowPainter(this.animation) : super(repaint: animation);
+  final List<PfdFlowArrow> arrows;
+  _FlowPainter(this.animation, this.arrows) : super(repaint: animation);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -360,7 +495,7 @@ class _FlowPainter extends CustomPainter {
     // Fondu à l'entrée et à la sortie : pas de saut quand la flèche repart.
     final fade = math.sin(t * math.pi).clamp(0.0, 1.0);
     final paint = Paint()..style = PaintingStyle.fill;
-    for (final a in pfdFlowArrows) {
+    for (final a in arrows) {
       final w = a.w * size.width * 1.25;
       final h = a.h * size.width * 1.25;
       canvas.save();
@@ -380,5 +515,5 @@ class _FlowPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_FlowPainter old) => false;
+  bool shouldRepaint(_FlowPainter old) => old.arrows != arrows;
 }
