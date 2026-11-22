@@ -128,23 +128,23 @@ enum PlantStatus { ok, outOfRange, missing }
 enum PlantSchemaKind { pfd, image, blank }
 
 /// Dimensions logiques du schéma intégré (PFD dessiné).
-const pfdCanvasSize = Size(1000, 1125);
+const pfdCanvasSize = Size(1000, 1500);
 
 /// Position par défaut des points sur le PFD Nawara CPF (diapositives 1 et 2
 /// du PowerPoint empilées). Les points amine (LA, RA) n'y figurent pas :
 /// à placer depuis l'éditeur de schéma.
 const pfdDefaultPositions = <String, Offset>{
-  'C1': Offset(525, 216),
-  'C2': Offset(425, 69),
-  'C3': Offset(609, 931),
-  'C4': Offset(875, 1026),
-  'W1': Offset(333, 109),
-  'W2': Offset(392, 247),
-  'W3': Offset(436, 722),
-  'W4': Offset(333, 294),
-  'G1': Offset(500, 34),
-  'G2': Offset(544, 181),
-  'G3': Offset(850, 206),
+  'C1': Offset(525, 288),
+  'C2': Offset(425, 92),
+  'C3': Offset(609, 1241),
+  'C4': Offset(875, 1368),
+  'W1': Offset(333, 145),
+  'W2': Offset(392, 329),
+  'W3': Offset(436, 963),
+  'W4': Offset(333, 392),
+  'G1': Offset(500, 45),
+  'G2': Offset(544, 241),
+  'G3': Offset(850, 275),
 };
 
 /// Un schéma de l'usine (table `plant_schemas`) : le dessin intégré, une

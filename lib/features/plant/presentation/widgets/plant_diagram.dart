@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/l10n/app_strings.dart';
+import '../../../../core/plant/pfd_flow_arrows.dart';
 import '../../../../core/plant/plant_repository.dart';
 import '../../../../core/theme/status_style.dart';
 import '../../../../core/theme/status_colors.dart';
@@ -91,11 +92,17 @@ class PlantSchemaCanvas extends ConsumerWidget {
     final Widget background = switch (schema.kind) {
       PlantSchemaKind.pfd => Container(
         color: Colors.white,
-        child: Image.asset(
-          'assets/plant/pfd_nawara.jpg',
-          fit: BoxFit.fill,
-          filterQuality: FilterQuality.high,
-          isAntiAlias: true,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.asset(
+              'assets/plant/pfd_nawara.jpg',
+              fit: BoxFit.fill,
+              filterQuality: FilterQuality.high,
+              isAntiAlias: true,
+            ),
+            const _PfdFlow(),
+          ],
         ),
       ),
       PlantSchemaKind.image when schema.imageBytes != null => Image.memory(
@@ -302,4 +309,76 @@ class PlantDiagramLegend extends ConsumerWidget {
       ],
     );
   }
+}
+
+/// Flèches d'écoulement animées du PFD (reprises du PowerPoint : chaque
+/// flèche glisse le long de sa conduite, en boucle). Figées si l'utilisateur
+/// a demandé de réduire les animations.
+class _PfdFlow extends StatefulWidget {
+  const _PfdFlow();
+
+  @override
+  State<_PfdFlow> createState() => _PfdFlowState();
+}
+
+class _PfdFlowState extends State<_PfdFlow> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(vsync: this, duration: const Duration(seconds: 2));
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) {
+      _controller.stop();
+    } else if (!_controller.isAnimating) {
+      _controller.repeat();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: RepaintBoundary(
+        child: CustomPaint(painter: _FlowPainter(_controller)),
+      ),
+    );
+  }
+}
+
+class _FlowPainter extends CustomPainter {
+  final Animation<double> animation;
+  _FlowPainter(this.animation) : super(repaint: animation);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final t = animation.value;
+    // Fondu à l'entrée et à la sortie : pas de saut quand la flèche repart.
+    final fade = math.sin(t * math.pi).clamp(0.0, 1.0);
+    final paint = Paint()..style = PaintingStyle.fill;
+    for (final a in pfdFlowArrows) {
+      final w = a.w * size.width * 1.25;
+      final h = a.h * size.width * 1.25;
+      canvas.save();
+      canvas.translate((a.cx + a.dx * t) * size.width, (a.cy + a.dy * t) * size.height);
+      canvas.rotate(a.rot * math.pi / 180);
+      paint.color = Color(a.color).withValues(alpha: 0.35 + 0.65 * fade);
+      canvas.drawPath(
+        Path()
+          ..moveTo(0, -h / 2)
+          ..lineTo(w / 2, h / 2)
+          ..lineTo(-w / 2, h / 2)
+          ..close(),
+        paint,
+      );
+      canvas.restore();
+    }
+  }
+
+  @override
+  bool shouldRepaint(_FlowPainter old) => false;
 }
