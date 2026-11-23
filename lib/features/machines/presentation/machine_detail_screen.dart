@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/branding/app_logo.dart';
 import '../../../core/export/export_format_sheet.dart';
 import '../../../core/export/export_service.dart';
 import '../../../core/l10n/app_strings.dart';
@@ -31,6 +32,7 @@ IconData machineStatusIcon(MachineStatus s) => switch (s) {
 /// Excel / CSV contiennent synthèse, standards et mesures.
 Future<void> exportMachine(BuildContext context, WidgetRef ref, MachineEntry e) async {
   final locale = ref.read(localeProvider);
+  final logo = ref.read(appLogoProvider);
   final choice = await chooseExport(context, locale);
   if (choice == null || !context.mounted) return;
   await exportWithChoice(
@@ -40,7 +42,7 @@ Future<void> exportMachine(BuildContext context, WidgetRef ref, MachineEntry e) 
     baseName: 'test_${e.machine}',
     tables: machineExportTables(e.result),
     pdfHeaderName: e.machine,
-    pdfBuilder: () => buildMachineCertificatePdf(e),
+    pdfBuilder: () => buildMachineCertificatePdf(e, logo: logo, labName: ref.read(appNameProvider)),
   );
 }
 

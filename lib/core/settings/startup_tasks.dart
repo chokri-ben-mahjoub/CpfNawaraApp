@@ -12,6 +12,7 @@ import '../data/wells_repository.dart';
 import '../export/download_saver.dart';
 import '../l10n/app_strings.dart';
 import '../data/stock_repository.dart';
+import '../machines/machine_history.dart';
 import '../notifications/home_widget_service.dart';
 import '../notifications/reminder_service.dart';
 import '../models/user_role.dart';
@@ -31,6 +32,9 @@ Future<void> onAppForeground(WidgetRef ref) async {
   await ref.read(wellsControllerProvider.notifier).loaded;
   // Récupère les saisies faites sur les autres appareils (sans bloquer).
   unawaited(ref.read(syncControllerProvider.notifier).syncIfStale());
+  // Alertes machines (non conforme, recalibration due) : recalcul local à chaque
+  // retour au premier plan — les échéances évoluent avec la date, même sans import.
+  unawaited(ref.read(machineHistoryProvider.notifier).load());
   await refreshReminders(ref);
   await publishLogoIfNeeded(ref);
   await runAutoBackupIfDue(ref);

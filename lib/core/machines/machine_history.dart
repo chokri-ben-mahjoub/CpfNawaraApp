@@ -158,6 +158,9 @@ class MachineHistoryController extends StateNotifier<AsyncValue<List<MachineEntr
         final last = hist.map((s) => s.lastCalibration).whereType<DateTime>().fold<DateTime?>(null, (a, b) => a == null || b.isAfter(a) ? b : a);
         entries.add(MachineEntry(latest, result, st, computeDue(last, st.intervalDays, now), hist, histResults));
       }
+      // Priorité d'abord : non conforme / en retard en tête, puis ordre alphabétique.
+      int priority(MachineEntry e) => e.result.status.severity * 10 + (e.due.state == DueState.overdue ? 5 : e.due.state == DueState.soon ? 2 : 0);
+      entries.sort((a, b) => priority(b) != priority(a) ? priority(b).compareTo(priority(a)) : a.machine.compareTo(b.machine));
       state = AsyncValue.data(entries);
       // Alertes : notifiées une fois par alerte, ici et non à chaque affichage.
       unawaited(MachineNotificationService.notify(buildMachineAlerts(entries)));

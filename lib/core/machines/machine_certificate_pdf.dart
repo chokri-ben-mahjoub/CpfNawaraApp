@@ -19,7 +19,7 @@ String _num(double? v, [int d = 4]) => v == null ? '-' : v.toStringAsFixed(d);
 
 /// Certificat de contrôle d'une machine : identification, conclusion, résultats
 /// par standard, historique des imports et zones de signature.
-Future<Uint8List> buildMachineCertificatePdf(MachineEntry e, {String labName = 'CPF Laboratory NAWARA'}) async {
+Future<Uint8List> buildMachineCertificatePdf(MachineEntry e, {String labName = 'CPF Laboratory NAWARA', Uint8List? logo}) async {
   final m = e.result;
   final fmt = DateFormat('dd/MM/yyyy');
   final doc = pw.Document(title: 'Certificat ${m.machine}', author: labName);
@@ -38,7 +38,11 @@ Future<Uint8List> buildMachineCertificatePdf(MachineEntry e, {String labName = '
       child: pw.Text('$labName - page ${ctx.pageNumber}/${ctx.pagesCount}', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
     ),
     build: (ctx) => [
-      pw.Text(labName, style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+      pw.Row(children: [
+        if (logo != null) ...[pw.SizedBox(height: 36, child: pw.Image(pw.MemoryImage(logo))), pw.SizedBox(width: 10)],
+        pw.Text(labName, style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.grey800)),
+      ]),
+      pw.SizedBox(height: 6),
       pw.Text('CERTIFICAT DE CONTROLE DE MACHINE', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
       pw.SizedBox(height: 10),
       pw.Text(m.machine, style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
