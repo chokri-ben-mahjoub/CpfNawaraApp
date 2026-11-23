@@ -618,7 +618,9 @@ class SyncController extends StateNotifier<SyncState> {
           errorKey: () => e.isDatabaseMissing
               ? 'syncErrorDatabase'
               : e.statusCode == 403
-              ? 'syncErrorRules'
+              ? 'syncErrorRules'
+              : e.toString().contains('exceeds the maximum allowed size')
+              ? 'syncErrorTooBig'
               : 'syncErrorServer',
           errorDetail: () => e.toString(),
         );

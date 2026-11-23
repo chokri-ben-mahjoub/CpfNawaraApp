@@ -1799,6 +1799,10 @@ final _strings = <String, Map<String, String>>{
     'fr': 'Accès refusé par Firestore : publiez les règles de sécurité (Administration › Projet Firebase).',
     'en': 'Access denied by Firestore: publish the security rules (Administration › Firebase project).',
   },
+  'syncErrorTooBig': {
+    'fr': 'Un article contient des fichiers trop lourds pour être synchronisé (limite 1 Mo). Ouvrez-le, réduisez ou retirez un fichier, puis enregistrez.',
+    'en': 'An item has files too large to sync (1 MB limit). Open it, shrink or remove a file, then save.',
+  },
   'syncErrorServer': {
     'fr': 'Le serveur n\'a pas répondu correctement, nouvel essai automatique.',
     'en': 'The server did not respond correctly, retrying automatically.',
