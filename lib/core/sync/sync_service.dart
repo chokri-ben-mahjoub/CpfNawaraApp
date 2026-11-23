@@ -181,6 +181,11 @@ class SyncController extends StateNotifier<SyncState> {
   bool _lastSyncWorthRetryingSoon = false;
   bool _running = false;
   bool _again = false;
+
+  /// Faux quand l'app est en arrière-plan (onglet masqué, téléphone verrouillé) :
+  /// le passage périodique ne lit alors plus Firestore pour rien ; la
+  /// synchronisation reprend au retour (voir [syncIfStale]).
+  bool _foreground = true;
   DateTime? _memberCheckedAt;
 
   bool get isConfigured => config != null;
@@ -502,6 +507,18 @@ class SyncController extends StateNotifier<SyncState> {
     await prefs.setString(_sessionKey, jsonEncode(session.toJson()));
   }
 
+  /// Appelé par le cycle de vie de l'app (premier plan / arrière-plan).
+  void setForeground(bool value) => _foreground = value;
+
+  /// Synchronise seulement si la dernière synchronisation réussie date de
+  /// plus de [maxAge] : évite de relire Firestore à chaque retour au premier
+  /// plan (changement d'onglet, déverrouillage) quand les données sont fraîches.
+  Future<void> syncIfStale({Duration maxAge = const Duration(seconds: 45)}) async {
+    final last = state.lastSyncAt;
+    if (last != null && state.phase == SyncPhase.idle && DateTime.now().difference(last) < maxAge) return;
+    await syncNow();
+  }
+
   void _startAutoSync() {
     _changes ??= LocalDatabase.instance.changes.listen((_) {
       _debounce?.cancel();
@@ -525,6 +542,11 @@ class SyncController extends StateNotifier<SyncState> {
   /// panne réseau).
   Future<void> _periodicTick() async {
     if (_periodic == null) return; // arrêté entre-temps (déconnexion...).
+    if (!_foreground) {
+      // En arrière-plan : aucune lecture, on repasse plus tard au même palier.
+      _periodic = Timer(_periodicInterval, _periodicTick);
+      return;
+    }
     await syncNow();
     final pulledSomething = _lastSyncWorthRetryingSoon;
     if (pulledSomething) {

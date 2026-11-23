@@ -30,7 +30,7 @@ Future<void> onAppForeground(WidgetRef ref) async {
   await DownloadSaver.setSecureScreen(settings.secureScreen);
   await ref.read(wellsControllerProvider.notifier).loaded;
   // Récupère les saisies faites sur les autres appareils (sans bloquer).
-  unawaited(ref.read(syncControllerProvider.notifier).syncNow());
+  unawaited(ref.read(syncControllerProvider.notifier).syncIfStale());
   await refreshReminders(ref);
   await publishLogoIfNeeded(ref);
   await runAutoBackupIfDue(ref);

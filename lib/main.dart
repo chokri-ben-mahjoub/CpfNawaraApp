@@ -5,6 +5,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
+import 'core/sync/sync_service.dart';
 import 'core/auth/app_lock.dart';
 import 'core/auth/auth_providers.dart';
 import 'core/data/db_factory.dart';
@@ -67,6 +68,10 @@ class _SuiviPuitsAppState extends ConsumerState<SuiviPuitsApp> with WidgetsBindi
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Arrière-plan : on cesse de lire Firestore ; au retour, syncIfStale rattrape.
+    ref.read(syncControllerProvider.notifier).setForeground(
+      state != AppLifecycleState.paused && state != AppLifecycleState.hidden && state != AppLifecycleState.detached,
+    );
     final delay = Duration(seconds: ref.read(appSettingsProvider).autoLockSeconds);
     // Reverrouille l'app quand elle repasse en arrière-plan (code à 4
     // chiffres / empreinte redemandés au retour), comme une app bancaire —
