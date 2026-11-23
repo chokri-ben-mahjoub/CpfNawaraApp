@@ -473,7 +473,7 @@ final _strings = <String, Map<String, String>>{
     'fr': 'Fichier trop lourd (limite : environ 650 Ko au total pour la pièce jointe et le certificat d\'analyse). Réduisez-le ou prenez une photo plus légère.',
     'en': 'File too large (limit: about 650 KB in total for the attachment and the analysis certificate). Shrink it or use a lighter photo.',
   },
-  'machineTestTitle': {'fr': 'Test machines', 'en': 'Machine tests'},
+  'machineTestTitle': {'fr': 'Laboratory Instrument Calibration', 'en': 'Laboratory Instrument Calibration'},
   'gasBottlesTitle': {'fr': 'Bouteilles de gaz', 'en': 'Gas bottles'},
   'gasBottlesAdd': {'fr': 'Ajouter', 'en': 'Add'},
   'gasBottlesEmpty': {

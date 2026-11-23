@@ -86,12 +86,13 @@ List<CalPoint> _decodePoints(String machine, String payload) => [
 
 /// Empreinte stable du contenu (FNV-1a) pour ignorer un fichier réimporté à l'identique.
 String contentHash(String s) {
-  var h = 0xcbf29ce484222325;
+  // Deux FNV-1a 32 bits (graines différentes) : valeurs sûres aussi en JavaScript (web).
+  var h1 = 0x811c9dc5, h2 = 0x01000193;
   for (final c in s.codeUnits) {
-    h ^= c;
-    h = (h * 0x100000001b3) & 0x7fffffffffffffff;
+    h1 = ((h1 ^ c) * 0x01000193) & 0xffffffff;
+    h2 = ((h2 ^ c) * 0x85ebca6b) & 0xffffffff;
   }
-  return h.toRadixString(16);
+  return '${h1.toRadixString(16)}-${h2.toRadixString(16)}-${s.length}';
 }
 
 final machineHistoryProvider = StateNotifierProvider<MachineHistoryController, AsyncValue<List<MachineEntry>>>(

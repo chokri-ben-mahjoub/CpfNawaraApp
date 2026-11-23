@@ -138,7 +138,7 @@ class _MachineTestScreenState extends ConsumerState<MachineTestScreen> {
     final results = [for (final e in entries) e.result];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Test machines'), actions: [
+      appBar: AppBar(title: const Text('Laboratory Instrument Calibration'), actions: [
         if (entries.isNotEmpty)
           IconButton(
             tooltip: 'Télécharger le rapport de toutes les machines',
