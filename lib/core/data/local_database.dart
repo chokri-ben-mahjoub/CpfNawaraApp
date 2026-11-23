@@ -1,3 +1,4 @@
+import '../machines/machine_history.dart';
 import 'dart:async';
 
 import 'package:path/path.dart' as p;
@@ -174,6 +175,7 @@ class LocalDatabase {
           await _createGasBottlesTable(db);
           await _createSampleManifestTable(db);
           await _createSopsTable(db);
+          await createMachineTables(db);
           await _seed(db);
         },
         onUpgrade: (db, oldVersion, newVersion) async {

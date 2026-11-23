@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
+import '../../../core/export/export_format_sheet.dart';
 import '../../../core/export/export_service.dart';
 import '../../../core/l10n/app_strings.dart';
+import '../../../core/machines/control_chart.dart';
+import '../../../core/machines/machine_certificate_pdf.dart';
+import '../../../core/machines/machine_history.dart';
+import '../../../core/machines/machine_schedule.dart';
 import '../../../core/machines/machine_test.dart';
 
 Color machineStatusColor(MachineStatus s) => switch (s) {
@@ -21,41 +27,56 @@ IconData machineStatusIcon(MachineStatus s) => switch (s) {
       MachineStatus.notTested => Icons.help_outline,
     };
 
-Future<void> exportMachine(BuildContext context, WidgetRef ref, MachineResult m) {
-  return runExport(
+/// Télécharge le résultat d'une machine : le PDF est un certificat complet,
+/// Excel / CSV contiennent synthèse, standards et mesures.
+Future<void> exportMachine(BuildContext context, WidgetRef ref, MachineEntry e) async {
+  final locale = ref.read(localeProvider);
+  final choice = await chooseExport(context, locale);
+  if (choice == null || !context.mounted) return;
+  await exportWithChoice(
     context: context,
-    locale: ref.read(localeProvider),
-    baseName: 'test_${m.machine}',
-    tables: machineExportTables(m),
-    pdfHeaderName: m.machine,
+    locale: locale,
+    choice: choice,
+    baseName: 'test_${e.machine}',
+    tables: machineExportTables(e.result),
+    pdfHeaderName: e.machine,
+    pdfBuilder: () => buildMachineCertificatePdf(e),
   );
 }
 
-/// Grand affichage du résultat d'une machine : verdict, indicateurs, un bloc
-/// par standard avec graphique des écarts, et téléchargement.
+/// Grand affichage du résultat d'une machine : verdict, échéance, indicateurs,
+/// historique, un bloc par standard avec carte de contrôle, et téléchargement.
 class MachineDetailScreen extends ConsumerWidget {
-  final MachineResult machine;
-  const MachineDetailScreen({super.key, required this.machine});
+  final String machineName;
+  const MachineDetailScreen({super.key, required this.machineName});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final m = machine;
+    final entry = ref.watch(machineHistoryProvider).valueOrNull?.where((e) => e.machine == machineName).firstOrNull;
+    if (entry == null) return Scaffold(appBar: AppBar(title: Text(machineName)), body: const Center(child: CircularProgressIndicator()));
+    final m = entry.result;
     final color = machineStatusColor(m.status);
     final theme = Theme.of(context);
+    final fmt = DateFormat('dd/MM/yyyy');
+    final dueColor = switch (entry.due.state) {
+      DueState.overdue => machineStatusColor(MachineStatus.fault),
+      DueState.soon => machineStatusColor(MachineStatus.warning),
+      DueState.ok => machineStatusColor(MachineStatus.ok),
+      DueState.unknown => Colors.grey,
+    };
     return Scaffold(
       appBar: AppBar(
         title: Text(m.machine, overflow: TextOverflow.ellipsis),
-        actions: [IconButton(tooltip: 'Télécharger', icon: const Icon(Icons.download), onPressed: () => exportMachine(context, ref, m))],
+        actions: [IconButton(tooltip: 'Télécharger', icon: const Icon(Icons.download), onPressed: () => exportMachine(context, ref, entry))],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => exportMachine(context, ref, m),
+        onPressed: () => exportMachine(context, ref, entry),
         icon: const Icon(Icons.download),
         label: const Text('Télécharger le résultat'),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
         children: [
-          // Bandeau verdict
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(20), border: Border.all(color: color, width: 2)),
@@ -69,8 +90,24 @@ class MachineDetailScreen extends ConsumerWidget {
               Text('Action : ${m.recommendation}', style: theme.textTheme.bodyMedium, textAlign: TextAlign.center),
             ]),
           ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(color: dueColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(16)),
+            child: Row(children: [
+              Icon(Icons.event, size: 40, color: dueColor),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(entry.due.label, style: theme.textTheme.titleLarge?.copyWith(color: dueColor, fontWeight: FontWeight.w800)),
+                  Text(entry.due.last == null
+                      ? 'Aucune calibration enregistrée'
+                      : 'Dernière : ${fmt.format(entry.due.last!)} · échéance ${fmt.format(entry.due.due!)} · tous les ${entry.settings.intervalDays} j'),
+                ]),
+              ),
+            ]),
+          ),
           const SizedBox(height: 16),
-          // Indicateurs
           Wrap(spacing: 12, runSpacing: 12, children: [
             _Kpi('Conformité', m.conformityRate == null ? '—' : '${m.conformityRate!.toStringAsFixed(0)} %', color),
             _Kpi('Couverture', '${m.coverage.toStringAsFixed(0)} %', Colors.blueGrey),
@@ -78,6 +115,12 @@ class MachineDetailScreen extends ConsumerWidget {
             _Kpi('Hors tolérance', '${m.failed}', m.failed > 0 ? machineStatusColor(MachineStatus.fault) : Colors.blueGrey),
             _Kpi('En attente', '${m.pending}', m.pending > 0 ? machineStatusColor(MachineStatus.incomplete) : Colors.blueGrey),
           ]),
+          if (entry.history.length > 1) ...[
+            const SizedBox(height: 24),
+            Text('Historique (${entry.history.length} imports)', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+            const SizedBox(height: 8),
+            _HistoryCard(entry),
+          ],
           for (final sh in m.sheets) ...[
             const SizedBox(height: 24),
             Row(children: [
@@ -112,6 +155,48 @@ class _Kpi extends StatelessWidget {
       );
 }
 
+/// Évolution du taux de conformité d'un import à l'autre + liste des imports.
+class _HistoryCard extends StatelessWidget {
+  final MachineEntry entry;
+  const _HistoryCard(this.entry);
+
+  @override
+  Widget build(BuildContext context) {
+    final overrides = {for (final t in entry.settings.tolerances.entries) toleranceKey(entry.machine, t.key): t.value};
+    final rows = [
+      for (final h in entry.history) (h, evaluateCalibration(h.points, overrides: overrides).first),
+    ];
+    final rates = [for (final r in rows) r.$2.conformityRate ?? 0.0];
+    final fmt = DateFormat('dd/MM/yy HH:mm');
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Taux de conformité à chaque import (%)'),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 110,
+            child: CustomPaint(
+              size: Size.infinite,
+              painter: _LinePainter(values: rates, color: machineStatusColor(entry.result.status), axis: Theme.of(context).colorScheme.onSurface, fixedRange: const (0, 100)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          for (final r in rows.reversed.take(10))
+            ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(machineStatusIcon(r.$2.status), color: machineStatusColor(r.$2.status), size: 20),
+              title: Text('${fmt.format(r.$1.importedAt)} · ${r.$2.status.label}'),
+              subtitle: Text('${r.$2.measured}/${r.$2.total} mesurées · ${r.$2.failed} hors tolérance'),
+              trailing: Text(r.$2.conformityRate == null ? '—' : '${r.$2.conformityRate!.toStringAsFixed(0)} %'),
+            ),
+        ]),
+      ),
+    );
+  }
+}
+
 class _StandardCard extends StatelessWidget {
   final StandardResult s;
   const _StandardCard(this.s);
@@ -123,6 +208,8 @@ class _StandardCard extends StatelessWidget {
     final color = machineStatusColor(s.status);
     final theme = Theme.of(context);
     final done = s.readings.where((r) => r.error != null).toList();
+    final errors = [for (final r in done) r.error!].where((e) => e.isFinite).toList();
+    final stats = errors.length >= 5 ? controlStats(errors) : null;
     return Card(
       margin: const EdgeInsets.only(top: 12),
       child: Padding(
@@ -141,8 +228,20 @@ class _StandardCard extends StatelessWidget {
               style: theme.textTheme.bodySmall),
           if (done.isNotEmpty) ...[
             const SizedBox(height: 12),
-            SizedBox(height: 120, child: CustomPaint(size: Size.infinite, painter: _ErrorChart(done, s.tolerance.value, color, theme.colorScheme.onSurface))),
+            SizedBox(height: 120, child: CustomPaint(size: Size.infinite, painter: _ErrorChart(done, s.tolerance.value, theme.colorScheme.onSurface))),
             Text('Écart de chaque mesure (zone verte = tolérance ${s.tolerance.text})', style: theme.textTheme.bodySmall),
+          ],
+          if (stats != null) ...[
+            const SizedBox(height: 12),
+            Text('Carte de contrôle (moyenne ${_n(stats.mean)}, ±2σ orange, ±3σ rouge)', style: theme.textTheme.labelLarge),
+            const SizedBox(height: 4),
+            SizedBox(
+              height: 140,
+              child: CustomPaint(
+                size: Size.infinite,
+                painter: _LinePainter(values: errors, color: color, axis: theme.colorScheme.onSurface, stats: stats),
+              ),
+            ),
           ],
           if (s.readings.length <= 40) ...[
             const SizedBox(height: 8),
@@ -162,10 +261,7 @@ class _StandardCard extends StatelessWidget {
                       DataCell(Text(_n(s.readings[i].error))),
                       DataCell(Text(
                         s.readings[i].pass == null ? 'En attente' : (s.readings[i].pass! ? 'PASS' : 'FAIL'),
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: s.readings[i].pass == null ? Colors.grey : (s.readings[i].pass! ? Colors.green : Colors.red),
-                        ),
+                        style: TextStyle(fontWeight: FontWeight.w700, color: s.readings[i].pass == null ? Colors.grey : (s.readings[i].pass! ? Colors.green : Colors.red)),
                       )),
                     ]),
                 ],
@@ -182,8 +278,8 @@ class _StandardCard extends StatelessWidget {
 class _ErrorChart extends CustomPainter {
   final List<PointResult> pts;
   final double tol;
-  final Color color, axis;
-  _ErrorChart(this.pts, this.tol, this.color, this.axis);
+  final Color axis;
+  _ErrorChart(this.pts, this.tol, this.axis);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -196,13 +292,11 @@ class _ErrorChart extends CustomPainter {
     final mid = size.height / 2;
     double y(double v) => mid - (v.clamp(-maxAbs, maxAbs)) / maxAbs * (size.height / 2 - 4);
     canvas.drawRect(Rect.fromLTRB(0, y(tol), size.width, y(-tol)), Paint()..color = Colors.green.withValues(alpha: 0.15));
-    final line = Paint()..color = axis.withValues(alpha: 0.4)..strokeWidth = 1;
-    canvas.drawLine(Offset(0, mid), Offset(size.width, mid), line);
+    canvas.drawLine(Offset(0, mid), Offset(size.width, mid), Paint()..color = axis.withValues(alpha: 0.4)..strokeWidth = 1);
     final w = size.width / pts.length;
     for (var i = 0; i < pts.length; i++) {
       final e = pts[i].error!;
-      final bad = pts[i].pass == false;
-      final paint = Paint()..color = bad ? Colors.red : Colors.green;
+      final paint = Paint()..color = pts[i].pass == false ? Colors.red : Colors.green;
       final x = i * w + w * 0.15;
       final top = y(e.isFinite ? e : -maxAbs);
       canvas.drawRect(Rect.fromLTRB(x, top < mid ? top : mid, x + w * 0.7, top < mid ? mid : top), paint);
@@ -211,4 +305,63 @@ class _ErrorChart extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _ErrorChart old) => old.pts != pts || old.tol != tol;
+}
+
+/// Courbe de points ; avec [stats] : ligne centrale et limites ±2σ / ±3σ.
+class _LinePainter extends CustomPainter {
+  final List<double> values;
+  final Color color, axis;
+  final ControlStats? stats;
+  final (double, double)? fixedRange;
+  _LinePainter({required this.values, required this.color, required this.axis, this.stats, this.fixedRange});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (values.isEmpty) return;
+    var lo = values.reduce((a, b) => a < b ? a : b);
+    var hi = values.reduce((a, b) => a > b ? a : b);
+    if (stats != null) {
+      if (stats!.lcl3 < lo) lo = stats!.lcl3;
+      if (stats!.ucl3 > hi) hi = stats!.ucl3;
+    }
+    if (fixedRange != null) {
+      lo = fixedRange!.$1;
+      hi = fixedRange!.$2;
+    }
+    if (hi - lo < 1e-12) {
+      hi += 1;
+      lo -= 1;
+    }
+    final pad = (hi - lo) * 0.08;
+    lo -= pad;
+    hi += pad;
+    double y(double v) => size.height - (v - lo) / (hi - lo) * size.height;
+    double x(int i) => values.length == 1 ? size.width / 2 : i * size.width / (values.length - 1);
+
+    void hline(double v, Color c, {double w = 1}) =>
+        canvas.drawLine(Offset(0, y(v)), Offset(size.width, y(v)), Paint()..color = c..strokeWidth = w);
+    if (stats != null) {
+      hline(stats!.mean, axis.withValues(alpha: 0.6));
+      hline(stats!.ucl2, Colors.orange.withValues(alpha: 0.8));
+      hline(stats!.lcl2, Colors.orange.withValues(alpha: 0.8));
+      hline(stats!.ucl3, Colors.red.withValues(alpha: 0.8));
+      hline(stats!.lcl3, Colors.red.withValues(alpha: 0.8));
+    } else {
+      hline(lo + pad, axis.withValues(alpha: 0.2));
+    }
+    final path = Path();
+    for (var i = 0; i < values.length; i++) {
+      final p = Offset(x(i), y(values[i]));
+      i == 0 ? path.moveTo(p.dx, p.dy) : path.lineTo(p.dx, p.dy);
+    }
+    canvas.drawPath(path, Paint()..color = color..style = PaintingStyle.stroke..strokeWidth = 2);
+    for (var i = 0; i < values.length; i++) {
+      var c = color;
+      if (stats != null && (values[i] > stats!.ucl3 || values[i] < stats!.lcl3)) c = Colors.red;
+      canvas.drawCircle(Offset(x(i), y(values[i])), 3.5, Paint()..color = c);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _LinePainter old) => old.values != values || old.stats != stats;
 }

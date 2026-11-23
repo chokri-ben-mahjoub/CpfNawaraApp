@@ -1,5 +1,6 @@
 import '../export/export_table.dart';
 import '../import/analysis_importer.dart';
+import 'control_chart.dart';
 
 /// Statut d'un test (standard), d'une feuille ou d'une machine.
 enum MachineStatus { ok, warning, incomplete, fault, notTested }
@@ -263,6 +264,7 @@ List<MachineResult> evaluateCalibration(List<CalPoint> points, {Map<String, CalT
         final drift = _slope(errSeq);
         final drifting = errSeq.length >= 5 && drift != null && (drift * (errSeq.length - 1)).abs() > tol.value * 0.5 &&
             errSeq.last.abs() > errSeq.first.abs();
+        final viol = controlViolations(errSeq, tol.value);
         final mean = errors.isEmpty ? null : errors.reduce((a, b) => a + b) / errors.length;
         double? sd;
         if (errors.length >= 2) {
@@ -279,9 +281,11 @@ List<MachineResult> evaluateCalibration(List<CalPoint> points, {Map<String, CalT
           reason = suspect > 0
               ? '$fails mesure(s) hors tolérance ${tol.text} (dont $suspect valeur 0 suspecte)'
               : '$fails mesure(s) hors tolérance ${tol.text}';
-        } else if (drifting) {
+        } else if (drifting || viol.isNotEmpty) {
           st = MachineStatus.warning;
-          reason = "Dérive de l'écart au fil des mesures (tolérance ${tol.text})";
+          reason = viol.isNotEmpty
+              ? 'Carte de contrôle : ${viol.join(', ')}'
+              : "Dérive de l'écart au fil des mesures (tolérance ${tol.text})";
         } else if (warn > 0) {
           st = MachineStatus.warning;
           reason = '$warn mesure(s) proche(s) de la limite ${tol.text}';
