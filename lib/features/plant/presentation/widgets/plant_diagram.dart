@@ -39,16 +39,41 @@ class PlantDiagram extends StatelessWidget {
       builder: (context, constraints) {
         final available = constraints.maxWidth;
         final narrow = available < 700;
-        final canvas = PlantSchemaCanvas(
-          schema: schema,
-          day: day,
-          width: narrow ? 900.0 : available,
-          onMarkerTap: onPointTap,
-        );
+        final logical = schema.canvasSize;
+        final ratio = logical.height / logical.width;
+        final screenH = MediaQuery.sizeOf(context).height;
         if (narrow) {
-          return SingleChildScrollView(scrollDirection: Axis.horizontal, child: canvas);
+          // Téléphone : schéma lisible (900 de large) que l'on déplace dans
+          // les deux sens et que l'on zoome au doigt (pincement), dans une
+          // zone qui tient à l'écran.
+          const w = 900.0;
+          final viewH = math.min(w * ratio, screenH * 0.7);
+          return SizedBox(
+            height: viewH,
+            child: ClipRect(
+              child: InteractiveViewer(
+                constrained: false,
+                minScale: 0.4,
+                maxScale: 4,
+                boundaryMargin: const EdgeInsets.all(40),
+                child: PlantSchemaCanvas(schema: schema, day: day, width: w, onMarkerTap: onPointTap),
+              ),
+            ),
+          );
         }
-        return ClipRect(child: InteractiveViewer(minScale: 1, maxScale: 6, child: canvas));
+        // PC / tablette : le schéma entier tient à l'écran (pas de défilement
+        // vertical pour le voir), centré, zoomable à la molette.
+        final maxH = math.max(360.0, screenH - 240);
+        final w = math.min(available, maxH / ratio);
+        return Center(
+          child: ClipRect(
+            child: InteractiveViewer(
+              minScale: 1,
+              maxScale: 6,
+              child: PlantSchemaCanvas(schema: schema, day: day, width: w, onMarkerTap: onPointTap),
+            ),
+          ),
+        );
       },
     );
   }
