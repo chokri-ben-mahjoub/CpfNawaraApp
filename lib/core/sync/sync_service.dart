@@ -552,6 +552,17 @@ class SyncController extends StateNotifier<SyncState> {
     await _ref.read(stockControllerProvider.notifier).reload();
   }
 
+  /// Bouton « Réparer » : relit tout depuis le serveur (sans perdre les
+  /// modifications en attente sur cet appareil) puis resynchronise.
+  Future<void> repair() async {
+    await _ready;
+    final session = _session;
+    final company = state.company;
+    if (session == null || _engine == null || company == null) return;
+    await _engine.resetPullCursors(company.path, session.uid);
+    await syncNow();
+  }
+
   /// Vérifie l'adhésion du compte, puis récupère les modifications de
   /// l'entreprise et envoie celles de cet appareil que le rôle autorise.
   /// Sans effet si aucun compte n'est connecté.
@@ -618,7 +629,7 @@ class SyncController extends StateNotifier<SyncState> {
           errorKey: () => e.isDatabaseMissing
               ? 'syncErrorDatabase'
               : e.statusCode == 403
-              ? 'syncErrorRules'
+              ? 'syncErrorRules'
               : e.toString().contains('exceeds the maximum allowed size')
               ? 'syncErrorTooBig'
               : 'syncErrorServer',

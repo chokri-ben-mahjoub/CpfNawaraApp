@@ -1,0 +1,10 @@
+* text=auto
+*.dart text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.ps1 text eol=crlf
+*.png binary
+*.jpg binary
+*.ttf binary
+*.wasm binary
+*.pdf binary

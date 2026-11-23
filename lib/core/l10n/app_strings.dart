@@ -1831,6 +1831,7 @@ final _strings = <String, Map<String, String>>{
         'often if nothing new arrives (up to 5 minutes), and back to every '
         'minute as soon as an entry is made.',
   },
+  'syncRepair': {'fr': 'Réparer', 'en': 'Repair'},
   'syncNow': {'fr': 'Synchroniser maintenant', 'en': 'Sync now'},
   'syncSignOut': {'fr': 'Se déconnecter', 'en': 'Sign out'},
   'syncSignOutTitle': {'fr': 'Se déconnecter du compte ?', 'en': 'Sign out of the account?'},

@@ -130,6 +130,15 @@ class SyncEngine {
     return SyncReport(pushed: pushed, pulled: pulled);
   }
 
+  /// Réparation : oublie où en est la lecture de chaque table, donc la
+  /// prochaine synchronisation relit tout depuis le serveur. Les modifications
+  /// locales en attente ne sont PAS touchées (la plus récente l'emporte).
+  Future<void> resetPullCursors(String scope, String uid) async {
+    for (final table in LocalDatabase.dataTables) {
+      await store.write(_key(scope, 'last', '${uid}_$table'), null);
+    }
+  }
+
   /// Modifications locales d'une table que le rôle ne permet pas d'envoyer
   /// (ex: puits modifié avant de rejoindre l'équipe en opérateur) : elles
   /// sont abandonnées et la table est relue entièrement depuis Firestore.

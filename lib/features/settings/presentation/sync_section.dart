@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/app_info.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/models/user_role.dart';
 import '../../../core/sync/firebase_config_provider.dart';
@@ -235,6 +236,8 @@ class SyncSettingsContent extends ConsumerWidget {
           ),
         ],
         const SizedBox(height: 10),
+        Text('${s('appName')} · v$appVersion', style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
+        const SizedBox(height: 4),
         Text(s('syncAutoHint'), style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant, height: 1.35)),
         if (controller.isOwner) ...[
           const SizedBox(height: 8),
@@ -258,6 +261,14 @@ class SyncSettingsContent extends ConsumerWidget {
               ),
             ),
             const SizedBox(width: 8),
+            if (sync.phase == SyncPhase.error) ...[
+              OutlinedButton.icon(
+                onPressed: controller.repair,
+                icon: const Icon(Icons.build_outlined),
+                label: Text(s('syncRepair')),
+              ),
+              const SizedBox(width: 8),
+            ],
             TextButton(
               onPressed: () async {
                 final confirmed = await showDialog<bool>(
