@@ -400,6 +400,12 @@ class LocalDatabase {
             await db.execute("alter table sample_manifest add column sampling_time text not null default ''");
           }
         },
+        // Auto-réparation : une base déjà en version 36 (ouverte par une autre
+        // version de l'app) peut ne pas avoir la table des SOP. `if not exists`
+        // rend l'appel sans effet quand elle est là.
+        onOpen: (db) async {
+          await _createSopsTable(db);
+        },
       ),
     );
   }
