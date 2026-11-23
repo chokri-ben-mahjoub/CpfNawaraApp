@@ -55,7 +55,7 @@ const _epoch = '1970-01-01T00:00:00Z';
 /// 1. lecture des documents modifiés depuis la dernière synchronisation
 ///    (`syncedAt` > dernière date connue), fusionnés dans la base locale ;
 /// Taille maximale (caractères base64) d'une pièce jointe envoyée au serveur.
-const maxSyncedAttachmentChars = 1000000;
+const maxSyncedAttachmentChars = 900000;
 
 /// 2. envoi des lignes modifiées localement (`dirty = 1`) et des suppressions
 ///    (`sync_deletions`) des tables que le rôle du compte peut modifier,
@@ -308,9 +308,11 @@ class SyncEngine {
     final data = Map<String, Object?>.from(row)..remove('dirty');
     // Firestore refuse une propriété de plus de ~1 Mo : une pièce jointe trop
     // lourde reste sur cet appareil mais ne bloque plus toute la synchronisation.
-    for (final key in const ['attachment', 'coa']) {
-      final file = data[key];
-      if (file is String && file.length > maxSyncedAttachmentChars) data[key] = null;
+    // La limite vaut pour le document entier (pièce jointe + certificat
+    // + autres champs) : tant que le total dépasse, on écarte le plus gros.
+    int len(String k) => data[k] is String ? (data[k] as String).length : 0;
+    while (len('attachment') + len('coa') > maxSyncedAttachmentChars) {
+      data[len('attachment') >= len('coa') ? 'attachment' : 'coa'] = null;
     }
     data['deleted'] = false;
     return _write(scope, table, row['id'] as String, data);
