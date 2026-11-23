@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/onboarding_screen.dart';
+import '../../features/machines/presentation/machine_test_screen.dart';
 import '../../features/auth/presentation/pin_setup_screen.dart';
 import '../../features/auth/presentation/profile_setup_screen.dart';
 import '../../features/auth/presentation/unlock_screen.dart';
@@ -162,6 +163,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           analysisId: state.uri.queryParameters['analysisId'],
         ),
       ),
+      GoRoute(path: '/machine-test', builder: (context, state) => const MachineTestScreen()),
       GoRoute(path: '/settings', builder: (context, state) => const SettingsScreen()),
       GoRoute(path: '/settings/pdf', builder: (context, state) => const PdfExportSettingsScreen()),
       GoRoute(path: '/stock', builder: (context, state) => const StockScreen()),

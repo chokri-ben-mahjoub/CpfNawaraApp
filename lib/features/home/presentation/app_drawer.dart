@@ -30,6 +30,7 @@ List<(IconData, String, String)> homeShortcuts(UserRole role) => [
       if (role.canManageOps) (Icons.inventory_2_outlined, 'stockTitle', '/stock'),
       if (role.canManageOps) (Icons.propane_tank_outlined, 'gasBottlesTitle', '/gas-bottles'),
       if (role.canManageOps) (Icons.biotech_outlined, 'sampleManifestTitle', '/sample-manifest'),
+      (Icons.precision_manufacturing_outlined, 'machineTestTitle', '/machine-test'),
       (Icons.menu_book_outlined, 'sopTitle', '/sop'),
       if (role.canConfigure) (Icons.history_rounded, 'adminAudit', '/admin/audit'),
       if (role.canConfigure) (Icons.admin_panel_settings_outlined, 'adminTitle', '/admin'),
