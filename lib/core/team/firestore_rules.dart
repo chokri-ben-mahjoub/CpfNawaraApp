@@ -74,14 +74,14 @@ service cloud.firestore {
       return ['wells', 'analysis_types', 'analysis_records', 'interventions', 'sample_points',
               'plant_analyses', 'plant_thresholds', 'app_config', 'plant_circuits',
               'plant_schemas', 'plant_params', 'plant_profiles', 'stock_items', 'stock_movements', 'well_rounds',
-              'gas_bottles', 'sample_manifest'];
+              'gas_bottles', 'sample_manifest', 'sops'];
     }
     function writableBy(cid, table) {
       return isAdmin(cid)
         || (hasRole(cid, ['ingenieur']) && table in
-            ['analysis_records', 'plant_analyses', 'interventions', 'stock_movements', 'well_rounds', 'gas_bottles', 'sample_manifest'])
+            ['analysis_records', 'plant_analyses', 'interventions', 'stock_movements', 'well_rounds', 'gas_bottles', 'sample_manifest', 'sops'])
         || (hasRole(cid, ['operateur']) && table in
-            ['analysis_records', 'plant_analyses', 'stock_movements', 'well_rounds', 'gas_bottles', 'sample_manifest'])
+            ['analysis_records', 'plant_analyses', 'stock_movements', 'well_rounds', 'gas_bottles', 'sample_manifest', 'sops'])
         || (hasRole(cid, ['analyste']) && table in
             ['analysis_records', 'plant_analyses']);
     }
