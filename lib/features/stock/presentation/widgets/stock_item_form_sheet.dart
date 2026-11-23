@@ -103,8 +103,12 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
     final file = picked?.files.single;
     final bytes = file?.bytes;
     if (file == null || bytes == null) return;
-    // Limite Firestore (~1 Mo par champ) : base64 = 4/3 de la taille du fichier.
-    if (bytes.length > 700 * 1024) {
+    // Limite Firestore : 1 Mo pour TOUT le document (pièce jointe + certificat
+    // d'analyse + autres champs). base64 = 4/3 de la taille du fichier, et on
+    // garde ~100 Ko pour le reste du document.
+    final otherLen = (coa ? _attachment : _coa)?.length ?? 0;
+    final budgetB64 = 900 * 1024 - otherLen;
+    if (bytes.length * 4 / 3 > budgetB64) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(tr(ref.read(localeProvider), 'stockAttachmentTooBig'))),

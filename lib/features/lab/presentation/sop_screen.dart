@@ -1,4 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -28,6 +32,30 @@ class _SopScreenState extends ConsumerState<SopScreen> {
 
   Future<void> _open(Sop sop) async {
     await shareFiles([ShareableFile(sop.fileName, 'application/pdf', base64Decode(sop.data))]);
+  }
+
+  Future<void> _download(Sop sop) async {
+    final bytes = base64Decode(sop.data);
+    try {
+      final isDesktop = !kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
+      final path = await LockGuard.run(
+        () => FilePicker.platform.saveFile(
+          dialogTitle: sop.fileName,
+          fileName: sop.fileName,
+          type: FileType.custom,
+          allowedExtensions: const ['pdf'],
+          bytes: isDesktop ? null : Uint8List.fromList(bytes),
+        ),
+      );
+      // Sur desktop, le sélecteur ne renvoie que le chemin : on écrit nous-mêmes.
+      if (isDesktop && path != null) await File(path).writeAsBytes(bytes);
+      if (path != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(sop.fileName)));
+      }
+    } catch (_) {
+      // Repli : partage du fichier.
+      await _open(sop);
+    }
   }
 
   Future<void> _edit([Sop? existing]) async {
@@ -103,6 +131,7 @@ class _SopScreenState extends ConsumerState<SopScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(tooltip: s('sopOpen'), icon: const Icon(Icons.open_in_new), onPressed: () => _open(sop)),
+                          IconButton(tooltip: s('sopDownload'), icon: const Icon(Icons.download_outlined), onPressed: () => _download(sop)),
                           if (canEdit)
                             PopupMenuButton<String>(
                               onSelected: (v) => v == 'edit' ? _edit(sop) : _delete(sop, s),

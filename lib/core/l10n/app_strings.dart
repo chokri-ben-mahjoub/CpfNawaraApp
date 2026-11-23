@@ -470,8 +470,8 @@ final _strings = <String, Map<String, String>>{
   'gasBatchNone': {'fr': 'Aucune pression modifiée.', 'en': 'No pressure changed.'},
   'gasBatchSave': {'fr': 'Enregistrer le relevé', 'en': 'Save reading'},
   'stockAttachmentTooBig': {
-    'fr': 'Fichier trop lourd (700 Ko maximum). Réduisez-le ou prenez une photo plus légère.',
-    'en': 'File too large (700 KB maximum). Shrink it or use a lighter photo.',
+    'fr': 'Fichier trop lourd (limite : environ 650 Ko au total pour la pièce jointe et le certificat d\'analyse). Réduisez-le ou prenez une photo plus légère.',
+    'en': 'File too large (limit: about 650 KB in total for the attachment and the analysis certificate). Shrink it or use a lighter photo.',
   },
   'gasBottlesTitle': {'fr': 'Bouteilles de gaz', 'en': 'Gas bottles'},
   'gasBottlesAdd': {'fr': 'Ajouter', 'en': 'Add'},
@@ -517,6 +517,7 @@ final _strings = <String, Map<String, String>>{
   'sopDelete': {'fr': 'Supprimer', 'en': 'Delete'},
   'sopDeleteTitle': {'fr': 'Supprimer cette SOP ?', 'en': 'Delete this SOP?'},
   'sopOpen': {'fr': 'Ouvrir le PDF', 'en': 'Open PDF'},
+  'sopDownload': {'fr': 'Télécharger', 'en': 'Download'},
   'sopSave': {'fr': 'Enregistrer', 'en': 'Save'},
   'sopSearch': {'fr': 'Rechercher une SOP', 'en': 'Search a SOP'},
   'sopNoResult': {'fr': 'Aucune SOP trouv\u00e9e', 'en': 'No SOP found'},
