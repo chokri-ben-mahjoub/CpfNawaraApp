@@ -1,3 +1,4 @@
+import '../export/export_table.dart';
 import '../import/analysis_importer.dart';
 
 /// Statut d'un test (standard), d'une feuille ou d'une machine.
@@ -67,6 +68,14 @@ class CalDataset {
   const CalDataset(this.points, this.warnings);
 }
 
+/// Une mesure évaluée.
+class PointResult {
+  final CalPoint point;
+  final double? error; // en % ou en unité selon la tolérance
+  final bool? pass; // null = en attente
+  const PointResult(this.point, this.error, this.pass);
+}
+
 /// Résultat d'un standard (ex. « Buffer 7.01 ») sur toutes ses mesures.
 class StandardResult {
   final String standard;
@@ -74,6 +83,7 @@ class StandardResult {
   final int total, measuredCount, passCount, failCount, pendingCount;
   final double? meanError, worstError, stdDev, drift;
   final int suspectCount;
+  final List<PointResult> readings;
   final CalTolerance tolerance;
   final MachineStatus status;
   final String reason;
@@ -90,6 +100,7 @@ class StandardResult {
     required this.stdDev,
     required this.drift,
     required this.suspectCount,
+    required this.readings,
     required this.tolerance,
     required this.status,
     required this.reason,
@@ -114,6 +125,30 @@ class MachineResult {
   int get failed => _all.fold(0, (a, s) => a + s.failCount);
   int get pending => _all.fold(0, (a, s) => a + s.pendingCount);
   MachineStatus get status => _combine(_all.map((s) => s.status));
+  int get warned => _all.where((s) => s.status == MachineStatus.warning).length;
+
+  /// Taux de conformité des mesures déjà saisies (0–100), null si aucune.
+  double? get conformityRate => measured == 0 ? null : (measured - failed) / measured * 100;
+
+  /// Taux de couverture : part des mesures prévues déjà saisies (0–100).
+  double get coverage => total == 0 ? 0 : measured / total * 100;
+
+  /// Phrase de conclusion et action recommandée.
+  String get verdict => switch (status) {
+        MachineStatus.ok => 'La machine fonctionne bien : toutes les mesures sont conformes.',
+        MachineStatus.warning => 'Conforme mais à surveiller : certaines mesures approchent la limite ou dérivent.',
+        MachineStatus.incomplete => 'Aucun écart, mais le test est incomplet : $pending mesure(s) restent à saisir.',
+        MachineStatus.fault => 'La machine ne fonctionne pas correctement : $failed mesure(s) hors tolérance.',
+        MachineStatus.notTested => "Aucune mesure saisie : la machine n'a pas encore été testée.",
+      };
+
+  String get recommendation => switch (status) {
+        MachineStatus.ok => 'Aucune action. Planifier la prochaine vérification.',
+        MachineStatus.warning => 'Refaire la mesure des standards signalés et surveiller la tendance.',
+        MachineStatus.incomplete => 'Terminer la saisie des mesures en attente pour conclure.',
+        MachineStatus.fault => 'Recalibrer ou contrôler la machine (réactifs, électrode, standard), puis refaire les standards hors tolérance.',
+        MachineStatus.notTested => 'Saisir les mesures dans le classeur puis le réimporter.',
+      };
 }
 
 /// Pire statut mesuré gagne ; si rien n'est mesuré : non testé ; si une partie
@@ -270,6 +305,12 @@ List<MachineResult> evaluateCalibration(List<CalPoint> points, {Map<String, CalT
           stdDev: sd,
           drift: drift,
           suspectCount: suspect,
+          readings: [
+            for (final p in list)
+              p.measured == null
+                  ? PointResult(p, null, null)
+                  : PointResult(p, tol.error(p.reference, p.measured!), tol.passes(p.reference, p.measured!)),
+          ],
           tolerance: tol,
           status: st,
           reason: reason,
@@ -306,3 +347,55 @@ double? _slope(List<double> y) {
   }
   return den == 0 ? null : num / den;
 }
+
+/// Tableaux d'export d'une machine : synthèse, détail par standard, mesures.
+List<ExportTable> machineExportTables(MachineResult m) {
+  return [
+    ExportTable(name: 'Synthèse', headers: const ['Rubrique', 'Valeur'], rows: [
+      ['Machine', m.machine],
+      ['Statut', m.status.label],
+      ['Conclusion', m.verdict],
+      ['Action recommandée', m.recommendation],
+      ['Mesures prévues', m.total],
+      ['Mesures saisies', m.measured],
+      ['Conformes', m.measured - m.failed],
+      ['Hors tolérance', m.failed],
+      ['En attente', m.pending],
+      ['Taux de conformité (%)', m.conformityRate == null ? '' : roundTo(m.conformityRate!, 1)],
+      ['Couverture (%)', roundTo(m.coverage, 1)],
+    ]),
+    ExportTable(
+      name: 'Standards',
+      headers: const ['Feuille', 'Standard', 'Référence', 'Tolérance', 'Statut', 'Saisies', 'OK', 'KO', 'En attente', 'Écart moyen', 'Pire écart', 'Écart-type', 'Commentaire'],
+      rows: [
+        for (final sh in m.sheets)
+          for (final s in sh.standards)
+            [sh.sheet, s.standard, s.reference, s.tolerance.text, s.status.label, s.measuredCount, s.passCount, s.failCount, s.pendingCount,
+              s.meanError == null ? null : roundTo(s.meanError!, 4), s.worstError == null ? null : roundTo(s.worstError!, 4),
+              s.stdDev == null ? null : roundTo(s.stdDev!, 4), s.reason],
+      ],
+    ),
+    ExportTable(
+      name: 'Mesures',
+      headers: const ['Feuille', 'Standard', 'Date', 'Opérateur', 'Référence', 'Mesuré', 'Écart', 'Résultat'],
+      rows: [
+        for (final sh in m.sheets)
+          for (final s in sh.standards)
+            for (final r in s.readings)
+              [sh.sheet, s.standard, r.point.date, r.point.operator, r.point.reference, r.point.measured,
+                r.error == null ? null : roundTo(r.error!, 4), r.pass == null ? 'En attente' : (r.pass! ? 'PASS' : 'FAIL')],
+      ],
+    ),
+  ];
+}
+
+/// Une ligne par machine, pour le rapport global.
+ExportTable allMachinesTable(List<MachineResult> list) => ExportTable(
+      name: 'Machines',
+      headers: const ['Machine', 'Statut', 'Saisies', 'Prévues', 'Hors tolérance', 'En attente', 'Conformité (%)', 'Conclusion'],
+      rows: [
+        for (final m in list)
+          [m.machine, m.status.label, m.measured, m.total, m.failed, m.pending,
+            m.conformityRate == null ? null : roundTo(m.conformityRate!, 1), m.verdict],
+      ],
+    );

@@ -1,16 +1,21 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/export/export_service.dart';
+import '../../../core/export/export_table.dart';
+import '../../../core/l10n/app_strings.dart';
 import '../../../core/machines/machine_test.dart';
+import 'machine_detail_screen.dart';
 
-class MachineTestScreen extends StatefulWidget {
+class MachineTestScreen extends ConsumerStatefulWidget {
   const MachineTestScreen({super.key});
 
   @override
-  State<MachineTestScreen> createState() => _MachineTestScreenState();
+  ConsumerState<MachineTestScreen> createState() => _MachineTestScreenState();
 }
 
-class _MachineTestScreenState extends State<MachineTestScreen> {
+class _MachineTestScreenState extends ConsumerState<MachineTestScreen> {
   final List<CalPoint> _points = [];
   final List<String> _files = [];
   final List<String> _warnings = [];
@@ -47,13 +52,7 @@ class _MachineTestScreenState extends State<MachineTestScreen> {
     }
   }
 
-  Color _color(MachineStatus s) => switch (s) {
-        MachineStatus.ok => Colors.green,
-        MachineStatus.warning => Colors.amber.shade700,
-        MachineStatus.incomplete => Colors.orange,
-        MachineStatus.fault => Colors.red,
-        MachineStatus.notTested => Colors.grey,
-      };
+  Color _color(MachineStatus s) => machineStatusColor(s);
 
   Future<void> _editTolerance(String machine, SheetResult sh) async {
     final cur = sh.standards.first.tolerance;
@@ -95,7 +94,19 @@ class _MachineTestScreenState extends State<MachineTestScreen> {
     final results = evaluateCalibration(_points, overrides: _overrides);
     int count(MachineStatus s) => results.where((r) => r.status == s).length;
     return Scaffold(
-      appBar: AppBar(title: const Text('Test machines')),
+      appBar: AppBar(title: const Text('Test machines'), actions: [
+        if (results.isNotEmpty)
+          IconButton(
+            tooltip: 'Télécharger le rapport de toutes les machines',
+            icon: const Icon(Icons.download),
+            onPressed: () => runExport(
+              context: context,
+              locale: ref.read(localeProvider),
+              baseName: 'test_machines',
+              tables: [allMachinesTable(results), for (final m in results) ...machineExportTables(m).skip(1).take(1).map((t) => ExportTable(name: m.machine.length > 20 ? m.machine.substring(0, 20) : m.machine, headers: t.headers, rows: t.rows))],
+            ),
+          ),
+      ]),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _pick,
         icon: const Icon(Icons.upload_file),
@@ -130,6 +141,22 @@ class _MachineTestScreenState extends State<MachineTestScreen> {
                   title: Text(r.machine),
                   subtitle: Text('${r.status.label} · ${r.measured}/${r.total} mesurées · ${r.failed} hors tolérance'),
                   children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(children: [
+                        Expanded(child: FilledButton.icon(
+                          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => MachineDetailScreen(machine: r))),
+                          icon: const Icon(Icons.open_in_full),
+                          label: const Text('Grand affichage'),
+                        )),
+                        const SizedBox(width: 8),
+                        OutlinedButton.icon(
+                          onPressed: () => exportMachine(context, ref, r),
+                          icon: const Icon(Icons.download),
+                          label: const Text('Télécharger'),
+                        ),
+                      ]),
+                    ),
                     for (final sh in r.sheets) ...[
                       ListTile(
                         dense: true,
