@@ -162,10 +162,7 @@ class _HistoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final overrides = {for (final t in entry.settings.tolerances.entries) toleranceKey(entry.machine, t.key): t.value};
-    final rows = [
-      for (final h in entry.history) (h, evaluateCalibration(h.points, overrides: overrides).first),
-    ];
+    final rows = [for (var i = 0; i < entry.history.length; i++) (entry.history[i], entry.historyResults[i])];
     final rates = [for (final r in rows) r.$2.conformityRate ?? 0.0];
     final fmt = DateFormat('dd/MM/yy HH:mm');
     return Card(

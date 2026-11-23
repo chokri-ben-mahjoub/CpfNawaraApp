@@ -100,19 +100,13 @@ Future<Uint8List> buildMachineCertificatePdf(MachineEntry e, {String labName = '
         pw.TableRow(decoration: const pw.BoxDecoration(color: PdfColors.grey200), children: [
           cell('Import', bold: true), cell('Mesures saisies', bold: true), cell('Statut', bold: true), cell('Conformité', bold: true),
         ]),
-        for (final h in e.history.reversed.take(12)) ...[
-          () {
-            final r = evaluateCalibration(h.points, overrides: {
-              for (final t in e.settings.tolerances.entries) toleranceKey(e.machine, t.key): t.value,
-            }).first;
-            return pw.TableRow(children: [
-              cell(DateFormat('dd/MM/yyyy HH:mm').format(h.importedAt)),
-              cell('${r.measured}/${r.total}'),
-              cell(r.status.label, c: _statusColor(r.status)),
-              cell(r.conformityRate == null ? '-' : '${r.conformityRate!.toStringAsFixed(0)} %'),
-            ]);
-          }(),
-        ],
+        for (var i = e.history.length - 1; i >= 0 && i >= e.history.length - 12; i--)
+          pw.TableRow(children: [
+            cell(DateFormat('dd/MM/yyyy HH:mm').format(e.history[i].importedAt)),
+            cell('${e.historyResults[i].measured}/${e.historyResults[i].total}'),
+            cell(e.historyResults[i].status.label, c: _statusColor(e.historyResults[i].status)),
+            cell(e.historyResults[i].conformityRate == null ? '-' : '${e.historyResults[i].conformityRate!.toStringAsFixed(0)} %'),
+          ]),
       ]),
       pw.SizedBox(height: 36),
       pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [

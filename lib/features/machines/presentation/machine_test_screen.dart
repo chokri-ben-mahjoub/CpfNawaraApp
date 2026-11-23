@@ -8,7 +8,6 @@ import '../../../core/l10n/app_strings.dart';
 import '../../../core/machines/machine_history.dart';
 import '../../../core/machines/machine_schedule.dart';
 import '../../../core/machines/machine_test.dart';
-import '../../../core/notifications/machine_notification_service.dart';
 import 'machine_detail_screen.dart';
 
 class MachineTestScreen extends ConsumerStatefulWidget {
@@ -133,7 +132,6 @@ class _MachineTestScreenState extends ConsumerState<MachineTestScreen> {
     final async = ref.watch(machineHistoryProvider);
     final entries = async.valueOrNull ?? const <MachineEntry>[];
     final alerts = buildMachineAlerts(entries);
-    if (alerts.isNotEmpty) MachineNotificationService.notify(alerts);
     int count(MachineStatus s) => entries.where((e) => e.result.status == s).length;
     final results = [for (final e in entries) e.result];
 

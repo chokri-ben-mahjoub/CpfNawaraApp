@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,6 +6,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
 import '../data/local_database.dart';
+import '../notifications/machine_notification_service.dart';
 import 'machine_schedule.dart';
 import 'machine_test.dart';
 
@@ -44,6 +46,10 @@ class MachineSettings {
   final int intervalDays;
   final Map<String, CalTolerance> tolerances; // clé = feuille
   const MachineSettings({this.intervalDays = defaultCalibrationIntervalDays, this.tolerances = const {}});
+
+  Map<String, CalTolerance> toleranceOverrides(String machine) => {
+        for (final e in tolerances.entries) toleranceKey(machine, e.key): e.value,
+      };
 }
 
 /// État courant d'une machine : dernier import évalué + échéance + historique.
@@ -53,7 +59,17 @@ class MachineEntry {
   final MachineSettings settings;
   final DueInfo due;
   final List<MachineSnapshot> history; // du plus ancien au plus récent
-  const MachineEntry(this.latest, this.result, this.settings, this.due, this.history);
+
+  /// Résultat de chaque import de [history], calculé une fois au chargement
+  /// (vide = à calculer à la demande, voir [historyResults]).
+  final List<MachineResult> _historyCache;
+  const MachineEntry(this.latest, this.result, this.settings, this.due, this.history, [this._historyCache = const []]);
+
+  /// Résultats évalués de chaque import (avec les tolérances de la machine),
+  /// sans recalcul à chaque affichage.
+  List<MachineResult> get historyResults => _historyCache.length == history.length
+      ? _historyCache
+      : [for (final h in history) evaluateCalibration(h.points, overrides: settings.toleranceOverrides(machine)).first];
   String get machine => latest.machine;
 }
 
@@ -135,14 +151,16 @@ class MachineHistoryController extends StateNotifier<AsyncValue<List<MachineEntr
         final hist = byMachine[m]!;
         final latest = hist.last;
         final st = settings[m] ?? const MachineSettings();
-        final result = evaluateCalibration(latest.points, overrides: {
-          for (final e in st.tolerances.entries) toleranceKey(m, e.key): e.value,
-        }).first;
+        final overrides = st.toleranceOverrides(m);
+        final histResults = [for (final h in hist) evaluateCalibration(h.points, overrides: overrides).first];
+        final result = histResults.last;
         // Dernière calibration = la plus récente de tout l'historique.
         final last = hist.map((s) => s.lastCalibration).whereType<DateTime>().fold<DateTime?>(null, (a, b) => a == null || b.isAfter(a) ? b : a);
-        entries.add(MachineEntry(latest, result, st, computeDue(last, st.intervalDays, now), hist));
+        entries.add(MachineEntry(latest, result, st, computeDue(last, st.intervalDays, now), hist, histResults));
       }
       state = AsyncValue.data(entries);
+      // Alertes : notifiées une fois par alerte, ici et non à chaque affichage.
+      unawaited(MachineNotificationService.notify(buildMachineAlerts(entries)));
     } catch (e, st) {
       state = AsyncValue.error(e, st);
     }
