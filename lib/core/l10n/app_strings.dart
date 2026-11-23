@@ -455,7 +455,7 @@ final _strings = <String, Map<String, String>>{
   'wellsManageEmpty': {'fr': 'Aucun puits pour le moment.', 'en': 'No wells yet.'},
 
   // Stock (articles, mouvements, alerte de seuil bas)
-  'stockTitle': {'fr': 'Stock', 'en': 'Stock'},
+  'stockTitle': {'fr': 'Suivi des produits chimiques', 'en': 'Laboratory Chemicals and Tools Follow-Up'},
   'gasMinPressure': {'fr': 'Seuil pression basse', 'en': 'Low pressure threshold'},
   'gasMinPressureHint': {'fr': '0 = pas d\u2019alerte', 'en': '0 = no alert'},
   'gasLowBadge': {'fr': 'Pression basse', 'en': 'Low pressure'},

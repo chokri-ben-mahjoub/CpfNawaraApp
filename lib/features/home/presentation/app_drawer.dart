@@ -66,7 +66,7 @@ class AppDrawer extends ConsumerWidget {
         const _DrawerHeader(),
         _SectionLabel(s('drawerNavigation')),
         for (final (icon, selectedIcon, key) in homeDestinations)
-          NavigationDrawerDestination(icon: Icon(icon), selectedIcon: Icon(selectedIcon), label: Text(s(key))),
+          NavigationDrawerDestination(icon: Icon(icon), selectedIcon: Icon(selectedIcon), label: Text(s(key), maxLines: 2, overflow: TextOverflow.ellipsis)),
         const Padding(padding: EdgeInsets.fromLTRB(28, 12, 28, 4), child: Divider()),
         _SectionLabel(s('drawerTools')),
         for (final (icon, key, route) in homeShortcuts(role))

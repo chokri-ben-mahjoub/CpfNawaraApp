@@ -21,7 +21,7 @@ class LocalDatabase {
   static final LocalDatabase instance = LocalDatabase._();
 
   /// Version du schéma (voir `onUpgrade`), enregistrée dans les sauvegardes.
-  static const schemaVersion = 36;
+  static const schemaVersion = 37;
 
   /// Tables sauvegardées / restaurées / synchronisées.
   static const dataTables = [
@@ -378,7 +378,7 @@ class LocalDatabase {
             // Titre (légende) de la photo jointe à une analyse.
             await db.execute('alter table plant_analyses add column photo_title text');
           }
-          if (oldVersion < 36) {
+          if (oldVersion < 37) {
             // Procédures d'analyse (SOP).
             await _createSopsTable(db);
           }
@@ -399,12 +399,23 @@ class LocalDatabase {
             // Heure de prélèvement de chaque échantillon (« HH:mm »).
             await db.execute("alter table sample_manifest add column sampling_time text not null default ''");
           }
+          if (oldVersion >= 13 && oldVersion < 36) {
+            // Conditionnement d'un article de stock (ex: "5L", "100 bag"),
+            // distinct de l'unité (L, bag...) — classeur de suivi mensuel.
+            await db.execute("alter table stock_items add column packaging text not null default ''");
+          }
         },
         // Auto-réparation : une base déjà en version 36 (ouverte par une autre
         // version de l'app) peut ne pas avoir la table des SOP. `if not exists`
         // rend l'appel sans effet quand elle est là.
         onOpen: (db) async {
           await _createSopsTable(db);
+          // Une version intermédiaire de l'app utilisait déjà « 36 » sans la
+          // colonne de conditionnement : on la rajoute si elle manque.
+          final cols = await db.rawQuery('pragma table_info(stock_items)');
+          if (cols.isNotEmpty && !cols.any((c) => c['name'] == 'packaging')) {
+            await db.execute("alter table stock_items add column packaging text not null default ''");
+          }
         },
       ),
     );
@@ -598,6 +609,7 @@ class LocalDatabase {
         consumption_override real,
         expiry_date text,
         zone text not null default '',
+        packaging text not null default '',
         updated_at integer not null default 0,
         dirty integer not null default 0
       )
@@ -770,7 +782,7 @@ class LocalDatabase {
     if (fromVersion < 30) {
       await _createSampleManifestTable(db);
     }
-    if (fromVersion < 36) {
+    if (fromVersion < 37) {
       await _createSopsTable(db);
     }
     if (fromVersion < 20) {
