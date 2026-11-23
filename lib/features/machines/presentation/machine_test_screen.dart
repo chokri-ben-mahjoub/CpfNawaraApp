@@ -192,6 +192,19 @@ class _MachineTestScreenState extends ConsumerState<MachineTestScreen> {
                       Chip(avatar: CircleAvatar(backgroundColor: machineStatusColor(s), radius: 6), label: Text('${s.label} : ${count(s)}')),
                   ]),
                   const SizedBox(height: 8),
+                  Builder(builder: (_) {
+                    final measured = results.fold<int>(0, (a, r) => a + r.measured);
+                    final failed = results.fold<int>(0, (a, r) => a + r.failed);
+                    final overdue = entries.where((e) => e.due.state == DueState.overdue).length;
+                    final rate = measured == 0 ? '—' : '${((measured - failed) / measured * 100).toStringAsFixed(0)} %';
+                    return Card(
+                      child: ListTile(
+                        leading: const Icon(Icons.dashboard_outlined),
+                        title: Text('Conformité globale : $rate'),
+                        subtitle: Text('${entries.length} machine(s) · $measured mesure(s) saisie(s) · $failed hors tolérance · $overdue recalibration(s) en retard'),
+                      ),
+                    );
+                  }),
                 ],
                 for (final e in entries)
                   Card(
