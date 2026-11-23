@@ -330,6 +330,13 @@ Widget _app(
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
+        // L'animation de flux du schéma de l'usine tourne en boucle : on la
+        // coupe (l'app respecte « réduire les animations ») pour que
+        // pumpAndSettle se termine.
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(disableAnimations: true),
+          child: child!,
+        ),
         home: home,
       ),
     );

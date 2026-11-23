@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:puitstrack/core/data/local_database.dart';
 import 'package:puitstrack/core/sync/sync_engine.dart';
@@ -28,15 +30,22 @@ void main() {
     });
   });
 
-  test('une base déjà en v36 sans table sops la reçoit à l\'ouverture', () async {
+  test('base déjà notée v37 mais sans table sops ni colonne packaging : réparée à la réouverture', () async {
     sqfliteFfiInit();
-    final db = await LocalDatabase.openAt(inMemoryDatabasePath, factory: databaseFactoryFfi);
+    final dir = await Directory.systemTemp.createTemp('puits_heal');
+    addTearDown(() => dir.delete(recursive: true));
+    final path = '${dir.path}/heal.db';
+
+    var db = await LocalDatabase.openAt(path, factory: databaseFactoryFfi);
+    // Simule une base ouverte par une version intermédiaire de l'app.
     await db.execute('drop table sops');
+    await db.execute('alter table stock_items drop column packaging');
+    expect((await db.rawQuery('pragma table_info(stock_items)')).map((c) => c['name']), isNot(contains('packaging')));
     await db.close();
-    // Ouverture d'une base neuve : la table doit exister (création + onOpen).
-    final fresh = await LocalDatabase.openAt(inMemoryDatabasePath, factory: databaseFactoryFfi);
-    final cols = await fresh.rawQuery('pragma table_info(sops)');
-    expect(cols.map((c) => c['name']), contains('file_name'));
-    await fresh.close();
+
+    db = await LocalDatabase.openAt(path, factory: databaseFactoryFfi);
+    expect((await db.rawQuery('pragma table_info(sops)')).map((c) => c['name']), contains('file_name'));
+    expect((await db.rawQuery('pragma table_info(stock_items)')).map((c) => c['name']), contains('packaging'));
+    await db.close();
   });
 }

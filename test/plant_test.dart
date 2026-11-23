@@ -137,7 +137,9 @@ void main() {
   test('schémas : positions par défaut, déplacées, retirées', () {
     final c1 = seededPlant(today).point('pp_c1')!;
     final pfd = PlantSchema.builtIn;
-    expect(pfd.positionOf(c1), const Offset(376 / 1000, 180 / 560));
+    // Position par défaut : celle du catalogue du schéma, ramenée à la taille du canevas.
+    final base = pfdDefaultPositions['C1']!;
+    expect(pfd.positionOf(c1), Offset(base.dx / pfdCanvasSize.width, base.dy / pfdCanvasSize.height));
     expect(pfd.copyWith(positions: {'pp_c1': const Offset(0.1, 0.2)}).positionOf(c1), const Offset(0.1, 0.2));
     expect(pfd.copyWith(positions: {'pp_c1': null}).positionOf(c1), isNull);
     final blank = PlantSchema(id: 'x', name: 'x', kind: PlantSchemaKind.blank);
