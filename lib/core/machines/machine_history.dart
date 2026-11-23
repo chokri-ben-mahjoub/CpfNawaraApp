@@ -211,6 +211,39 @@ class MachineHistoryController extends StateNotifier<AsyncValue<List<MachineEntr
     return ImportReport(added, unchanged, warnings);
   }
 
+  /// Saisie directe d'une mesure (ou correction) : crée un nouvel instantané
+  /// à partir du dernier, avec la valeur de la [index]-ième mesure du standard.
+  /// [value] null = efface la mesure. L'historique des imports est conservé.
+  Future<bool> recordMeasurement(String machine, String sheet, String standard, int index, double? value) async {
+    final entry = state.valueOrNull?.where((e) => e.machine == machine).firstOrNull;
+    if (entry == null) return false;
+    final now = DateTime.now();
+    final points = [...entry.latest.points];
+    var seen = -1;
+    var changed = false;
+    for (var i = 0; i < points.length; i++) {
+      final p = points[i];
+      if (p.sheet != sheet || p.standard != standard) continue;
+      if (++seen != index) continue;
+      points[i] = CalPoint(p.machine, p.sheet, p.standard, p.reference, value, value == null ? null : now, p.operator);
+      changed = true;
+      break;
+    }
+    if (!changed) return false;
+    final payload = _encodePoints(points);
+    final db = await _db;
+    await db.insert('machine_snapshots', {
+      'id': 'ms_${_uuid.v4()}',
+      'machine': machine,
+      'imported_at': now.millisecondsSinceEpoch,
+      'last_cal_ms': lastCalibrationOf(points, now)?.millisecondsSinceEpoch,
+      'hash': contentHash(payload),
+      'payload': payload,
+    });
+    await load();
+    return true;
+  }
+
   Future<void> _ensureSettings(String machine) async {
     final db = await _db;
     await db.insert('machine_settings', {'machine': machine}, conflictAlgorithm: ConflictAlgorithm.ignore);

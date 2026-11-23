@@ -130,7 +130,7 @@ class MachineDetailScreen extends ConsumerWidget {
                 label: Text('${sh.status.label} · ${sh.standards.first.tolerance.text}'),
               ),
             ]),
-            for (final s in sh.standards) _StandardCard(s),
+            for (final s in sh.standards) _StandardCard(s, machine: m.machine, sheet: sh.sheet),
           ],
         ],
       ),
@@ -194,14 +194,46 @@ class _HistoryCard extends StatelessWidget {
   }
 }
 
-class _StandardCard extends StatelessWidget {
+class _StandardCard extends ConsumerWidget {
   final StandardResult s;
-  const _StandardCard(this.s);
+  final String machine, sheet;
+  const _StandardCard(this.s, {required this.machine, required this.sheet});
+
+  /// Saisie ou correction de la mesure n° [i] du standard.
+  Future<void> _edit(BuildContext context, WidgetRef ref, int i) async {
+    final cur = s.readings[i].point.measured;
+    final c = TextEditingController(text: cur?.toString() ?? '');
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('${s.standard} - mesure ${i + 1}'),
+        content: TextField(
+          controller: c,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+          decoration: InputDecoration(labelText: 'Valeur mesurée', helperText: 'Référence ${s.reference} · tolérance ${s.tolerance.text}. Vide = effacer.'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Enregistrer')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    final text = c.text.trim();
+    final v = text.isEmpty ? null : double.tryParse(text.replaceAll(',', '.'));
+    if (text.isNotEmpty && v == null) {
+      messenger.showSnackBar(const SnackBar(content: Text('Valeur invalide')));
+      return;
+    }
+    await ref.read(machineHistoryProvider.notifier).recordMeasurement(machine, sheet, s.standard, i, v);
+  }
 
   String _n(double? v) => v == null ? '—' : v.toStringAsFixed(3);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final color = machineStatusColor(s.status);
     final theme = Theme.of(context);
     final done = s.readings.where((r) => r.error != null).toList();
@@ -242,6 +274,7 @@ class _StandardCard extends StatelessWidget {
           ],
           if (s.readings.length <= 40) ...[
             const SizedBox(height: 8),
+            Text('Touchez une ligne pour saisir ou corriger la mesure.', style: theme.textTheme.bodySmall),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: DataTable(
@@ -252,7 +285,7 @@ class _StandardCard extends StatelessWidget {
                 columns: const [DataColumn(label: Text('#')), DataColumn(label: Text('Mesuré')), DataColumn(label: Text('Écart')), DataColumn(label: Text('Résultat'))],
                 rows: [
                   for (var i = 0; i < s.readings.length; i++)
-                    DataRow(cells: [
+                    DataRow(onSelectChanged: (_) => _edit(context, ref, i), cells: [
                       DataCell(Text('${i + 1}')),
                       DataCell(Text(s.readings[i].point.measured?.toString() ?? '—')),
                       DataCell(Text(_n(s.readings[i].error))),
