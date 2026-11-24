@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:sqflite/sqflite.dart';
 
 import '../data/local_database.dart';
@@ -300,6 +302,17 @@ class SyncEngine {
   static bool _isImage(String v) =>
       v.startsWith('data:image') || (v.length > 200 && RegExp(r'^[A-Za-z0-9+/=\s]+$').hasMatch(v));
 
+  static Map<String, Object?>? _jsonMap(String v) {
+    if (v.isEmpty) return const {};
+    if (!v.startsWith('{')) return null;
+    try {
+      final d = jsonDecode(v);
+      return d is Map ? {for (final e in d.entries) '${e.key}': e.value is Map || e.value is List ? jsonEncode(e.value) : e.value} : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   static String _short(String v) => _isImage(v) ? '[image]' : (v.length > 60 ? '${v.substring(0, 57)}…' : v);
 
   /// Champs qui diffèrent entre la version du serveur et la ligne locale.
@@ -309,7 +322,17 @@ class SyncEngine {
       if (_auditIgnored.contains(key)) continue;
       final a = _norm(before[key]);
       final b = _norm(after[key]);
-      if (a != b) out.add(AuditChange(key, _short(a), _short(b)));
+      if (a == b) continue;
+      final ma = _jsonMap(a), mb = _jsonMap(b);
+      if (ma != null && mb != null) {
+        // Valeurs JSON (ex: relevés d'une tournée) : un changement par champ.
+        for (final k in {...ma.keys, ...mb.keys}) {
+          final x = _norm(ma[k]), y = _norm(mb[k]);
+          if (x != y) out.add(AuditChange(k, _short(x), _short(y)));
+        }
+        continue;
+      }
+      out.add(AuditChange(key, _short(a), _short(b)));
     }
     return out;
   }

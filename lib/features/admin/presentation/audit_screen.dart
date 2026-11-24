@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../core/export/export_service.dart';
 import '../../../core/export/export_table.dart';
 import '../../../core/l10n/app_strings.dart';
+import '../../../core/models/well_round.dart';
 import '../../../core/sync/firebase_rest.dart';
 import '../../../core/sync/sync_service.dart';
 import '../../../core/team/team_service.dart';
@@ -93,6 +94,12 @@ bool auditIsImageChange(AuditChange c) {
 String auditFieldLabel(String key, String Function(String) t) {
   final translated = t('auditField_$key');
   if (translated != 'auditField_$key') return translated;
+  for (final f in [...wellRoundFields, ...siteRoundFields]) {
+    if (f.key == key) {
+      final label = t(f.labelKey);
+      if (label != f.labelKey) return f.unit.isEmpty ? label : '$label (${f.unit})';
+    }
+  }
   final spaced = key.replaceAll('_', ' ').trim();
   return spaced.isEmpty ? key : spaced[0].toUpperCase() + spaced.substring(1);
 }
