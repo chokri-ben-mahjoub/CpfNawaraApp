@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import '../../../core/widgets/app_toast.dart';
 import 'package:flutter_email_sender/flutter_email_sender.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
@@ -127,7 +128,7 @@ class _ReportSendSheetState extends ConsumerState<_ReportSendSheet> {
     return kb >= 1024 ? '${(kb / 1024).toStringAsFixed(1)} Mo' : '${kb.toStringAsFixed(0)} Ko';
   }
 
-  void _toast(String message) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  void _toast(String message) => AppToast.show(message, type: ToastType.info);
 
   Future<String> _writeTempFile() async {
     final dir = await getTemporaryDirectory();

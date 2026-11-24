@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/widgets/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/shared_config.dart';
@@ -177,8 +178,7 @@ class _PointThresholdsState extends ConsumerState<_PointThresholds> {
     }
     if (!mounted) return;
     setState(() => _saving = false);
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(tr(ref.read(localeProvider), 'thresholdsSaved'))));
+    AppToast.show(tr(ref.read(localeProvider), 'thresholdsSaved'), type: ToastType.success);
   }
 
   String? _validate(_Row r, String Function(String) s) {

@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import '../../../core/widgets/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/export/export_service.dart';
@@ -47,7 +48,7 @@ class _MachineTestScreenState extends ConsumerState<MachineTestScreen> {
         duration: const Duration(seconds: 5),
       ));
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Lecture impossible : $e')));
+      AppToast.show('Lecture impossible : $e', type: ToastType.error);
     }
   }
 

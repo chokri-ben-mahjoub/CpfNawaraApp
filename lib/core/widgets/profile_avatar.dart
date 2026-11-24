@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -119,7 +120,6 @@ Future<void> showProfilePhotoSheet(BuildContext context, WidgetRef ref) async {
   );
   if (choice == null || !context.mounted) return;
   final controller = ref.read(profileProvider.notifier);
-  final messenger = ScaffoldMessenger.of(context);
   final sync = ref.read(syncControllerProvider.notifier);
   if (choice == 'remove') {
     await controller.setPhoto(null);
@@ -137,7 +137,7 @@ Future<void> showProfilePhotoSheet(BuildContext context, WidgetRef ref) async {
       ),
     );
   } catch (_) {
-    messenger.showSnackBar(SnackBar(content: Text(s('profilePhotoError'))));
+    AppToast.show(s('profilePhotoError'), type: ToastType.error);
     return;
   }
   if (file == null || !context.mounted) return;
@@ -145,11 +145,11 @@ Future<void> showProfilePhotoSheet(BuildContext context, WidgetRef ref) async {
   if (!context.mounted) return;
   final photo = await runWithLoading(context, s('profilePhotoLoading'), () => compute(compressProfilePhoto, bytes));
   if (photo == null) {
-    messenger.showSnackBar(SnackBar(content: Text(s('profilePhotoError'))));
+    AppToast.show(s('profilePhotoError'), type: ToastType.error);
     return;
   }
   await controller.setPhoto(photo);
   // Aussi sur la fiche de membre : visible sur les autres appareils du compte.
   unawaited(sync.syncProfilePhoto());
-  messenger.showSnackBar(SnackBar(content: Text(s('profilePhotoSaved'))));
+  AppToast.show(s('profilePhotoSaved'), type: ToastType.success);
 }

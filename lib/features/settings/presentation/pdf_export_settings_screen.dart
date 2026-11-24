@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import '../../../core/widgets/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/auth/auth_providers.dart';
@@ -506,14 +507,13 @@ class _PdfExportSettingsScreenState
             onChanged: (v) => _update(_cfg.copyWith(style: v)),
             onReset: () {
               _update(_cfg.copyWith(style: PdfStyleSet.defaults));
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s('pdfStyleResetDone'))));
+              AppToast.show(s('pdfStyleResetDone'), type: ToastType.success);
             },
             onApplyAll: () async {
-              final messenger = ScaffoldMessenger.of(context);
               await _cfg.save();
               await PdfExportSettings.applyStyleToAll(_cfg.style);
               await _load(_kind, circuitId: _circuitId);
-              messenger.showSnackBar(SnackBar(content: Text(s('pdfStyleAppliedAll'))));
+              AppToast.show(s('pdfStyleAppliedAll'), type: ToastType.success);
             },
           ),
         ]),

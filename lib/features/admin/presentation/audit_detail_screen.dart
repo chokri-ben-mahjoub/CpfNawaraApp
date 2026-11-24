@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/widgets/app_toast.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -170,8 +171,7 @@ class AuditDetailScreen extends ConsumerWidget {
             InkWell(
               onTap: () {
                 Clipboard.setData(ClipboardData(text: value));
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(SnackBar(content: Text(t('auditCopied'))));
+                AppToast.show(t('auditCopied'), type: ToastType.success);
               },
               child: Padding(
                 padding: const EdgeInsets.only(left: 6),
@@ -259,8 +259,7 @@ class AuditDetailScreen extends ConsumerWidget {
             icon: const Icon(Icons.copy_all_rounded),
             onPressed: () {
               Clipboard.setData(ClipboardData(text: summary()));
-              ScaffoldMessenger.of(context)
-                  .showSnackBar(SnackBar(content: Text(t('auditCopied'))));
+              AppToast.show(t('auditCopied'), type: ToastType.success);
             },
           ),
         ],

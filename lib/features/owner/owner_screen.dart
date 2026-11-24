@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/widgets/app_toast.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -72,7 +73,7 @@ class _OwnerScreenState extends ConsumerState<OwnerScreen> {
 
   Future<void> _sendVerification() => _run(() async {
     await _controller.sendOwnerVerification();
-    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s('ownerVerifySent'))));
+    if (mounted) AppToast.show(s('ownerVerifySent'), type: ToastType.success);
   });
 
   Future<void> _newCode() async {
@@ -127,7 +128,7 @@ class _OwnerScreenState extends ConsumerState<OwnerScreen> {
           onPressed: () async {
             await Clipboard.setData(ClipboardData(text: _message(code)));
             if (dialogContext.mounted) {
-              ScaffoldMessenger.of(dialogContext).showSnackBar(SnackBar(content: Text(s('inviteCopied'))));
+              AppToast.show(s('inviteCopied'), type: ToastType.success);
             }
           },
           icon: const Icon(Icons.copy),

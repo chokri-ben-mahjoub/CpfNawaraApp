@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import '../../../../core/widgets/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/auth/app_lock.dart';
@@ -152,7 +153,6 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
     final controller = ref.read(stockControllerProvider.notifier);
     final locale = ref.read(localeProvider);
     String s(String key) => tr(locale, key);
-    final messenger = ScaffoldMessenger.of(context);
 
     final threshold = parseDecimal(_thresholdController.text) ?? 0;
     final prev = parseDecimal(_prevController.text);
@@ -178,7 +178,7 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
         consumptionOverride: consumption,
         expiryDate: _expiryDate,
       );
-      messenger.showSnackBar(SnackBar(content: Text(s('stockItemAdded'))));
+      AppToast.show(s('stockItemAdded'), type: ToastType.success);
     } else {
       await controller.updateItem(
         widget.existing!.copyWith(
@@ -205,7 +205,7 @@ class _StockItemFormSheetState extends ConsumerState<StockItemFormSheet> {
           clearExpiryDate: _expiryDate == null,
         ),
       );
-      messenger.showSnackBar(SnackBar(content: Text(s('stockItemUpdated'))));
+      AppToast.show(s('stockItemUpdated'), type: ToastType.success);
     }
     if (mounted) Navigator.of(context).pop();
   }

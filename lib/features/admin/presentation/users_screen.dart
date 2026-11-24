@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import '../../../core/widgets/app_toast.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -106,7 +107,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
       await controller.team!.deleteInvite(session, company.id, invite.code);
       await _load();
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s(teamErrorKey(e)))));
+      if (mounted) AppToast.show(s(teamErrorKey(e)), type: ToastType.error);
     }
   }
 
@@ -132,7 +133,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
       await controller.team!.renameCompany(session, company, name);
       await controller.refreshMember();
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s(teamErrorKey(e)))));
+      if (mounted) AppToast.show(s(teamErrorKey(e)), type: ToastType.error);
     }
   }
 
@@ -378,7 +379,7 @@ Future<void> showInviteDialog(BuildContext context, Invite invite) => showDialog
             onPressed: () async {
               await Clipboard.setData(ClipboardData(text: message));
               if (dialogContext.mounted) {
-                ScaffoldMessenger.of(dialogContext).showSnackBar(SnackBar(content: Text(t('inviteCopied'))));
+                AppToast.show(t('inviteCopied'), type: ToastType.success);
               }
             },
             icon: const Icon(Icons.copy_rounded, size: 18),
@@ -667,12 +668,11 @@ class _MemberFormState extends ConsumerState<_MemberForm> {
   }
 
   Future<void> _resetPassword() async {
-    final messenger = ScaffoldMessenger.of(context);
     try {
       await ref.read(syncControllerProvider.notifier).sendPasswordReset(widget.existing!.email);
-      messenger.showSnackBar(SnackBar(content: Text(fill(s('usersResetSent'), {'email': widget.existing!.email}))));
+      AppToast.show(fill(s('usersResetSent'), {'email': widget.existing!.email}), type: ToastType.success);
     } catch (_) {
-      messenger.showSnackBar(SnackBar(content: Text(s('syncErrorServer'))));
+      AppToast.show(s('syncErrorServer'), type: ToastType.error);
     }
   }
 

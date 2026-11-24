@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/widgets/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -245,7 +246,6 @@ class _GasBottleFormSheetState extends ConsumerState<_GasBottleFormSheet> {
     final controller = ref.read(gasBottleControllerProvider.notifier);
     final locale = ref.read(localeProvider);
     String s(String key) => tr(locale, key);
-    final messenger = ScaffoldMessenger.of(context);
     final pressure = double.tryParse(_pressure.text.trim().replaceAll(',', '.')) ?? 0;
     final minPressure = double.tryParse(_minPressure.text.trim().replaceAll(',', '.')) ?? 0;
 
@@ -257,7 +257,7 @@ class _GasBottleFormSheetState extends ConsumerState<_GasBottleFormSheet> {
         minPressure: minPressure,
         location: _location.text.trim(),
       );
-      messenger.showSnackBar(SnackBar(content: Text(s('gasBottlesAdded'))));
+      AppToast.show(s('gasBottlesAdded'), type: ToastType.success);
     } else {
       await controller.update(
         widget.existing!.copyWith(
@@ -268,7 +268,7 @@ class _GasBottleFormSheetState extends ConsumerState<_GasBottleFormSheet> {
           location: _location.text.trim(),
         ),
       );
-      messenger.showSnackBar(SnackBar(content: Text(s('gasBottlesUpdated'))));
+      AppToast.show(s('gasBottlesUpdated'), type: ToastType.success);
     }
     if (mounted) Navigator.of(context).pop();
   }

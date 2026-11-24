@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/widgets/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -147,8 +148,7 @@ class _PlantBatchEntryScreenState extends ConsumerState<PlantBatchEntryScreen> {
     }
     if (!mounted) return;
     if (saved == 0) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(tr(locale, 'plantEntryEmpty'))));
+      AppToast.show(tr(locale, 'plantEntryEmpty'), type: ToastType.warning);
       return;
     }
     context.pop();

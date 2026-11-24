@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/widgets/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
@@ -159,7 +160,7 @@ class _AnalysisTypeFormState extends ConsumerState<_AnalysisTypeForm> {
     await ref.read(wellsControllerProvider.notifier).deleteAnalysisType(widget.existing!.id);
     if (mounted) {
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s('adminTypeDeleted'))));
+      AppToast.show(s('adminTypeDeleted'), type: ToastType.success);
     }
   }
 
@@ -198,7 +199,7 @@ class _AnalysisTypeFormState extends ConsumerState<_AnalysisTypeForm> {
   }
 
   void _showSnack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    AppToast.show(message, type: ToastType.info);
   }
 
   @override

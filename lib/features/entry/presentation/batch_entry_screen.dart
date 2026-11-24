@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../../../core/widgets/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -78,7 +79,7 @@ class _BatchEntryScreenState extends ConsumerState<BatchEntryScreen> {
           (type, double.parse(_controllers[type.id]!.text.trim().replaceAll(',', '.'))),
     ];
     if (entries.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s('entryBatchEmpty'))));
+      AppToast.show(s('entryBatchEmpty'), type: ToastType.warning);
       return;
     }
 

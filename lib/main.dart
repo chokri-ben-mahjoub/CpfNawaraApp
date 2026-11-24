@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'core/widgets/app_toast.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -134,7 +135,7 @@ class _SuiviPuitsAppState extends ConsumerState<SuiviPuitsApp> with WidgetsBindi
       builder: (context, child) => MediaQuery.withClampedTextScaling(
         minScaleFactor: 0.9,
         maxScaleFactor: 1.25,
-        child: AppUpdateBanner(child: FadeInOnce(child: child ?? const SizedBox.shrink())),
+        child: AppToastHost(child: AppUpdateBanner(child: FadeInOnce(child: child ?? const SizedBox.shrink()))),
       ),
     );
   }

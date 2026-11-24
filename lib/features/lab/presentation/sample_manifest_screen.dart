@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/widgets/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/l10n/app_strings.dart';
@@ -62,9 +63,8 @@ class SampleManifestScreen extends ConsumerWidget {
 
     final controller = ref.read(sampleManifestControllerProvider(day).notifier);
     Future<void> copyPreviousDay() async {
-      final messenger = ScaffoldMessenger.of(context);
       final n = await controller.copyFromDay(day.subtract(const Duration(days: 1)));
-      messenger.showSnackBar(SnackBar(content: Text(n == 0 ? s('sampleCopyNone') : '$n ${s('sampleCopyDone')}')));
+      AppToast.show(n == 0 ? s('sampleCopyNone') : '$n ${s('sampleCopyDone')}', type: ToastType.warning);
     }
 
     Widget pill(SampleManifestEntry e) => _SampleStatusPill(
@@ -234,7 +234,6 @@ class _SampleFormSheetState extends ConsumerState<_SampleFormSheet> {
     final controller = ref.read(sampleManifestControllerProvider(widget.day).notifier);
     final locale = ref.read(localeProvider);
     String s(String key) => tr(locale, key);
-    final messenger = ScaffoldMessenger.of(context);
     final quantity = int.tryParse(_quantity.text.trim()) ?? 1;
 
     if (_isNew) {
@@ -246,7 +245,7 @@ class _SampleFormSheetState extends ConsumerState<_SampleFormSheet> {
         cpfCode: _cpfCode.text.trim(),
         samplingTime: _samplingTime.text.trim(),
       );
-      messenger.showSnackBar(SnackBar(content: Text(s('sampleManifestAdded'))));
+      AppToast.show(s('sampleManifestAdded'), type: ToastType.success);
     } else {
       await controller.update(
         widget.existing!.copyWith(
@@ -258,7 +257,7 @@ class _SampleFormSheetState extends ConsumerState<_SampleFormSheet> {
           samplingTime: _samplingTime.text.trim(),
         ),
       );
-      messenger.showSnackBar(SnackBar(content: Text(s('sampleManifestUpdated'))));
+      AppToast.show(s('sampleManifestUpdated'), type: ToastType.success);
     }
     if (mounted) Navigator.of(context).pop();
   }

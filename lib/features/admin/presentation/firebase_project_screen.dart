@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import '../../../core/widgets/app_toast.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -166,7 +167,7 @@ class _FirebaseProjectScreenState extends ConsumerState<FirebaseProjectScreen> {
               onPressed: () async {
                 await Clipboard.setData(ClipboardData(text: const JsonEncoder.withIndent('  ').convert(config.toJson())));
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t('projectConfigCopied'))));
+                  AppToast.show(t('projectConfigCopied'), type: ToastType.success);
                 }
               },
               icon: const Icon(Icons.copy_rounded, size: 18),
@@ -246,7 +247,7 @@ class _FirebaseProjectScreenState extends ConsumerState<FirebaseProjectScreen> {
               onPressed: () async {
                 await Clipboard.setData(const ClipboardData(text: firestoreRules));
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t('rulesCopied'))));
+                  AppToast.show(t('rulesCopied'), type: ToastType.success);
                 }
               },
               icon: const Icon(Icons.copy_rounded, size: 18),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/app_toast.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
@@ -54,11 +55,10 @@ Future<void> runExport({
   String? pdfHeaderName,
 }) async {
   String s(String key) => tr(locale, key);
-  final messenger = ScaffoldMessenger.of(context);
   final nonEmpty = tables.where((t) => !t.isEmpty).toList();
 
   if (nonEmpty.isEmpty) {
-    messenger.showSnackBar(SnackBar(content: Text(s('exportEmpty'))));
+    AppToast.show(s('exportEmpty'), type: ToastType.warning);
     return;
   }
 
@@ -99,11 +99,11 @@ Future<void> exportWithChoice({
   final messenger = ScaffoldMessenger.of(context);
   final nonEmpty = tables.where((t) => !t.isEmpty).toList();
   if (nonEmpty.isEmpty) {
-    messenger.showSnackBar(SnackBar(content: Text(s('exportEmpty'))));
+    AppToast.show(s('exportEmpty'), type: ToastType.warning);
     return;
   }
 
-  messenger.showSnackBar(SnackBar(content: Text(s('exportStarted')), duration: const Duration(seconds: 1)));
+  AppToast.show(s('exportStarted'), type: ToastType.success);
   final pretty = prettyExportName(baseName);
   final safeBase = _safeFileName(pretty);
   final suffix = timestamp ? '_${DateFormat('yyyyMMdd_HHmm').format(DateTime.now())}' : '';
@@ -149,7 +149,7 @@ Future<void> exportWithChoice({
                   onPressed: () async {
                     final opened = await DownloadSaver.open(saved.first);
                     if (!opened) {
-                      messenger.showSnackBar(SnackBar(content: Text(s('exportNoAppToOpen'))));
+                      AppToast.show(s('exportNoAppToOpen'), type: ToastType.error);
                     }
                   },
                 )
@@ -170,7 +170,7 @@ Future<void> exportWithChoice({
     );
   } catch (_) {
     messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(SnackBar(content: Text(s('exportError'))));
+    AppToast.show(s('exportError'), type: ToastType.error);
   }
 }
 
@@ -241,7 +241,7 @@ Future<void> saveOrShareFile({
                   label: s('exportOpen'),
                   onPressed: () async {
                     if (!await DownloadSaver.open(saved)) {
-                      messenger.showSnackBar(SnackBar(content: Text(s('exportNoAppToOpen'))));
+                      AppToast.show(s('exportNoAppToOpen'), type: ToastType.error);
                     }
                   },
                 )
@@ -256,7 +256,7 @@ Future<void> saveOrShareFile({
       SnackBar(content: Text(e.code == 'permission_denied' ? s('exportPermissionDenied') : s('exportError'))),
     );
   } catch (_) {
-    messenger.showSnackBar(SnackBar(content: Text(s('exportError'))));
+    AppToast.show(s('exportError'), type: ToastType.error);
   }
 }
 

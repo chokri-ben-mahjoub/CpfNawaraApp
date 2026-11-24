@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import '../../../core/widgets/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -43,7 +44,6 @@ class _DataAdminScreenState extends ConsumerState<DataAdminScreen> {
   String s(String key) => tr(ref.read(localeProvider), key);
 
   Future<void> _pickFile() async {
-    final messenger = ScaffoldMessenger.of(context);
     final FilePickerResult? picked;
     try {
       picked = await LockGuard.run(
@@ -54,7 +54,7 @@ class _DataAdminScreenState extends ConsumerState<DataAdminScreen> {
         ),
       );
     } catch (_) {
-      messenger.showSnackBar(SnackBar(content: Text(s('importReadError'))));
+      AppToast.show(s('importReadError'), type: ToastType.error);
       return;
     }
     final file = picked?.files.single;
@@ -86,7 +86,7 @@ class _DataAdminScreenState extends ConsumerState<DataAdminScreen> {
         _plan = importer.analyze(tables);
       });
     } catch (_) {
-      messenger.showSnackBar(SnackBar(content: Text(s('importReadError'))));
+      AppToast.show(s('importReadError'), type: ToastType.error);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -96,7 +96,6 @@ class _DataAdminScreenState extends ConsumerState<DataAdminScreen> {
     final plan = _plan;
     if (plan == null || plan.total == 0) return;
     setState(() => _busy = true);
-    final messenger = ScaffoldMessenger.of(context);
     try {
       await runWithLoading(context, s('loadingImport'), () async {
         await AnalysisImporter.apply(plan);
@@ -104,13 +103,13 @@ class _DataAdminScreenState extends ConsumerState<DataAdminScreen> {
         await ref.read(plantControllerProvider.notifier).reload();
         await ref.read(stockControllerProvider.notifier).reload();
       });
-      messenger.showSnackBar(SnackBar(content: Text(fill(s('importDone'), {'n': '${plan.total}'}))));
+      AppToast.show(fill(s('importDone'), {'n': '${plan.total}'}), type: ToastType.success);
       setState(() {
         _plan = null;
         _fileName = null;
       });
     } catch (_) {
-      messenger.showSnackBar(SnackBar(content: Text(s('importFailed'))));
+      AppToast.show(s('importFailed'), type: ToastType.error);
     } finally {
       if (mounted) setState(() => _busy = false);
     }

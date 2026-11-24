@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
@@ -27,7 +28,7 @@ class _VoiceNumberButtonState extends ConsumerState<VoiceNumberButton> {
     super.dispose();
   }
 
-  void _toast(String text) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+  void _toast(String text) => AppToast.show(text, type: ToastType.info);
 
   Future<void> _toggle() async {
     final locale = ref.read(localeProvider);

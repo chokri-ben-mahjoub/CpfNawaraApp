@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import '../../../core/widgets/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -92,7 +93,7 @@ class _RoundEntryScreenState extends ConsumerState<RoundEntryScreen> {
         if (e.value != null) e.key: e.value,
     };
     if (values.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr(locale, 'plantEntryEmpty'))));
+      AppToast.show(tr(locale, 'plantEntryEmpty'), type: ToastType.warning);
       return;
     }
     setState(() => _saving = true);
@@ -109,9 +110,8 @@ class _RoundEntryScreenState extends ConsumerState<RoundEntryScreen> {
           photo: _photo,
         );
     if (!mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
     Navigator.of(context).pop();
-    messenger.showSnackBar(SnackBar(content: Text(tr(locale, 'roundsSaved'))));
+    AppToast.show(tr(locale, 'roundsSaved'), type: ToastType.success);
   }
 
   Future<void> _pickPhoto() async {

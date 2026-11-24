@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../../../core/widgets/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -395,7 +396,7 @@ class _AppNameFieldState extends ConsumerState<_AppNameField> {
     ref.read(appNameProvider.notifier).setName(_controller.text);
     // Champ vide : redescend sur le nom par défaut, affiché pour confirmer.
     _controller.text = ref.read(appNameProvider);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr(locale, 'settingsAppNameSaved'))));
+    AppToast.show(tr(locale, 'settingsAppNameSaved'), type: ToastType.success);
   }
 
   @override
@@ -428,21 +429,20 @@ class _AppLogoField extends ConsumerWidget {
   Future<void> _import(BuildContext context, WidgetRef ref) async {
     final locale = ref.read(localeProvider);
     String s(String key) => tr(locale, key);
-    final messenger = ScaffoldMessenger.of(context);
     FilePickerResult? picked;
     try {
       picked = await LockGuard.run(
         () => FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['png', 'jpg', 'jpeg', 'ico'], withData: true),
       );
     } catch (_) {
-      messenger.showSnackBar(SnackBar(content: Text(s('settingsAppLogoError'))));
+      AppToast.show(s('settingsAppLogoError'), type: ToastType.error);
       return;
     }
     final bytes = picked?.files.single.bytes;
     if (bytes == null || !context.mounted) return;
     final logo = await runWithLoading(context, s('settingsAppLogoLoading'), () => compute(compressLogo, bytes));
     if (logo == null) {
-      if (context.mounted) messenger.showSnackBar(SnackBar(content: Text(s('settingsAppLogoError'))));
+      if (context.mounted) AppToast.show(s('settingsAppLogoError'), type: ToastType.error);
       return;
     }
     await ref.read(appLogoProvider.notifier).setLogo(logo.bytes);
@@ -450,7 +450,7 @@ class _AppLogoField extends ConsumerWidget {
     if (ref.read(currentRoleProvider).canConfigure) {
       await ref.read(sharedConfigProvider.notifier).set(companyLogoKey, base64Encode(logo.bytes));
     }
-    messenger.showSnackBar(SnackBar(content: Text(s('settingsAppLogoSaved'))));
+    AppToast.show(s('settingsAppLogoSaved'), type: ToastType.success);
   }
 
   Future<void> _remove(WidgetRef ref, String Function(String) s, ScaffoldMessengerState messenger) async {
@@ -458,7 +458,7 @@ class _AppLogoField extends ConsumerWidget {
     if (ref.read(currentRoleProvider).canConfigure) {
       await ref.read(sharedConfigProvider.notifier).set(companyLogoKey, '');
     }
-    messenger.showSnackBar(SnackBar(content: Text(s('settingsAppLogoRemoved'))));
+    AppToast.show(s('settingsAppLogoRemoved'), type: ToastType.success);
   }
 
   @override
@@ -703,12 +703,11 @@ class _BackupSectionState extends ConsumerState<_BackupSection> {
         ),
       );
     } catch (_) {
-      messenger.showSnackBar(SnackBar(content: Text(s('backupFailed'))));
+      AppToast.show(s('backupFailed'), type: ToastType.error);
     }
   });
 
   Future<void> _share() => _run(() async {
-    final messenger = ScaffoldMessenger.of(context);
     try {
       final result = await shareFiles([
         ShareableFile(BackupService.fileName(DateTime.now()), backupMimeType, await BackupService.encode()),
@@ -717,18 +716,17 @@ class _BackupSectionState extends ConsumerState<_BackupSection> {
         await ref.read(appSettingsProvider.notifier).markBackupDone(automatic: false);
       }
     } catch (_) {
-      messenger.showSnackBar(SnackBar(content: Text(s('backupFailed'))));
+      AppToast.show(s('backupFailed'), type: ToastType.error);
     }
   });
 
   Future<void> _restore() async {
-    final messenger = ScaffoldMessenger.of(context);
     final locale = ref.read(localeProvider);
     final FilePickerResult? picked;
     try {
       picked = await LockGuard.run(() => FilePicker.platform.pickFiles(type: FileType.any, withData: true));
     } catch (_) {
-      messenger.showSnackBar(SnackBar(content: Text(s('backupErrorNotJson'))));
+      AppToast.show(s('backupErrorNotJson'), type: ToastType.error);
       return;
     }
     final bytes = picked?.files.single.bytes;
@@ -738,7 +736,7 @@ class _BackupSectionState extends ConsumerState<_BackupSection> {
     try {
       payload = BackupService.parse(_decodeUtf8(bytes));
     } on InvalidBackupException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(s(e.messageKey))));
+      AppToast.show(s(e.messageKey), type: ToastType.error);
       return;
     }
 
@@ -791,9 +789,9 @@ class _BackupSectionState extends ConsumerState<_BackupSection> {
         await ref.read(plantControllerProvider.notifier).reload();
         await ref.read(stockControllerProvider.notifier).reload();
         await refreshReminders(ref);
-        messenger.showSnackBar(SnackBar(content: Text(s('backupRestored'))));
+        AppToast.show(s('backupRestored'), type: ToastType.success);
       } catch (_) {
-        messenger.showSnackBar(SnackBar(content: Text(s('backupRestoreFailed'))));
+        AppToast.show(s('backupRestoreFailed'), type: ToastType.error);
       }
     });
   }
@@ -836,7 +834,7 @@ class _ReminderSection extends ConsumerWidget {
               final granted = await ReminderService.requestPermission(s('reminderChannelName'));
               if (!granted) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s('reminderPermissionDenied'))));
+                  AppToast.show(s('reminderPermissionDenied'), type: ToastType.error);
                 }
                 return;
               }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/widgets/app_toast.dart';
 import 'package:flutter/services.dart';
 
 import 'report_send_sheet.dart';
@@ -78,7 +79,7 @@ Future<void> exportPlantOutOfRange(WidgetRef ref, BuildContext context) async {
     }
   }
   if (rows.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s('plantOutNone'))));
+    AppToast.show(s('plantOutNone'), type: ToastType.warning);
     return;
   }
   await runExport(

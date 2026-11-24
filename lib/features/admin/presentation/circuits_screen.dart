@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/widgets/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/l10n/app_strings.dart';
@@ -129,7 +130,7 @@ class _CircuitFormState extends ConsumerState<_CircuitForm> {
     );
     if (!mounted) return;
     Navigator.of(context).pop();
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr(locale, 'circuitsSaved'))));
+    AppToast.show(tr(locale, 'circuitsSaved'), type: ToastType.success);
   }
 
   Future<void> _delete() async {

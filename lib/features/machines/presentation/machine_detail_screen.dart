@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/widgets/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -205,7 +206,6 @@ class _StandardCard extends ConsumerWidget {
   Future<void> _edit(BuildContext context, WidgetRef ref, int i) async {
     final cur = s.readings[i].point.measured;
     final c = TextEditingController(text: cur?.toString() ?? '');
-    final messenger = ScaffoldMessenger.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -226,7 +226,7 @@ class _StandardCard extends ConsumerWidget {
     final text = c.text.trim();
     final v = text.isEmpty ? null : double.tryParse(text.replaceAll(',', '.'));
     if (text.isNotEmpty && v == null) {
-      messenger.showSnackBar(const SnackBar(content: Text('Valeur invalide')));
+      AppToast.show('Valeur invalide', type: ToastType.error);
       return;
     }
     await ref.read(machineHistoryProvider.notifier).recordMeasurement(machine, sheet, s.standard, i, v);

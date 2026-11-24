@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import '../../../core/widgets/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -182,7 +183,7 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
       if (param.computed && computed[param.key] != null) values[param.key] = computed[param.key];
     }
     if (values.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s('plantEntryEmpty'))));
+      AppToast.show(s('plantEntryEmpty'), type: ToastType.warning);
       return;
     }
     setState(() => _saving = true);
@@ -205,9 +206,8 @@ class _PlantEntryScreenState extends ConsumerState<PlantEntryScreen> {
           },
         );
     if (!mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
     Navigator.of(context).pop();
-    messenger.showSnackBar(SnackBar(content: Text(s('plantEntrySaved'))));
+    AppToast.show(s('plantEntrySaved'), type: ToastType.success);
   }
 
   Future<void> _delete(PlantAnalysis existing) async {

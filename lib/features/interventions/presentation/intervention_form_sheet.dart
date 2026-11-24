@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/widgets/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -94,9 +95,8 @@ class _InterventionFormState extends ConsumerState<_InterventionForm> {
     if (!mounted) return;
     final locale = ref.read(localeProvider);
     String s(String key) => tr(locale, key);
-    final messenger = ScaffoldMessenger.of(context);
     Navigator.of(context).pop();
-    messenger.showSnackBar(SnackBar(content: Text(s(_isNew ? 'interventionAdded' : 'interventionUpdated'))));
+    AppToast.show(s(_isNew ? 'interventionAdded' : 'interventionUpdated'), type: ToastType.success);
   }
 
   Future<void> _delete() async {
@@ -121,9 +121,8 @@ class _InterventionFormState extends ConsumerState<_InterventionForm> {
     if (confirmed != true) return;
     await ref.read(wellsControllerProvider.notifier).deleteIntervention(widget.existing!.id);
     if (!mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
     Navigator.of(context).pop();
-    messenger.showSnackBar(SnackBar(content: Text(s('interventionDeleted'))));
+    AppToast.show(s('interventionDeleted'), type: ToastType.success);
   }
 
   @override

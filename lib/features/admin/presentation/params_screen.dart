@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/widgets/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/l10n/app_strings.dart';
@@ -250,7 +251,7 @@ class _ParamFormState extends ConsumerState<_ParamForm> {
         );
     if (!mounted) return;
     Navigator.of(context).pop(key);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s('paramsSaved'))));
+    AppToast.show(s('paramsSaved'), type: ToastType.success);
   }
 
   /// Efface le renommage/l'unité modifiée (ou réaffiche, si masqué) d'un
@@ -473,7 +474,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
         );
     if (!mounted) return;
     Navigator.of(context).pop();
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s('profilesSaved'))));
+    AppToast.show(s('profilesSaved'), type: ToastType.success);
   }
 
   Future<void> _deleteOrReset() async {

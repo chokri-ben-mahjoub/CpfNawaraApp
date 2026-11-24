@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import '../../../core/widgets/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -137,7 +138,7 @@ class StockItemDetailScreen extends ConsumerWidget {
     await ref.read(stockControllerProvider.notifier).deleteItem(item.id);
     if (context.mounted) {
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s('stockItemDeleted'))));
+      AppToast.show(s('stockItemDeleted'), type: ToastType.success);
     }
   }
 }

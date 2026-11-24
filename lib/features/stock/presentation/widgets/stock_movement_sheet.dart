@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/widgets/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/auth/auth_providers.dart';
@@ -41,7 +42,6 @@ class _StockMovementSheetState extends ConsumerState<_StockMovementSheet> {
     final locale = ref.read(localeProvider);
     final profile = ref.read(profileProvider);
     String s(String key) => tr(locale, key);
-    final messenger = ScaffoldMessenger.of(context);
 
     await ref.read(stockControllerProvider.notifier).addMovement(
           itemId: widget.item.id,
@@ -50,7 +50,7 @@ class _StockMovementSheetState extends ConsumerState<_StockMovementSheet> {
           wellId: _wellId,
           operatorName: profile?.fullName ?? '',
         );
-    messenger.showSnackBar(SnackBar(content: Text(s(widget.isEntry ? 'stockEntryAdded' : 'stockExitAdded'))));
+    AppToast.show(s(widget.isEntry ? 'stockEntryAdded' : 'stockExitAdded'), type: ToastType.success);
     if (mounted) Navigator.of(context).pop();
   }
 

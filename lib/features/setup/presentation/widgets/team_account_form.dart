@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import '../../../../core/widgets/app_toast.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -129,7 +130,7 @@ class ProjectProblemCard extends ConsumerWidget {
                   onPressed: () async {
                     await Clipboard.setData(const ClipboardData(text: firestoreRules));
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s('rulesCopied'))));
+                      AppToast.show(s('rulesCopied'), type: ToastType.success);
                     }
                   },
                   icon: const Icon(Icons.copy_rounded, size: 18),
@@ -345,7 +346,7 @@ class _TeamAccountFormState extends ConsumerState<TeamAccountForm> {
     try {
       await ref.read(syncControllerProvider.notifier).sendPasswordReset(email);
       setState(() => _error = null);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s('syncResetSent'))));
+      if (mounted) AppToast.show(s('syncResetSent'), type: ToastType.success);
     } catch (e) {
       setState(() => _error = s(teamErrorKey(e)));
     }
@@ -571,9 +572,7 @@ class _MemberStatusBannerState extends ConsumerState<MemberStatusBanner> {
       await ref.read(syncControllerProvider.notifier).refreshMember();
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(tr(ref.read(localeProvider), 'syncErrorServer'))));
+        AppToast.show(tr(ref.read(localeProvider), 'syncErrorServer'), type: ToastType.error);
       }
     } finally {
       if (mounted) setState(() => _busy = false);

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/widgets/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/data/wells_repository.dart';
@@ -158,7 +159,6 @@ class _WellFormState extends ConsumerState<_WellForm> {
     final reservoirPressure = parseDecimal(_prController.text);
     final latitude = parseDecimal(_latController.text);
     final longitude = parseDecimal(_lngController.text);
-    final messenger = ScaffoldMessenger.of(context);
     if (_isNew) {
       await controller.addWell(
         code: _codeController.text.trim(),
@@ -171,7 +171,7 @@ class _WellFormState extends ConsumerState<_WellForm> {
         latitude: latitude,
         longitude: longitude,
       );
-      messenger.showSnackBar(SnackBar(content: Text(s('wellsManageAdded'))));
+      AppToast.show(s('wellsManageAdded'), type: ToastType.success);
     } else {
       await controller.updateWell(
         Well(
@@ -187,7 +187,7 @@ class _WellFormState extends ConsumerState<_WellForm> {
           longitude: longitude,
         ),
       );
-      messenger.showSnackBar(SnackBar(content: Text(s('wellsManageUpdated'))));
+      AppToast.show(s('wellsManageUpdated'), type: ToastType.success);
     }
     if (mounted) Navigator.of(context).pop();
   }
@@ -206,7 +206,7 @@ class _WellFormState extends ConsumerState<_WellForm> {
     await ref.read(wellsControllerProvider.notifier).deleteWell(widget.existing!.id);
     if (mounted) {
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s('wellsManageDeleted'))));
+      AppToast.show(s('wellsManageDeleted'), type: ToastType.success);
     }
   }
 

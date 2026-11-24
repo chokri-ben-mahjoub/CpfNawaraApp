@@ -1,6 +1,7 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../../../core/widgets/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -21,18 +22,17 @@ IconData plantSchemaIcon(PlantSchemaKind kind) => switch (kind) {
 /// Choisit une image (photo, scan, capture du PFD) et la compresse pour un
 /// schéma. `null` si annulé ; un message explique l'échec éventuel.
 Future<SchemaImage?> pickSchemaImage(BuildContext context, String Function(String) s) async {
-  final messenger = ScaffoldMessenger.of(context);
   FilePickerResult? picked;
   try {
     picked = await LockGuard.run(() => FilePicker.platform.pickFiles(type: FileType.image, withData: true));
   } catch (_) {
-    messenger.showSnackBar(SnackBar(content: Text(s('schemaImageError'))));
+    AppToast.show(s('schemaImageError'), type: ToastType.error);
     return null;
   }
   final bytes = picked?.files.single.bytes;
   if (bytes == null || !context.mounted) return null;
   final image = await runWithLoading(context, s('schemaImageLoading'), () => compute(compressSchemaImage, bytes));
-  if (image == null) messenger.showSnackBar(SnackBar(content: Text(s('schemaImageError'))));
+  if (image == null) AppToast.show(s('schemaImageError'), type: ToastType.error);
   return image;
 }
 
@@ -195,7 +195,7 @@ class _PlantSchemaEditorScreenState extends ConsumerState<PlantSchemaEditorScree
     await ref.read(plantControllerProvider.notifier).saveSchema(schema.copyWith(positions: Map.of(_positions)));
     if (!mounted) return;
     setState(() => _dirty = false);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s('schemaSaved'))));
+    AppToast.show(s('schemaSaved'), type: ToastType.success);
     context.pop();
   }
 
@@ -249,7 +249,7 @@ class _PlantSchemaEditorScreenState extends ConsumerState<PlantSchemaEditorScree
     final deleted = await ref.read(plantControllerProvider.notifier).deleteSchema(_schema!.id);
     if (!mounted) return;
     if (!deleted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s('schemaDeleteLast'))));
+      AppToast.show(s('schemaDeleteLast'), type: ToastType.error);
       return;
     }
     ref.read(plantSchemaIdProvider.notifier).state = null;

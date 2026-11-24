@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import '../../../core/widgets/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/auth/app_lock.dart';
@@ -50,7 +51,7 @@ class _SopScreenState extends ConsumerState<SopScreen> {
       // Sur desktop, le sélecteur ne renvoie que le chemin : on écrit nous-mêmes.
       if (isDesktop && path != null) await File(path).writeAsBytes(bytes);
       if (path != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(sop.fileName)));
+        AppToast.show(sop.fileName, type: ToastType.info);
       }
     } catch (_) {
       // Repli : partage du fichier.
