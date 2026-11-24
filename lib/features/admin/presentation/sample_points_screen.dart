@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/plant/plant_catalog.dart';
+import '../../../core/plant/plant_methods.dart';
 import '../../../core/plant/plant_repository.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/responsive.dart';
@@ -406,7 +407,7 @@ class _PointFormState extends ConsumerState<_PointForm> {
               for (final p in plantParamCatalog)
                 SelectableEditableChip(
                   label:
-                      '${s(p.labelKey)}${p.unit.isEmpty ? '' : ' (${p.displayed().unit})'}',
+                      '${labelWithoutMethod(s(p.labelKey))}${p.unit.isEmpty ? '' : ' (${p.displayed().unit})'}',
                   selected: _params.contains(p.key),
                   onSelected: (on) => setState(() {
                     _error = null;
