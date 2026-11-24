@@ -158,10 +158,6 @@ Future<Uint8List> buildRoundsPdf({
         pw.SizedBox(height: 8),
         header(),
         for (final r in wellRounds) wellRow(r),
-        if (operators.isNotEmpty) ...[
-          pw.SizedBox(height: 10),
-          pw.Text('Operator: ${operators.join(', ')}', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
-        ],
         if (siteRounds.isNotEmpty) ...[
           pw.SizedBox(height: 14),
           pw.Row(children: [
@@ -181,6 +177,10 @@ Future<Uint8List> buildRoundsPdf({
                   ),
                 ),
             ]),
+        ],
+        if (operators.isNotEmpty) ...[
+          pw.SizedBox(height: 14),
+          pw.Text('Operator: ${operators.join(', ')}', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
         ],
       ],
     ),
