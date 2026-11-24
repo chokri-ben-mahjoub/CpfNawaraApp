@@ -25,7 +25,6 @@ import 'package:puitstrack/features/auth/presentation/pin_setup_screen.dart';
 import 'package:puitstrack/features/auth/presentation/profile_setup_screen.dart';
 import 'package:puitstrack/features/auth/presentation/unlock_screen.dart';
 import 'package:puitstrack/features/dashboard/presentation/dashboard_screen.dart';
-import 'package:puitstrack/features/qr/presentation/qr_screen.dart';
 import 'package:puitstrack/features/home/presentation/home_shell.dart';
 import 'package:puitstrack/features/home/presentation/widgets/notification_bell.dart';
 import 'package:puitstrack/features/splash/splash_screen.dart';
@@ -601,12 +600,6 @@ void main() {
     expect(find.text('1'), findsOneWidget);
     await t.tap(find.text('1'));
     await t.pump(const Duration(milliseconds: 300));
-    expect(t.takeException(), isNull);
-  });
-  testWidgets('QR codes : scan et étiquettes', (t) async {
-    await _render(t, const QrScreen(), height: 1200);
-    expect(find.text('Scanner un QR code'), findsOneWidget);
-    expect(find.text('Générer le PDF'), findsOneWidget);
     expect(t.takeException(), isNull);
   });
   testWidgets('alertes (heure limite passée)', (t) async {

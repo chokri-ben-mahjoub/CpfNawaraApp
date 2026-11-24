@@ -23,7 +23,6 @@ import '../../features/analysis/presentation/decline_screen.dart';
 import '../../features/analysis/presentation/ratio_trend_screen.dart';
 import '../../features/entry/presentation/batch_entry_screen.dart';
 import '../../features/entry/presentation/quick_entry_screen.dart';
-import '../../features/qr/presentation/qr_screen.dart';
 import '../../features/home/presentation/home_shell.dart';
 import '../../features/interventions/presentation/interventions_screen.dart';
 import '../../features/plant/presentation/plant_batch_entry_screen.dart';
@@ -171,7 +170,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/gas-bottles/batch', builder: (context, state) => const GasBottlesBatchScreen()),
       GoRoute(path: '/sop', builder: (context, state) => const SopScreen()),
       GoRoute(path: '/sample-manifest', builder: (context, state) => const SampleManifestScreen()),
-      GoRoute(path: '/qr', builder: (context, state) => const QrScreen()),
       GoRoute(
         path: '/stock/:id',
         builder: (context, state) => StockItemDetailScreen(itemId: state.pathParameters['id']!),

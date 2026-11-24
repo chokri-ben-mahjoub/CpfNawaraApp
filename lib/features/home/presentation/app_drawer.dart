@@ -25,7 +25,6 @@ const homeDestinations = [
 /// rôle.
 List<(IconData, String, String)> homeShortcuts(UserRole role) => [
       if (role.canEnterData) (Icons.add_circle_outline, 'wellDetailAddAnalysis', '/entry'),
-      (Icons.qr_code_scanner, 'qrTitle', '/qr'),
       (Icons.compare_arrows_rounded, 'compareTitle', '/compare'),
       if (role.canManageOps) (Icons.inventory_2_outlined, 'stockTitle', '/stock'),
       if (role.canManageOps) (Icons.propane_tank_outlined, 'gasBottlesTitle', '/gas-bottles'),

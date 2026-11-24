@@ -286,12 +286,15 @@ class _MoreShortcutsButton extends StatelessWidget {
       for (final (icon, key, route) in shortcuts)
         PopupMenuItem(
           value: route,
-          child: Row(
-            children: [
-              Icon(icon, size: 20, color: scheme.onSurfaceVariant),
-              const SizedBox(width: 12),
-              Text(labelOf(key)),
-            ],
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 260),
+            child: Row(
+              children: [
+                Icon(icon, size: 20, color: scheme.onSurfaceVariant),
+                const SizedBox(width: 12),
+                Flexible(child: Text(labelOf(key), maxLines: 2, overflow: TextOverflow.ellipsis)),
+              ],
+            ),
           ),
         ),
     ];

@@ -3,8 +3,6 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:puitstrack/core/qr/qr_labels_pdf.dart';
-import 'package:puitstrack/core/qr/qr_links.dart';
 import 'package:puitstrack/core/export/export_table.dart';
 import 'package:puitstrack/core/export/pdf_export_settings.dart';
 import 'package:puitstrack/core/export/pdf_table_exporter.dart';
@@ -139,20 +137,6 @@ void main() {
     expect(override.length, isNot(saved.length));
     // Rien n'a été enregistré par l'aperçu.
     expect((await PdfExportSettings.load()).style.isDefault, isTrue);
-  });
-
-  test('planche QR : titre suit le style personnalisé', () async {
-    SharedPreferences.setMockInitialValues({});
-    Future<int> size() async => (await buildQrLabelsPdf(
-      labels: const [QrLabel(kind: QrKind.well, id: 'w1', title: 'Puits 1')],
-      title: 'Etiquettes',
-      kindLabel: (k) => k.name,
-    )).length;
-    final before = await size();
-    await PdfExportSettings.applyStyleToAll(
-      const PdfStyleSet(reportTitle: PdfTextStyleSpec(family: PdfFontFamily.courier, size: 20, bold: true)),
-    );
-    expect(await size(), isNot(before));
   });
 
   test('un style personnalisé change le rendu', () async {

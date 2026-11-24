@@ -1,7 +1,11 @@
 {
-  "version": "0.37.0",
+  "version": "0.39.2",
   "notes": {
-    "fr": ["Nouveau menu « SOP for analysis » : joindre et consulter les procédures d’analyse en PDF"],
-    "en": ["New “SOP for analysis” menu: attach and view analysis procedures as PDFs"]
+    "fr": [
+      "Nouveau menu « SOP for analysis » : joindre et consulter les procédures d’analyse en PDF"
+    ],
+    "en": [
+      "New “SOP for analysis” menu: attach and view analysis procedures as PDFs"
+    ]
   }
 }

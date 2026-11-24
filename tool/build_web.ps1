@@ -5,6 +5,8 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 Push-Location $root
 try {
+  python tool\bump_version.py
+  if ($LASTEXITCODE -ne 0) { throw 'bump_version.py a échoué' }
   flutter build web --release --no-web-resources-cdn
   if ($LASTEXITCODE -ne 0) { throw 'flutter build web a échoué' }
   python tool\gen_offline_sw.py
