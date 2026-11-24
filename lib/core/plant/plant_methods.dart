@@ -57,8 +57,11 @@ String? plantMethodShown(PlantParam param, String label) {
   if (custom.isNotEmpty) return custom;
   final known = methodFromLabel(label) ?? astmMethodFor(param.key);
   if (known != null) return known;
-  // Condensat libre (même paramètre personnalisé) : essai de décantation.
-  if (label.toLowerCase().contains('free condensate') || param.key.contains('free_condensate')) {
+  // Condensat libre, émulsion, sable (même paramètre personnalisé) : essai
+  // de décantation.
+  final l = label.toLowerCase();
+  if (l.contains('free condensate') || l.contains('emulsion') || l.contains('sand') ||
+      param.key.contains('free_condensate') || param.key.contains('emulsion') || param.key.contains('sand')) {
     return 'Settling';
   }
   return null;

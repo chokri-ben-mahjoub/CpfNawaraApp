@@ -195,10 +195,10 @@ class _ParamFormState extends ConsumerState<_ParamForm> {
   void initState() {
     super.initState();
     final p = widget.existing;
-    _label = TextEditingController(text: p == null ? '' : s(p.labelKey));
+    _label = TextEditingController(text: p == null ? '' : labelWithoutMethod(s(p.labelKey)));
     _unit = TextEditingController(text: p?.unit ?? '');
     _choices = TextEditingController(text: p?.choices.join('\n') ?? '');
-    _method = TextEditingController(text: p == null ? '' : (plantMethodFor(p) ?? ''));
+    _method = TextEditingController(text: p == null ? '' : (plantMethodShown(p, s(p.labelKey)) ?? ''));
     _kind = p?.kind ?? ParamKind.number;
     _ok = {...?p?.okChoices};
   }
@@ -221,7 +221,10 @@ class _ParamFormState extends ConsumerState<_ParamForm> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
-    final label = _label.text.trim();
+    // Une méthode tapée dans le nom (« … (ASTM D512) ») va dans sa colonne.
+    final typed = _label.text.trim();
+    final label = labelWithoutMethod(typed);
+    if (_method.text.trim().isEmpty) _method.text = methodFromLabel(typed) ?? '';
     final choices = _choiceList;
     if (_kind == ParamKind.choice && choices.length < 2) {
       setState(() => _error = s('paramsChoicesInvalid'));
