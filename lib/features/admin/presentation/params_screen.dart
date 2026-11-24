@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/plant/plant_catalog.dart';
+import '../../../core/plant/plant_methods.dart';
 import '../../../core/plant/plant_repository.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/responsive.dart';
@@ -176,6 +177,7 @@ class _ParamFormState extends ConsumerState<_ParamForm> {
   late final TextEditingController _label;
   late final TextEditingController _unit;
   late final TextEditingController _choices;
+  late final TextEditingController _method;
   late ParamKind _kind;
   late Set<String> _ok;
   String? _error;
@@ -196,6 +198,7 @@ class _ParamFormState extends ConsumerState<_ParamForm> {
     _label = TextEditingController(text: p == null ? '' : s(p.labelKey));
     _unit = TextEditingController(text: p?.unit ?? '');
     _choices = TextEditingController(text: p?.choices.join('\n') ?? '');
+    _method = TextEditingController(text: p == null ? '' : (plantMethodFor(p) ?? ''));
     _kind = p?.kind ?? ParamKind.number;
     _ok = {...?p?.okChoices};
   }
@@ -205,6 +208,7 @@ class _ParamFormState extends ConsumerState<_ParamForm> {
     _label.dispose();
     _unit.dispose();
     _choices.dispose();
+    _method.dispose();
     super.dispose();
   }
 
@@ -238,6 +242,7 @@ class _ParamFormState extends ConsumerState<_ParamForm> {
             key: existing?.key ?? '',
             label: label,
             unit: _kind == ParamKind.number ? _unit.text.trim() : '',
+            method: _method.text.trim(),
             kind: _kind,
             choices: _kind == ParamKind.choice ? choices : const [],
             okChoices: _kind == ParamKind.choice
@@ -385,6 +390,17 @@ class _ParamFormState extends ConsumerState<_ParamForm> {
               ),
             ],
           ],
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _method,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: InputDecoration(
+              labelText: s('paramsMethod'),
+              hintText: s('paramsMethodHint'),
+              helperText: s('paramsMethodHelp'),
+              prefixIcon: const Icon(Icons.science_outlined),
+            ),
+          ),
           if (_error != null) ...[
             const SizedBox(height: 12),
             Text(

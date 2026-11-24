@@ -111,6 +111,11 @@ class PlantParam {
   /// paramètres du même point — voir [plantComputedValues].
   final bool computed;
 
+  /// Méthode d'analyse saisie par l'administrateur (ex: « ASTM D 1298 »),
+  /// affichée dans la colonne « Méthode » du rapport. Vide = méthode
+  /// d'usine éventuelle (voir `plant_methods.dart`).
+  final String method;
+
   const PlantParam(
     this.key,
     this.labelKey,
@@ -122,6 +127,7 @@ class PlantParam {
     this.fixedUnit = false,
     this.hidden = false,
     this.computed = false,
+    this.method = '',
   });
 
   bool get isNumeric => kind == ParamKind.number;
@@ -137,7 +143,7 @@ class PlantParam {
     if (storedUnit != null || fixedUnit) return this;
     final shown = Units.unit(unit);
     if (shown == unit) return this;
-    return PlantParam(key, labelKey, shown, kind: kind, choices: choices, okChoices: okChoices, storedUnit: unit);
+    return PlantParam(key, labelKey, shown, kind: kind, choices: choices, okChoices: okChoices, storedUnit: unit, method: method);
   }
 
   /// Valeur enregistrée (SI) → valeur affichée.
@@ -392,7 +398,9 @@ PlantParam customPlantParam({
   List<String> choices = const [],
   List<String> okChoices = const [],
   bool hidden = false,
-}) => PlantParam(key, label, unit, kind: kind, choices: choices, okChoices: okChoices, fixedUnit: true, hidden: hidden);
+  String method = '',
+}) => PlantParam(key, label, unit,
+    kind: kind, choices: choices, okChoices: okChoices, fixedUnit: true, hidden: hidden, method: method);
 
 bool isCustomPlantParam(String key) => PlantCustomCatalog.params.containsKey(key);
 

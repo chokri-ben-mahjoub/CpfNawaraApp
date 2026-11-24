@@ -263,7 +263,7 @@ Future<Uint8List> buildPlantDailyReport({
               final valueText = measured is num ? '${measured.toDouble().toStringAsFixed(3).replaceFirst(RegExp(r'\.?0+$'), '')}%V' : t(choice);
               out.add([
                 n == 0 ? t('plantParamAppearance') : const PdfCellContinues(),
-                if (pdfCfg.showMethods) (n == 0 ? (astmMethodFor(sp.key) ?? '-') : const PdfCellContinues()),
+                if (pdfCfg.showMethods) (n == 0 ? (plantMethodShown(sp, t(sp.labelKey)) ?? '-') : const PdfCellContinues()),
                 n == 0 ? '%Vol' : const PdfCellContinues(),
                 pw.RichText(
                   text: pw.TextSpan(
@@ -285,8 +285,8 @@ Future<Uint8List> buildPlantDailyReport({
           }
           if (!shown(param)) continue;
           out.add([
-                    t(param.labelKey),
-                    if (pdfCfg.showMethods) (astmMethodFor(param.key) ?? '-'),
+                    labelWithoutMethod(t(param.labelKey)),
+                    if (pdfCfg.showMethods) (plantMethodShown(param, t(param.labelKey)) ?? '-'),
                     param.unit,
                     () {
                       final valueText = param.isNumeric

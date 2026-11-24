@@ -22,7 +22,7 @@ class LocalDatabase {
   static final LocalDatabase instance = LocalDatabase._();
 
   /// Version du schéma (voir `onUpgrade`), enregistrée dans les sauvegardes.
-  static const schemaVersion = 37;
+  static const schemaVersion = 38;
 
   /// Tables sauvegardées / restaurées / synchronisées.
   static const dataTables = [
@@ -384,6 +384,10 @@ class LocalDatabase {
             // Procédures d'analyse (SOP).
             await _createSopsTable(db);
           }
+          if (oldVersion >= 12 && oldVersion < 38) {
+            // Méthode d'analyse d'un paramètre (colonne « Méthode » du rapport).
+            await db.execute("alter table plant_params add column method text not null default ''");
+          }
           if (oldVersion >= 13 && oldVersion < 35) {
             // Certificat d'analyse (COA) joint à un article de stock.
             await db.execute('alter table stock_items add column coa text');
@@ -414,6 +418,10 @@ class LocalDatabase {
           await _createSopsTable(db);
           // Une version intermédiaire de l'app utilisait déjà « 36 » sans la
           // colonne de conditionnement : on la rajoute si elle manque.
+          final paramCols = await db.rawQuery('pragma table_info(plant_params)');
+          if (paramCols.isNotEmpty && !paramCols.any((c) => c['name'] == 'method')) {
+            await db.execute("alter table plant_params add column method text not null default ''");
+          }
           final cols = await db.rawQuery('pragma table_info(stock_items)');
           if (cols.isNotEmpty && !cols.any((c) => c['name'] == 'packaging')) {
             await db.execute("alter table stock_items add column packaging text not null default ''");
@@ -569,6 +577,7 @@ class LocalDatabase {
         ok_choices_json text,
         sort_order integer not null default 0,
         hidden integer not null default 0,
+        method text not null default '',
         updated_at integer not null default 0,
         dirty integer not null default 0
       )

@@ -2547,6 +2547,12 @@ final _strings = <String, Map<String, String>>{
   'paramsHiddenCount': {'fr': '{n} paramètre(s) intégré(s) retiré(s) de la liste', 'en': '{n} built-in parameter(s) removed from the list'},
   'paramsHiddenBadge': {'fr': 'Masqué', 'en': 'Hidden'},
   'paramsAdd': {'fr': 'Ajouter un paramètre', 'en': 'Add a parameter'},
+  'paramsMethod': {'fr': "Méthode d'analyse", 'en': 'Analysis method'},
+  'paramsMethodHint': {'fr': 'Ex : ASTM D 1298', 'en': 'e.g. ASTM D 1298'},
+  'paramsMethodHelp': {
+    'fr': 'Affichée dans la colonne « Méthode » du rapport (« - » si vide).',
+    'en': 'Shown in the report “Method” column (“-” when empty).',
+  },
   'paramsNew': {'fr': 'Nouveau paramètre', 'en': 'New parameter'},
   'paramsEdit': {'fr': 'Modifier le paramètre', 'en': 'Edit parameter'},
   'paramsDelete': {'fr': 'Supprimer ce paramètre', 'en': 'Delete this parameter'},

@@ -198,7 +198,7 @@ void main() {
     // v37 : procédures d'analyse (SOP).
     final sopsColumns = await db.rawQuery('pragma table_info(sops)');
     expect(sopsColumns.map((r) => r['name']), contains('file_name'));
-    expect(LocalDatabase.schemaVersion, 37);
+    expect(LocalDatabase.schemaVersion, 38);
 
     // Première connexion : tout ce qui a été saisi/modifié part au serveur.
     final engine = SyncEngine(

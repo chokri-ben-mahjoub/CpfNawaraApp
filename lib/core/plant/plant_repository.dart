@@ -771,6 +771,7 @@ class PlantController extends StateNotifier<PlantState> {
         'ok_choices_json': param.isNumeric ? null : jsonEncode(param.okChoices),
         'sort_order': sortOrder ?? state.customParams.length + 1,
         'hidden': 0,
+        'method': param.method.trim(),
       }),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -924,6 +925,7 @@ PlantParam _paramFromRow(Map<String, Object?> row) => customPlantParam(
   choices: _decodeStrings(row['choices_json']),
   okChoices: _decodeStrings(row['ok_choices_json']),
   hidden: (row['hidden'] as num?) == 1,
+  method: row['method'] as String? ?? '',
 );
 
 PlantProfileDef _profileFromRow(Map<String, Object?> row) => PlantProfileDef(
