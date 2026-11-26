@@ -292,7 +292,16 @@ class PdfExportSettings {
   ) async {
     final generic = await _loadFrom(kind.prefix, kind, PdfExportSettings.defaults(kind));
     if (circuitId == null) return generic;
-    return _loadFrom('${kind.prefix}c_${circuitId}_', kind, generic, circuitId: circuitId);
+    final perCircuit = await _loadFrom('${kind.prefix}c_${circuitId}_', kind, generic, circuitId: circuitId);
+    // Contenu de tout le rapport (bouteilles de gaz, Scope of Work, méthodes,
+    // page de garde) : toujours ceux de la famille, jamais une copie figée
+    // dans un circuit (sinon la désactivation n'a plus aucun effet).
+    return perCircuit.copyWith(
+      showGasBottles: generic.showGasBottles,
+      showScopeOfWork: generic.showScopeOfWork,
+      showMethods: generic.showMethods,
+      coverPage: generic.coverPage,
+    );
   }
 
   static Future<PdfExportSettings> _loadFrom(String k, PdfReportKind kind, PdfExportSettings d, {String? circuitId}) async {
@@ -376,10 +385,12 @@ class PdfExportSettings {
       await p.setBool('${k}showOutOfRangeComments', showOutOfRangeComments);
       await p.setBool('${k}showCircuitBadge', showCircuitBadge);
       await p.setBool('${k}logoRight', logoRight);
-      await p.setBool('${k}coverPage', coverPage);
-      await p.setBool('${k}showGasBottles', showGasBottles);
-      await p.setBool('${k}showMethods', showMethods);
-      await p.setBool('${k}showScopeOfWork', showScopeOfWork);
+      // Réglages valables pour tout le rapport : toujours sur la famille.
+      final g = kind.prefix;
+      await p.setBool('${g}coverPage', coverPage);
+      await p.setBool('${g}showGasBottles', showGasBottles);
+      await p.setBool('${g}showMethods', showMethods);
+      await p.setBool('${g}showScopeOfWork', showScopeOfWork);
       await p.setInt('${k}palette', palette);
       await p.setInt('${k}tableStyle', tableStyle);
       await p.setInt('${k}margins', margins);
