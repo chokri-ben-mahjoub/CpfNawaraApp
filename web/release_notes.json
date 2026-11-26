@@ -1,11 +1,13 @@
 {
-  "version": "0.39.11",
+  "version": "0.39.12",
   "notes": {
     "fr": [
-      "Nouveau menu « SOP for analysis » : joindre et consulter les procédures d’analyse en PDF"
+      "Exports PDF : l’aperçu réel montre la page « Scope of Work » et le relevé des bouteilles de gaz quand ils sont activés",
+      "Exports PDF : désactiver ces deux options les retire bien du rapport"
     ],
     "en": [
-      "New “SOP for analysis” menu: attach and view analysis procedures as PDFs"
+      "PDF exports: the real preview now shows the “Scope of Work” page and the gas bottles survey when enabled",
+      "PDF exports: turning these two options off now removes them from the report"
     ]
   }
 }
