@@ -50,6 +50,10 @@ Future<Uint8List> buildPlantDailyReport({
 
   /// Réglages à utiliser à la place de ceux enregistrés (aperçu en direct).
   PdfExportSettings? settings,
+
+  /// Aperçu des réglages : bouteilles de gaz et Scope of Work d'exemple (rien
+  /// n'est lu en base), pour que les deux options se voient à l'écran.
+  bool sampleExtras = false,
 }) async {
   // Polices standard du PDF : pas de tiret long ni de ≤ / ≥.
   String t(String key) => _safe(s(key));
@@ -63,14 +67,14 @@ Future<Uint8List> buildPlantDailyReport({
   final k = pdfCfg.textScale;
   final look = PdfLook(pdfCfg);
   final accentC = look.accent;
-  final gasBottles = pdfCfg.showGasBottles ? await loadGasBottles() : const <GasBottle>[];
+  final gasBottles = pdfCfg.showGasBottles ? (sampleExtras ? _previewGasBottles : await loadGasBottles()) : const <GasBottle>[];
   var gasBottlesReadingTime = gasBottles.isEmpty ? '' : await loadGasBottlesReadingTime();
   final gasReadingDate = gasBottles.isEmpty ? null : DateTime.tryParse(await loadGasBottlesReadingDate());
   if (gasReadingDate != null) {
     final d = '${gasReadingDate.day.toString().padLeft(2, '0')}/${gasReadingDate.month.toString().padLeft(2, '0')}/${gasReadingDate.year}';
     gasBottlesReadingTime = '$d $gasBottlesReadingTime'.trim();
   }
-  final sampleManifest = pdfCfg.showScopeOfWork ? await loadSampleManifest(day) : const <SampleManifestEntry>[];
+  final sampleManifest = pdfCfg.showScopeOfWork ? (sampleExtras ? _previewManifest(day) : await loadSampleManifest(day)) : const <SampleManifestEntry>[];
   final reportTitle = pdfCfg.reportTitle.trim().isEmpty ? t(allCircuits ? 'plantReportTitle' : 'plantSampleReportTitle') : _safe(pdfCfg.reportTitle.trim());
   final roleText = pdfCfg.signatureRole.trim().isEmpty ? t('plantReportRole') : _safe(pdfCfg.signatureRole.trim());
   final doc = pw.Document(title: reportTitle, author: currentAppName);
@@ -736,6 +740,16 @@ String _thresholdLabel(PlantThreshold? t) {
 /// Remplace les caractères absents des polices standard du PDF.
 /// Pression d'une bouteille de gaz : entier si rond, sinon une décimale
 /// (contrairement à `formatNumber`, pensé pour des valeurs d'analyse).
+const _previewGasBottles = [
+  GasBottle(id: 'p1', name: 'Bouteille 1', pressure: 120, location: 'Zone A'),
+  GasBottle(id: 'p2', name: 'Bouteille 2', pressure: 95.5, location: 'Zone B'),
+];
+
+List<SampleManifestEntry> _previewManifest(DateTime day) => [
+  SampleManifestEntry(id: 'p1', date: '', testItem: 'Condensate', conditioning: 'Bottle 1 L', quantity: 2, label: 'COND-01', cpfCode: 'CPF-001', samplingTime: '06:30'),
+  SampleManifestEntry(id: 'p2', date: '', testItem: 'Produced water', conditioning: 'Bottle 500 mL', quantity: 1, label: 'PW-01', cpfCode: 'CPF-002', samplingTime: '07:00'),
+];
+
 String _bottlePressureText(double v) => v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(1);
 
 String _safe(String text) => text

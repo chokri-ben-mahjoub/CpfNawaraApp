@@ -99,6 +99,7 @@ class _PdfRealPreviewState extends State<PdfRealPreview> {
           reportNumber: '1/26',
           allCircuits: everything,
           settings: cfg,
+          sampleExtras: true,
         );
       } else {
         bytes = await PdfTableExporter.encode(PdfRealPreview.defaultSample(), title: widget.title, operatorName: 'Opérateur', settings: cfg);
